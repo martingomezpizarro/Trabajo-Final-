@@ -146,6 +146,13 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
 /* spinner */
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid #2a2a50;border-top-color:#7c3aed;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
+#cmp-download-bar{display:flex;gap:6px;padding:6px 12px;background:#0f0f28;border-bottom:1px solid #1a1a3a;flex-wrap:wrap}
+#cmp-download-bar button{padding:3px 8px;font-size:9px;border:1px solid #2a2a50;border-radius:3px;background:#161636;color:#aaa;cursor:pointer;font-family:inherit}
+#cmp-download-bar button:hover{border-color:#7c3aed;color:#ddd}
+#cmp-corr-list{padding:8px 12px;background:#0e0e26;border-top:1px solid #1a1a3a;max-height:260px;overflow:auto}
+#cmp-corr-list table{width:100%;border-collapse:collapse;font-size:10px;color:#ccc}
+#cmp-corr-list th,#cmp-corr-list td{padding:4px 8px;text-align:left;border-bottom:1px solid #1a1a3a}
+#cmp-corr-list th{color:#7c3aed;font-weight:600}
 </style>
 </head>
 <body>
@@ -235,6 +242,12 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
       <div id="cs"></div>
       <div id="cmp-corr"></div>
       <div id="cmp-scatter"></div>
+      <div id="cmp-download-bar">
+        <button onclick="downloadCorrListCSV()">⬇ CSV Matriz de Correlación</button>
+        <button onclick="downloadPlotlyImage('cmp-corr','matriz_correlacion')">⬇ Heatmap PNG</button>
+        <button onclick="downloadPlotlyImage('cmp-scatter','matriz_dispersion')">⬇ Scatter PNG</button>
+      </div>
+      <div id="cmp-corr-list"></div>
     </div>
     <div id="empty" style="display:none;align-items:center;justify-content:center;color:#333;font-size:13px">Marcá 2+ series con el checkbox verde para comparar</div>
   </div>
@@ -2626,6 +2639,36 @@ function runSim() {
     Object.assign({},LAYOUT_BASE,{title:{text:'Varianza Condicional h_t',font:{size:11,color:'#9090c0'}},margin:{l:50,r:10,t:28,b:30},xaxis:{...LAYOUT_BASE.xaxis,type:'linear'},height:undefined}),cfg);
 }
 
+/* ── DOWNLOAD FUNCTIONS ── */
+async function downloadPlotlyImage(divId, filename) {
+  try {
+    await Plotly.downloadImage(divId, { format: 'png', filename, width: 1200, height: 800 });
+  } catch(e) { console.error('Download error', e); }
+}
+function downloadCorrListCSV() {
+  const table = document.querySelector('#cmp-corr-list table');
+  if (!table) return;
+  const rows = Array.from(table.querySelectorAll('tr'));
+  const csv = rows.map(row => {
+    const cells = Array.from(row.querySelectorAll('th, td'));
+    return cells.map(cell => {
+      let val = cell.textContent.trim();
+      if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+        val = '"' + val.replace(/"/g, '""') + '"';
+      }
+      return val;
+    }).join(',');
+  }).join('\n');
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'matriz_correlacion.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+}
 /* ── MA LIVE UPDATE ── */
 document.getElementById('ma-win').addEventListener('change', render);
 
