@@ -1,0 +1,41 @@
+# ============================================================
+# Trabajo Final de Grado - Riesgo País Argentino
+# Dependencias de Python
+# ============================================================
+
+# Data handling
+pandas>=2.0.0
+numpy>=1.24.0
+openpyxl>=3.1.0
+
+# Visualización
+matplotlib>=3.7.0
+plotly>=5.15.0
+seaborn>=0.12.0
+
+# APIs de datos financieros/económicos
+yfinance>=0.2.18
+fredapi>=0.5.0
+wbgapi>=1.0.0
+requests>=2.31.0
+
+# Econometría y estadística
+statsmodels>=0.14.0
+arch>=6.0.0
+scipy>=1.10.0
+scikit-learn>=1.3.0
+linearmodels>=5.0
+
+# Red neuronal (descomentar según preferencia)
+# tensorflow>=2.13.0
+# torch>=2.0.0
+# keras>=3.0.0
+
+# Jupyter
+jupyter>=1.0.0
+ipykernel>=6.25.0
+ipywidgets>=8.0.0
+
+# Utilidades
+tqdm>=4.65.0
+python-dateutil>=2.8.0

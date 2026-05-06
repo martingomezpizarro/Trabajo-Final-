@@ -1,0 +1,2124 @@
+[
+  {
+    "ticker": "DICY",
+    "nombre": "Discount Bond USD (Ley NY)",
+    "moneda": "USD",
+    "fecha_emision": "2005-06-02",
+    "fecha_vencimiento": "2033-12-31",
+    "cupon_info": "Step-up: 3.97%(2005-08), 5.77%(2009-13), 8.28%(2014+)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 7700,
+    "amortizacion_tipo": "20 cuotas semestrales iguales a partir de jun 2024",
+    "amortizacion_inicio": "2024-06-30",
+    "amortizacion_fin": "2033-12-31",
+    "amortizacion_cuotas": 20,
+    "era": "2005_restr",
+    "activo_desde": "2005-06-02",
+    "activo_hasta": "2020-09-04",
+    "notas": "Canjeado por bonos GD/AL en sept 2020. 66.137% haircut sobre face value original."
+  },
+  {
+    "ticker": "DICA",
+    "nombre": "Discount Bond USD (Ley Argentina)",
+    "moneda": "USD",
+    "fecha_emision": "2005-06-02",
+    "fecha_vencimiento": "2033-12-31",
+    "cupon_info": "Step-up: 3.97%(2005-08), 5.77%(2009-13), 8.28%(2014+)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 3800,
+    "amortizacion_tipo": "20 cuotas semestrales iguales a partir de jun 2024",
+    "amortizacion_inicio": "2024-06-30",
+    "amortizacion_fin": "2033-12-31",
+    "amortizacion_cuotas": 20,
+    "era": "2005_restr",
+    "activo_desde": "2005-06-02",
+    "activo_hasta": "2020-09-04",
+    "notas": "Canjeado por bonos AL en sept 2020."
+  },
+  {
+    "ticker": "PARY",
+    "nombre": "Par Bond USD (Ley NY)",
+    "moneda": "USD",
+    "fecha_emision": "2005-06-02",
+    "fecha_vencimiento": "2038-12-31",
+    "cupon_info": "Step-up gradual de 1.33% a 5.25%",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 8300,
+    "amortizacion_tipo": "20 cuotas semestrales iguales a partir de sept 2029",
+    "amortizacion_inicio": "2029-09-30",
+    "amortizacion_fin": "2038-12-31",
+    "amortizacion_cuotas": 20,
+    "era": "2005_restr",
+    "activo_desde": "2005-06-02",
+    "activo_hasta": "2020-09-04",
+    "notas": "Sin haircut sobre face value. Canjeado en 2020."
+  },
+  {
+    "ticker": "PARA",
+    "nombre": "Par Bond USD (Ley Argentina)",
+    "moneda": "USD",
+    "fecha_emision": "2005-06-02",
+    "fecha_vencimiento": "2038-12-31",
+    "cupon_info": "Step-up gradual de 1.33% a 5.25%",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 4800,
+    "amortizacion_tipo": "20 cuotas semestrales iguales a partir de sept 2029",
+    "amortizacion_inicio": "2029-09-30",
+    "amortizacion_fin": "2038-12-31",
+    "amortizacion_cuotas": 20,
+    "era": "2005_restr",
+    "activo_desde": "2005-06-02",
+    "activo_hasta": "2020-09-04",
+    "notas": "Sin haircut. Canjeado en 2020."
+  },
+  {
+    "ticker": "TVPY_2007",
+    "nombre": "GDP Warrant - Pago 2007",
+    "moneda": "USD",
+    "fecha_emision": "2005-06-02",
+    "fecha_vencimiento": "2007-12-15",
+    "cupon_info": "Pago contingente atado al crecimiento del PBI",
+    "frecuencia_cupon": "A",
+    "monto_original_mm_usd": 500,
+    "amortizacion_detalle": [
+      [
+        "2007-12-15",
+        100.0
+      ]
+    ],
+    "era": "gdp_warrants",
+    "activo_desde": "2007-01-01",
+    "activo_hasta": "2007-12-15",
+    "notas": "Pago estimado del GDP Warrant en 2007. TVPY (NY) + TVPA (AR) combinados."
+  },
+  {
+    "ticker": "TVPY_2008",
+    "nombre": "GDP Warrant - Pago 2008",
+    "moneda": "USD",
+    "fecha_emision": "2005-06-02",
+    "fecha_vencimiento": "2008-12-15",
+    "cupon_info": "Pago contingente atado al crecimiento del PBI",
+    "frecuencia_cupon": "A",
+    "monto_original_mm_usd": 1200,
+    "amortizacion_detalle": [
+      [
+        "2008-12-15",
+        100.0
+      ]
+    ],
+    "era": "gdp_warrants",
+    "activo_desde": "2008-01-01",
+    "activo_hasta": "2008-12-15",
+    "notas": "Pago estimado del GDP Warrant en 2008. TVPY (NY) + TVPA (AR) combinados."
+  },
+  {
+    "ticker": "TVPY_2010",
+    "nombre": "GDP Warrant - Pago 2010",
+    "moneda": "USD",
+    "fecha_emision": "2005-06-02",
+    "fecha_vencimiento": "2010-12-15",
+    "cupon_info": "Pago contingente atado al crecimiento del PBI",
+    "frecuencia_cupon": "A",
+    "monto_original_mm_usd": 2000,
+    "amortizacion_detalle": [
+      [
+        "2010-12-15",
+        100.0
+      ]
+    ],
+    "era": "gdp_warrants",
+    "activo_desde": "2010-01-01",
+    "activo_hasta": "2010-12-15",
+    "notas": "Pago estimado del GDP Warrant en 2010. TVPY (NY) + TVPA (AR) combinados."
+  },
+  {
+    "ticker": "TVPY_2011",
+    "nombre": "GDP Warrant - Pago 2011",
+    "moneda": "USD",
+    "fecha_emision": "2005-06-02",
+    "fecha_vencimiento": "2011-12-15",
+    "cupon_info": "Pago contingente atado al crecimiento del PBI",
+    "frecuencia_cupon": "A",
+    "monto_original_mm_usd": 2500,
+    "amortizacion_detalle": [
+      [
+        "2011-12-15",
+        100.0
+      ]
+    ],
+    "era": "gdp_warrants",
+    "activo_desde": "2011-01-01",
+    "activo_hasta": "2011-12-15",
+    "notas": "Pago estimado del GDP Warrant en 2011. TVPY (NY) + TVPA (AR) combinados."
+  },
+  {
+    "ticker": "TVPY_2012",
+    "nombre": "GDP Warrant - Pago 2012",
+    "moneda": "USD",
+    "fecha_emision": "2005-06-02",
+    "fecha_vencimiento": "2012-12-15",
+    "cupon_info": "Pago contingente atado al crecimiento del PBI",
+    "frecuencia_cupon": "A",
+    "monto_original_mm_usd": 1500,
+    "amortizacion_detalle": [
+      [
+        "2012-12-15",
+        100.0
+      ]
+    ],
+    "era": "gdp_warrants",
+    "activo_desde": "2012-01-01",
+    "activo_hasta": "2012-12-15",
+    "notas": "Pago estimado del GDP Warrant en 2012. TVPY (NY) + TVPA (AR) combinados."
+  },
+  {
+    "ticker": "RG12",
+    "nombre": "BODEN 2012 (7% USD)",
+    "moneda": "USD",
+    "fecha_emision": "2002-02-03",
+    "fecha_vencimiento": "2012-08-03",
+    "cupon_info": "7% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 2000,
+    "amortizacion_tipo": "10 cuotas semestrales iguales a partir de ago 2008",
+    "amortizacion_inicio": "2008-02-03",
+    "amortizacion_fin": "2012-08-03",
+    "amortizacion_cuotas": 10,
+    "era": "boden",
+    "activo_desde": "2002-02-03",
+    "activo_hasta": "2012-08-03",
+    "notas": "Compensación corralón. Pagado en su totalidad ago-2012."
+  },
+  {
+    "ticker": "RO15",
+    "nombre": "BODEN 2015 (7% USD)",
+    "moneda": "USD",
+    "fecha_emision": "2005-04-03",
+    "fecha_vencimiento": "2015-10-03",
+    "cupon_info": "7% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 6300,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2015-10-03",
+    "amortizacion_fin": "2015-10-03",
+    "amortizacion_cuotas": 1,
+    "era": "boden",
+    "activo_desde": "2005-04-03",
+    "activo_hasta": "2015-10-03",
+    "notas": "Pagado en su totalidad oct-2015. Referencia del dólar MEP original."
+  },
+  {
+    "ticker": "GJ17",
+    "nombre": "Global 2017 (7% USD)",
+    "moneda": "USD",
+    "fecha_emision": "2005-06-02",
+    "fecha_vencimiento": "2017-04-17",
+    "cupon_info": "7% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 3500,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2017-04-17",
+    "amortizacion_fin": "2017-04-17",
+    "amortizacion_cuotas": 1,
+    "era": "2005_restr",
+    "activo_desde": "2005-06-02",
+    "activo_hasta": "2017-04-17",
+    "notas": "Del canje 2005. Pagado normalmente a vencimiento abr-2017."
+  },
+  {
+    "ticker": "CLUB_PARIS_2014_07",
+    "nombre": "Club de París - Cuota 2014-07-15",
+    "moneda": "USD",
+    "fecha_emision": "2014-05-29",
+    "fecha_vencimiento": "2014-07-15",
+    "cupon_info": "3% + intereses compensatorios",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 1150,
+    "amortizacion_detalle": [
+      [
+        "2014-07-15",
+        100.0
+      ]
+    ],
+    "era": "club_paris",
+    "activo_desde": "2014-05-29",
+    "activo_hasta": "2014-07-15",
+    "notas": "Acuerdo Club de París mayo 2014. ~USD 9,700 MM total restructurado."
+  },
+  {
+    "ticker": "CLUB_PARIS_2015_01",
+    "nombre": "Club de París - Cuota 2015-01-15",
+    "moneda": "USD",
+    "fecha_emision": "2014-05-29",
+    "fecha_vencimiento": "2015-01-15",
+    "cupon_info": "3% + intereses compensatorios",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 600,
+    "amortizacion_detalle": [
+      [
+        "2015-01-15",
+        100.0
+      ]
+    ],
+    "era": "club_paris",
+    "activo_desde": "2014-05-29",
+    "activo_hasta": "2015-01-15",
+    "notas": "Acuerdo Club de París mayo 2014. ~USD 9,700 MM total restructurado."
+  },
+  {
+    "ticker": "CLUB_PARIS_2015_07",
+    "nombre": "Club de París - Cuota 2015-07-15",
+    "moneda": "USD",
+    "fecha_emision": "2014-05-29",
+    "fecha_vencimiento": "2015-07-15",
+    "cupon_info": "3% + intereses compensatorios",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 600,
+    "amortizacion_detalle": [
+      [
+        "2015-07-15",
+        100.0
+      ]
+    ],
+    "era": "club_paris",
+    "activo_desde": "2014-05-29",
+    "activo_hasta": "2015-07-15",
+    "notas": "Acuerdo Club de París mayo 2014. ~USD 9,700 MM total restructurado."
+  },
+  {
+    "ticker": "CLUB_PARIS_2016_01",
+    "nombre": "Club de París - Cuota 2016-01-15",
+    "moneda": "USD",
+    "fecha_emision": "2014-05-29",
+    "fecha_vencimiento": "2016-01-15",
+    "cupon_info": "3% + intereses compensatorios",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 750,
+    "amortizacion_detalle": [
+      [
+        "2016-01-15",
+        100.0
+      ]
+    ],
+    "era": "club_paris",
+    "activo_desde": "2014-05-29",
+    "activo_hasta": "2016-01-15",
+    "notas": "Acuerdo Club de París mayo 2014. ~USD 9,700 MM total restructurado."
+  },
+  {
+    "ticker": "CLUB_PARIS_2016_07",
+    "nombre": "Club de París - Cuota 2016-07-15",
+    "moneda": "USD",
+    "fecha_emision": "2014-05-29",
+    "fecha_vencimiento": "2016-07-15",
+    "cupon_info": "3% + intereses compensatorios",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 750,
+    "amortizacion_detalle": [
+      [
+        "2016-07-15",
+        100.0
+      ]
+    ],
+    "era": "club_paris",
+    "activo_desde": "2014-05-29",
+    "activo_hasta": "2016-07-15",
+    "notas": "Acuerdo Club de París mayo 2014. ~USD 9,700 MM total restructurado."
+  },
+  {
+    "ticker": "CLUB_PARIS_2017_01",
+    "nombre": "Club de París - Cuota 2017-01-15",
+    "moneda": "USD",
+    "fecha_emision": "2014-05-29",
+    "fecha_vencimiento": "2017-01-15",
+    "cupon_info": "3% + intereses compensatorios",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 1200,
+    "amortizacion_detalle": [
+      [
+        "2017-01-15",
+        100.0
+      ]
+    ],
+    "era": "club_paris",
+    "activo_desde": "2014-05-29",
+    "activo_hasta": "2017-01-15",
+    "notas": "Acuerdo Club de París mayo 2014. ~USD 9,700 MM total restructurado."
+  },
+  {
+    "ticker": "CLUB_PARIS_2017_07",
+    "nombre": "Club de París - Cuota 2017-07-15",
+    "moneda": "USD",
+    "fecha_emision": "2014-05-29",
+    "fecha_vencimiento": "2017-07-15",
+    "cupon_info": "3% + intereses compensatorios",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 1200,
+    "amortizacion_detalle": [
+      [
+        "2017-07-15",
+        100.0
+      ]
+    ],
+    "era": "club_paris",
+    "activo_desde": "2014-05-29",
+    "activo_hasta": "2017-07-15",
+    "notas": "Acuerdo Club de París mayo 2014. ~USD 9,700 MM total restructurado."
+  },
+  {
+    "ticker": "CLUB_PARIS_2018_01",
+    "nombre": "Club de París - Cuota 2018-01-15",
+    "moneda": "USD",
+    "fecha_emision": "2014-05-29",
+    "fecha_vencimiento": "2018-01-15",
+    "cupon_info": "3% + intereses compensatorios",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 1000,
+    "amortizacion_detalle": [
+      [
+        "2018-01-15",
+        100.0
+      ]
+    ],
+    "era": "club_paris",
+    "activo_desde": "2014-05-29",
+    "activo_hasta": "2018-01-15",
+    "notas": "Acuerdo Club de París mayo 2014. ~USD 9,700 MM total restructurado."
+  },
+  {
+    "ticker": "CLUB_PARIS_2018_07",
+    "nombre": "Club de París - Cuota 2018-07-15",
+    "moneda": "USD",
+    "fecha_emision": "2014-05-29",
+    "fecha_vencimiento": "2018-07-15",
+    "cupon_info": "3% + intereses compensatorios",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 1000,
+    "amortizacion_detalle": [
+      [
+        "2018-07-15",
+        100.0
+      ]
+    ],
+    "era": "club_paris",
+    "activo_desde": "2014-05-29",
+    "activo_hasta": "2018-07-15",
+    "notas": "Acuerdo Club de París mayo 2014. ~USD 9,700 MM total restructurado."
+  },
+  {
+    "ticker": "CLUB_PARIS_2019_01",
+    "nombre": "Club de París - Cuota 2019-01-15",
+    "moneda": "USD",
+    "fecha_emision": "2014-05-29",
+    "fecha_vencimiento": "2019-01-15",
+    "cupon_info": "3% + intereses compensatorios",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 725,
+    "amortizacion_detalle": [
+      [
+        "2019-01-15",
+        100.0
+      ]
+    ],
+    "era": "club_paris",
+    "activo_desde": "2014-05-29",
+    "activo_hasta": "2019-01-15",
+    "notas": "Acuerdo Club de París mayo 2014. ~USD 9,700 MM total restructurado."
+  },
+  {
+    "ticker": "CLUB_PARIS_2019_07",
+    "nombre": "Club de París - Cuota 2019-07-15",
+    "moneda": "USD",
+    "fecha_emision": "2014-05-29",
+    "fecha_vencimiento": "2019-07-15",
+    "cupon_info": "3% + intereses compensatorios",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 725,
+    "amortizacion_detalle": [
+      [
+        "2019-07-15",
+        100.0
+      ]
+    ],
+    "era": "club_paris",
+    "activo_desde": "2014-05-29",
+    "activo_hasta": "2019-07-15",
+    "notas": "Acuerdo Club de París mayo 2014. ~USD 9,700 MM total restructurado."
+  },
+  {
+    "ticker": "AO20",
+    "nombre": "Bonar 2020 (8.0%)",
+    "moneda": "USD",
+    "fecha_emision": "2016-10-18",
+    "fecha_vencimiento": "2020-10-18",
+    "cupon_info": "8.0% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 2750,
+    "amortizacion_tipo": "Bullet (100% al vencimiento)",
+    "amortizacion_inicio": "2020-10-18",
+    "amortizacion_fin": "2020-10-18",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2016-10-18",
+    "activo_hasta": "2020-09-04",
+    "notas": "Canjeado parcialmente en restructuración 2020."
+  },
+  {
+    "ticker": "AY24",
+    "nombre": "Bonar 2024 (8.75%)",
+    "moneda": "USD",
+    "fecha_emision": "2017-05-11",
+    "fecha_vencimiento": "2024-05-07",
+    "cupon_info": "8.75% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 3250,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2024-05-07",
+    "amortizacion_fin": "2024-05-07",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2017-05-11",
+    "activo_hasta": "2020-09-04",
+    "notas": "Canjeado en restructuración 2020."
+  },
+  {
+    "ticker": "AC17",
+    "nombre": "Century Bond 2117 (7.125%)",
+    "moneda": "USD",
+    "fecha_emision": "2017-06-22",
+    "fecha_vencimiento": "2117-07-06",
+    "cupon_info": "7.125% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 2750,
+    "amortizacion_tipo": "Bullet (100 años)",
+    "amortizacion_inicio": "2117-07-06",
+    "amortizacion_fin": "2117-07-06",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2017-06-22",
+    "activo_hasta": "2020-09-04",
+    "notas": "El famoso bono a 100 años. Canjeado en 2020."
+  },
+  {
+    "ticker": "A2E7",
+    "nombre": "Global 2027 (6.875%)",
+    "moneda": "USD",
+    "fecha_emision": "2017-01-26",
+    "fecha_vencimiento": "2027-01-26",
+    "cupon_info": "6.875% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 4500,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2027-01-26",
+    "amortizacion_fin": "2027-01-26",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2017-01-26",
+    "activo_hasta": "2020-09-04",
+    "notas": "Canjeado en restructuración 2020."
+  },
+  {
+    "ticker": "AA25",
+    "nombre": "Bonar 2025 (5.625%)",
+    "moneda": "USD",
+    "fecha_emision": "2016-04-22",
+    "fecha_vencimiento": "2025-04-22",
+    "cupon_info": "5.625% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 1415,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2025-04-22",
+    "amortizacion_fin": "2025-04-22",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2016-04-22",
+    "activo_hasta": "2020-09-04",
+    "notas": "Canjeado en restructuración 2020."
+  },
+  {
+    "ticker": "AN19",
+    "nombre": "BONAR 2019 (6.875%) — Pago Holdouts",
+    "moneda": "USD",
+    "fecha_emision": "2016-04-22",
+    "fecha_vencimiento": "2019-04-18",
+    "cupon_info": "6.875% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 2750,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2019-04-18",
+    "amortizacion_fin": "2019-04-18",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2016-04-22",
+    "activo_hasta": "2019-04-18",
+    "notas": "Emitido para pagar a fondos buitre (holdouts). Pagado a vencimiento."
+  },
+  {
+    "ticker": "AA21",
+    "nombre": "Global 2021 (6.875%)",
+    "moneda": "USD",
+    "fecha_emision": "2016-04-22",
+    "fecha_vencimiento": "2021-04-18",
+    "cupon_info": "6.875% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 2750,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2021-04-18",
+    "amortizacion_fin": "2021-04-18",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2016-04-22",
+    "activo_hasta": "2020-09-04",
+    "notas": "Canjeado en restructuración 2020."
+  },
+  {
+    "ticker": "AA22",
+    "nombre": "Global 2022 (5.875%)",
+    "moneda": "USD",
+    "fecha_emision": "2017-01-26",
+    "fecha_vencimiento": "2022-01-11",
+    "cupon_info": "5.875% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 3250,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2022-01-11",
+    "amortizacion_fin": "2022-01-11",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2017-01-26",
+    "activo_hasta": "2020-09-04",
+    "notas": "Canjeado en restructuración 2020."
+  },
+  {
+    "ticker": "AA23",
+    "nombre": "Global 2023 (7.50%)",
+    "moneda": "USD",
+    "fecha_emision": "2018-06-28",
+    "fecha_vencimiento": "2023-12-28",
+    "cupon_info": "7.50% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 1500,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2023-12-28",
+    "amortizacion_fin": "2023-12-28",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2018-06-28",
+    "activo_hasta": "2020-09-04",
+    "notas": "Canjeado en restructuración 2020."
+  },
+  {
+    "ticker": "AA36",
+    "nombre": "Global 2036 (7.125%)",
+    "moneda": "USD",
+    "fecha_emision": "2017-07-06",
+    "fecha_vencimiento": "2036-07-06",
+    "cupon_info": "7.125% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 2500,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2036-07-06",
+    "amortizacion_fin": "2036-07-06",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2017-07-06",
+    "activo_hasta": "2020-09-04",
+    "notas": "Canjeado en restructuración 2020."
+  },
+  {
+    "ticker": "AA46",
+    "nombre": "Global 2046 (7.625%) — Era Macri",
+    "moneda": "USD",
+    "fecha_emision": "2016-04-22",
+    "fecha_vencimiento": "2046-04-22",
+    "cupon_info": "7.625% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 6500,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2046-04-22",
+    "amortizacion_fin": "2046-04-22",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2016-04-22",
+    "activo_hasta": "2020-09-04",
+    "notas": "NO confundir con GD46 (canje 2020). Canjeado en 2020."
+  },
+  {
+    "ticker": "AA48",
+    "nombre": "Global 2048 (6.875%)",
+    "moneda": "USD",
+    "fecha_emision": "2018-01-11",
+    "fecha_vencimiento": "2048-01-11",
+    "cupon_info": "6.875% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 1750,
+    "amortizacion_tipo": "Bullet",
+    "amortizacion_inicio": "2048-01-11",
+    "amortizacion_fin": "2048-01-11",
+    "amortizacion_cuotas": 1,
+    "era": "2016_2019",
+    "activo_desde": "2018-01-11",
+    "activo_hasta": "2020-09-04",
+    "notas": "Canjeado en restructuración 2020."
+  },
+  {
+    "ticker": "GD29",
+    "nombre": "Step-Up 2029 (Ley NY)",
+    "moneda": "USD",
+    "fecha_emision": "2020-09-04",
+    "fecha_vencimiento": "2029-07-09",
+    "cupon_info": "Step-up: 0.125%(2020-21), 1%(2021-23), 2.5%(2023-24), 3.5%(2024-25), 4.5%(2025-26), 4.75%(2026-27), 5%(2027-28), 1%(2028-29)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 4450,
+    "amortizacion_detalle": [
+      [
+        "2025-07-09",
+        4.0
+      ],
+      [
+        "2026-01-09",
+        4.0
+      ],
+      [
+        "2026-07-09",
+        8.0
+      ],
+      [
+        "2027-01-09",
+        8.0
+      ],
+      [
+        "2027-07-09",
+        16.0
+      ],
+      [
+        "2028-01-09",
+        16.0
+      ],
+      [
+        "2028-07-09",
+        16.0
+      ],
+      [
+        "2029-01-09",
+        16.0
+      ],
+      [
+        "2029-07-09",
+        12.0
+      ]
+    ],
+    "era": "2020_restr",
+    "activo_desde": "2020-09-04",
+    "activo_hasta": "2029-07-09",
+    "notas": "Ley NY. Primer pago de capital jul 2025."
+  },
+  {
+    "ticker": "AL29",
+    "nombre": "Step-Up 2029 (Ley Argentina)",
+    "moneda": "USD",
+    "fecha_emision": "2020-09-04",
+    "fecha_vencimiento": "2029-07-09",
+    "cupon_info": "Step-up: 0.125%(2020-21), 1%(2021-23), 2.5%(2023-24), 3.5%(2024-25), 4.5%(2025-26), 4.75%(2026-27), 5%(2027-28), 1%(2028-29)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 1600,
+    "amortizacion_detalle": [
+      [
+        "2025-07-09",
+        4.0
+      ],
+      [
+        "2026-01-09",
+        4.0
+      ],
+      [
+        "2026-07-09",
+        8.0
+      ],
+      [
+        "2027-01-09",
+        8.0
+      ],
+      [
+        "2027-07-09",
+        16.0
+      ],
+      [
+        "2028-01-09",
+        16.0
+      ],
+      [
+        "2028-07-09",
+        16.0
+      ],
+      [
+        "2029-01-09",
+        16.0
+      ],
+      [
+        "2029-07-09",
+        12.0
+      ]
+    ],
+    "era": "2020_restr",
+    "activo_desde": "2020-09-04",
+    "activo_hasta": "2029-07-09",
+    "notas": "Ley AR. Primer pago de capital jul 2025."
+  },
+  {
+    "ticker": "GD30",
+    "nombre": "Step-Up 2030 (Ley NY)",
+    "moneda": "USD",
+    "fecha_emision": "2020-09-04",
+    "fecha_vencimiento": "2030-07-09",
+    "cupon_info": "Step-up: 0.125%(2020-21), 0.5%(2021-23), 1.75%(2023-24), 2.5%(2024-26), 3.875%(2026-28), 5%(2028-29), 0.75%(2029-30)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 8850,
+    "amortizacion_detalle": [
+      [
+        "2024-07-09",
+        0.4
+      ],
+      [
+        "2025-01-09",
+        0.8
+      ],
+      [
+        "2025-07-09",
+        0.8
+      ],
+      [
+        "2026-01-09",
+        4.0
+      ],
+      [
+        "2026-07-09",
+        4.0
+      ],
+      [
+        "2027-01-09",
+        8.0
+      ],
+      [
+        "2027-07-09",
+        8.0
+      ],
+      [
+        "2028-01-09",
+        12.0
+      ],
+      [
+        "2028-07-09",
+        12.0
+      ],
+      [
+        "2029-01-09",
+        12.0
+      ],
+      [
+        "2029-07-09",
+        12.0
+      ],
+      [
+        "2030-01-09",
+        12.0
+      ],
+      [
+        "2030-07-09",
+        14.0
+      ]
+    ],
+    "era": "2020_restr",
+    "activo_desde": "2020-09-04",
+    "activo_hasta": "2030-07-09",
+    "notas": "Ley NY. El bono más líquido de referencia."
+  },
+  {
+    "ticker": "AL30",
+    "nombre": "Step-Up 2030 (Ley Argentina)",
+    "moneda": "USD",
+    "fecha_emision": "2020-09-04",
+    "fecha_vencimiento": "2030-07-09",
+    "cupon_info": "Step-up: 0.125%(2020-21), 0.5%(2021-23), 1.75%(2023-24), 2.5%(2024-26), 3.875%(2026-28), 5%(2028-29), 0.75%(2029-30)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 3200,
+    "amortizacion_detalle": [
+      [
+        "2024-07-09",
+        0.4
+      ],
+      [
+        "2025-01-09",
+        0.8
+      ],
+      [
+        "2025-07-09",
+        0.8
+      ],
+      [
+        "2026-01-09",
+        4.0
+      ],
+      [
+        "2026-07-09",
+        4.0
+      ],
+      [
+        "2027-01-09",
+        8.0
+      ],
+      [
+        "2027-07-09",
+        8.0
+      ],
+      [
+        "2028-01-09",
+        12.0
+      ],
+      [
+        "2028-07-09",
+        12.0
+      ],
+      [
+        "2029-01-09",
+        12.0
+      ],
+      [
+        "2029-07-09",
+        12.0
+      ],
+      [
+        "2030-01-09",
+        12.0
+      ],
+      [
+        "2030-07-09",
+        14.0
+      ]
+    ],
+    "era": "2020_restr",
+    "activo_desde": "2020-09-04",
+    "activo_hasta": "2030-07-09",
+    "notas": "Ley AR. El bono más líquido de referencia."
+  },
+  {
+    "ticker": "GD35",
+    "nombre": "Step-Up 2035 (Ley NY)",
+    "moneda": "USD",
+    "fecha_emision": "2020-09-04",
+    "fecha_vencimiento": "2035-07-09",
+    "cupon_info": "Step-up: 0.125%(2020-23), 3.625%(2023-25), 4.125%(2025-30), 4.75%(2030-32), 5%(2032-35)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 4200,
+    "amortizacion_detalle": [
+      [
+        "2031-01-09",
+        5.0
+      ],
+      [
+        "2031-07-09",
+        5.0
+      ],
+      [
+        "2032-01-09",
+        5.0
+      ],
+      [
+        "2032-07-09",
+        5.0
+      ],
+      [
+        "2033-01-09",
+        10.0
+      ],
+      [
+        "2033-07-09",
+        10.0
+      ],
+      [
+        "2034-01-09",
+        10.0
+      ],
+      [
+        "2034-07-09",
+        10.0
+      ],
+      [
+        "2035-01-09",
+        20.0
+      ],
+      [
+        "2035-07-09",
+        20.0
+      ]
+    ],
+    "era": "2020_restr",
+    "activo_desde": "2020-09-04",
+    "activo_hasta": "2035-07-09",
+    "notas": "Ley NY."
+  },
+  {
+    "ticker": "AL35",
+    "nombre": "Step-Up 2035 (Ley Argentina)",
+    "moneda": "USD",
+    "fecha_emision": "2020-09-04",
+    "fecha_vencimiento": "2035-07-09",
+    "cupon_info": "Step-up: 0.125%(2020-23), 3.625%(2023-25), 4.125%(2025-30), 4.75%(2030-32), 5%(2032-35)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 2800,
+    "amortizacion_detalle": [
+      [
+        "2031-01-09",
+        5.0
+      ],
+      [
+        "2031-07-09",
+        5.0
+      ],
+      [
+        "2032-01-09",
+        5.0
+      ],
+      [
+        "2032-07-09",
+        5.0
+      ],
+      [
+        "2033-01-09",
+        10.0
+      ],
+      [
+        "2033-07-09",
+        10.0
+      ],
+      [
+        "2034-01-09",
+        10.0
+      ],
+      [
+        "2034-07-09",
+        10.0
+      ],
+      [
+        "2035-01-09",
+        20.0
+      ],
+      [
+        "2035-07-09",
+        20.0
+      ]
+    ],
+    "era": "2020_restr",
+    "activo_desde": "2020-09-04",
+    "activo_hasta": "2035-07-09",
+    "notas": "Ley AR."
+  },
+  {
+    "ticker": "GD38",
+    "nombre": "Step-Up 2038 (Ley NY)",
+    "moneda": "USD",
+    "fecha_emision": "2020-09-04",
+    "fecha_vencimiento": "2038-07-09",
+    "cupon_info": "Step-up: 0.125%(2020-23), 3.5%(2023-25), 4.875%(2025-30), 5%(2030-35), 5.25%(2035-38)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 3200,
+    "amortizacion_detalle": [
+      [
+        "2031-01-09",
+        5.0
+      ],
+      [
+        "2031-07-09",
+        5.0
+      ],
+      [
+        "2032-01-09",
+        5.0
+      ],
+      [
+        "2032-07-09",
+        5.0
+      ],
+      [
+        "2033-01-09",
+        5.0
+      ],
+      [
+        "2033-07-09",
+        5.0
+      ],
+      [
+        "2034-01-09",
+        5.0
+      ],
+      [
+        "2034-07-09",
+        5.0
+      ],
+      [
+        "2035-01-09",
+        5.0
+      ],
+      [
+        "2035-07-09",
+        5.0
+      ],
+      [
+        "2036-01-09",
+        5.0
+      ],
+      [
+        "2036-07-09",
+        5.0
+      ],
+      [
+        "2037-01-09",
+        10.0
+      ],
+      [
+        "2037-07-09",
+        10.0
+      ],
+      [
+        "2038-01-09",
+        10.0
+      ],
+      [
+        "2038-07-09",
+        10.0
+      ]
+    ],
+    "era": "2020_restr",
+    "activo_desde": "2020-09-04",
+    "activo_hasta": "2038-07-09",
+    "notas": "Solo Ley NY."
+  },
+  {
+    "ticker": "GD41",
+    "nombre": "Step-Up 2041 (Ley NY)",
+    "moneda": "USD",
+    "fecha_emision": "2020-09-04",
+    "fecha_vencimiento": "2041-07-09",
+    "cupon_info": "Step-up: 0.125%(2020-23), 1%(2023), 1.5%(2024), 3.5%(2025-30), 4.875%(2030-33), 5%(2033-38), 5.25%(2038-41)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 5000,
+    "amortizacion_detalle": [
+      [
+        "2033-01-09",
+        4.55
+      ],
+      [
+        "2033-07-09",
+        4.55
+      ],
+      [
+        "2034-01-09",
+        4.55
+      ],
+      [
+        "2034-07-09",
+        4.55
+      ],
+      [
+        "2035-01-09",
+        4.55
+      ],
+      [
+        "2035-07-09",
+        4.55
+      ],
+      [
+        "2036-01-09",
+        4.55
+      ],
+      [
+        "2036-07-09",
+        4.55
+      ],
+      [
+        "2037-01-09",
+        4.55
+      ],
+      [
+        "2037-07-09",
+        4.55
+      ],
+      [
+        "2038-01-09",
+        4.55
+      ],
+      [
+        "2038-07-09",
+        4.55
+      ],
+      [
+        "2039-01-09",
+        4.55
+      ],
+      [
+        "2039-07-09",
+        4.55
+      ],
+      [
+        "2040-01-09",
+        4.55
+      ],
+      [
+        "2040-07-09",
+        4.55
+      ],
+      [
+        "2041-01-09",
+        4.55
+      ],
+      [
+        "2041-07-09",
+        4.55
+      ]
+    ],
+    "era": "2020_restr",
+    "activo_desde": "2020-09-04",
+    "activo_hasta": "2041-07-09",
+    "notas": "Ley NY."
+  },
+  {
+    "ticker": "AL41",
+    "nombre": "Step-Up 2041 (Ley Argentina)",
+    "moneda": "USD",
+    "fecha_emision": "2020-09-04",
+    "fecha_vencimiento": "2041-07-09",
+    "cupon_info": "Step-up: 0.125%(2020-23), 1%(2023), 1.5%(2024), 3.5%(2025-30), 4.875%(2030-33), 5%(2033-38), 5.25%(2038-41)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 1600,
+    "amortizacion_detalle": [
+      [
+        "2033-01-09",
+        4.55
+      ],
+      [
+        "2033-07-09",
+        4.55
+      ],
+      [
+        "2034-01-09",
+        4.55
+      ],
+      [
+        "2034-07-09",
+        4.55
+      ],
+      [
+        "2035-01-09",
+        4.55
+      ],
+      [
+        "2035-07-09",
+        4.55
+      ],
+      [
+        "2036-01-09",
+        4.55
+      ],
+      [
+        "2036-07-09",
+        4.55
+      ],
+      [
+        "2037-01-09",
+        4.55
+      ],
+      [
+        "2037-07-09",
+        4.55
+      ],
+      [
+        "2038-01-09",
+        4.55
+      ],
+      [
+        "2038-07-09",
+        4.55
+      ],
+      [
+        "2039-01-09",
+        4.55
+      ],
+      [
+        "2039-07-09",
+        4.55
+      ],
+      [
+        "2040-01-09",
+        4.55
+      ],
+      [
+        "2040-07-09",
+        4.55
+      ],
+      [
+        "2041-01-09",
+        4.55
+      ],
+      [
+        "2041-07-09",
+        4.55
+      ]
+    ],
+    "era": "2020_restr",
+    "activo_desde": "2020-09-04",
+    "activo_hasta": "2041-07-09",
+    "notas": "Ley AR."
+  },
+  {
+    "ticker": "GD46",
+    "nombre": "Step-Up 2046 (Ley NY)",
+    "moneda": "USD",
+    "fecha_emision": "2020-09-04",
+    "fecha_vencimiento": "2046-07-09",
+    "cupon_info": "Step-up: 0.125%(2020-23), 1.0%(2023-28), 4.25%(2028-36), 4.875%(2036-41), 5.0%(2041-46)",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 2900,
+    "amortizacion_detalle": [
+      [
+        "2028-01-09",
+        2.5
+      ],
+      [
+        "2028-07-09",
+        2.5
+      ],
+      [
+        "2029-01-09",
+        2.5
+      ],
+      [
+        "2029-07-09",
+        2.5
+      ],
+      [
+        "2030-01-09",
+        2.5
+      ],
+      [
+        "2030-07-09",
+        2.5
+      ],
+      [
+        "2031-01-09",
+        2.5
+      ],
+      [
+        "2031-07-09",
+        2.5
+      ],
+      [
+        "2032-01-09",
+        2.5
+      ],
+      [
+        "2032-07-09",
+        2.5
+      ],
+      [
+        "2033-01-09",
+        2.5
+      ],
+      [
+        "2033-07-09",
+        2.5
+      ],
+      [
+        "2034-01-09",
+        2.5
+      ],
+      [
+        "2034-07-09",
+        2.5
+      ],
+      [
+        "2035-01-09",
+        2.5
+      ],
+      [
+        "2035-07-09",
+        2.5
+      ],
+      [
+        "2036-01-09",
+        2.5
+      ],
+      [
+        "2036-07-09",
+        2.5
+      ],
+      [
+        "2037-01-09",
+        2.5
+      ],
+      [
+        "2037-07-09",
+        2.5
+      ],
+      [
+        "2038-01-09",
+        2.5
+      ],
+      [
+        "2038-07-09",
+        2.5
+      ],
+      [
+        "2039-01-09",
+        2.5
+      ],
+      [
+        "2039-07-09",
+        2.5
+      ],
+      [
+        "2040-01-09",
+        2.5
+      ],
+      [
+        "2040-07-09",
+        2.5
+      ],
+      [
+        "2041-01-09",
+        2.5
+      ],
+      [
+        "2041-07-09",
+        2.5
+      ],
+      [
+        "2042-01-09",
+        2.5
+      ],
+      [
+        "2042-07-09",
+        2.5
+      ],
+      [
+        "2043-01-09",
+        2.5
+      ],
+      [
+        "2043-07-09",
+        2.5
+      ],
+      [
+        "2044-01-09",
+        2.5
+      ],
+      [
+        "2044-07-09",
+        2.5
+      ],
+      [
+        "2045-01-09",
+        2.5
+      ],
+      [
+        "2045-07-09",
+        2.5
+      ],
+      [
+        "2046-01-09",
+        2.5
+      ],
+      [
+        "2046-07-09",
+        2.5
+      ],
+      [
+        "2047-01-09",
+        2.5
+      ],
+      [
+        "2047-07-09",
+        2.5
+      ]
+    ],
+    "era": "2020_restr",
+    "activo_desde": "2020-09-04",
+    "activo_hasta": "2046-07-09",
+    "notas": "Solo Ley NY. El de mayor plazo del canje 2020."
+  },
+  {
+    "ticker": "LETES_2016-Q2",
+    "nombre": "Letras del Tesoro USD (Stock 2016-Q2)",
+    "moneda": "USD",
+    "fecha_emision": "2016-04-01",
+    "fecha_vencimiento": "2016-10-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 500,
+    "amortizacion_detalle": [
+      [
+        "2016-10-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2016-04-01",
+    "activo_hasta": "2016-10-15",
+    "notas": "Stock promedio de LETES USD durante 2016-Q2. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2016-Q3",
+    "nombre": "Letras del Tesoro USD (Stock 2016-Q3)",
+    "moneda": "USD",
+    "fecha_emision": "2016-07-01",
+    "fecha_vencimiento": "2017-01-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 1500,
+    "amortizacion_detalle": [
+      [
+        "2017-01-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2016-07-01",
+    "activo_hasta": "2017-01-15",
+    "notas": "Stock promedio de LETES USD durante 2016-Q3. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2016-Q4",
+    "nombre": "Letras del Tesoro USD (Stock 2016-Q4)",
+    "moneda": "USD",
+    "fecha_emision": "2016-10-01",
+    "fecha_vencimiento": "2017-04-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 3000,
+    "amortizacion_detalle": [
+      [
+        "2017-04-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2016-10-01",
+    "activo_hasta": "2017-04-15",
+    "notas": "Stock promedio de LETES USD durante 2016-Q4. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2017-Q1",
+    "nombre": "Letras del Tesoro USD (Stock 2017-Q1)",
+    "moneda": "USD",
+    "fecha_emision": "2017-01-01",
+    "fecha_vencimiento": "2017-07-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 4000,
+    "amortizacion_detalle": [
+      [
+        "2017-07-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2017-01-01",
+    "activo_hasta": "2017-07-15",
+    "notas": "Stock promedio de LETES USD durante 2017-Q1. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2017-Q2",
+    "nombre": "Letras del Tesoro USD (Stock 2017-Q2)",
+    "moneda": "USD",
+    "fecha_emision": "2017-04-01",
+    "fecha_vencimiento": "2017-10-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 5500,
+    "amortizacion_detalle": [
+      [
+        "2017-10-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2017-04-01",
+    "activo_hasta": "2017-10-15",
+    "notas": "Stock promedio de LETES USD durante 2017-Q2. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2017-Q3",
+    "nombre": "Letras del Tesoro USD (Stock 2017-Q3)",
+    "moneda": "USD",
+    "fecha_emision": "2017-07-01",
+    "fecha_vencimiento": "2018-01-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 7000,
+    "amortizacion_detalle": [
+      [
+        "2018-01-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2017-07-01",
+    "activo_hasta": "2018-01-15",
+    "notas": "Stock promedio de LETES USD durante 2017-Q3. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2017-Q4",
+    "nombre": "Letras del Tesoro USD (Stock 2017-Q4)",
+    "moneda": "USD",
+    "fecha_emision": "2017-10-01",
+    "fecha_vencimiento": "2018-04-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 8500,
+    "amortizacion_detalle": [
+      [
+        "2018-04-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2017-10-01",
+    "activo_hasta": "2018-04-15",
+    "notas": "Stock promedio de LETES USD durante 2017-Q4. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2018-Q1",
+    "nombre": "Letras del Tesoro USD (Stock 2018-Q1)",
+    "moneda": "USD",
+    "fecha_emision": "2018-01-01",
+    "fecha_vencimiento": "2018-07-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 10000,
+    "amortizacion_detalle": [
+      [
+        "2018-07-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2018-01-01",
+    "activo_hasta": "2018-07-15",
+    "notas": "Stock promedio de LETES USD durante 2018-Q1. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2018-Q2",
+    "nombre": "Letras del Tesoro USD (Stock 2018-Q2)",
+    "moneda": "USD",
+    "fecha_emision": "2018-04-01",
+    "fecha_vencimiento": "2018-10-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 12000,
+    "amortizacion_detalle": [
+      [
+        "2018-10-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2018-04-01",
+    "activo_hasta": "2018-10-15",
+    "notas": "Stock promedio de LETES USD durante 2018-Q2. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2018-Q3",
+    "nombre": "Letras del Tesoro USD (Stock 2018-Q3)",
+    "moneda": "USD",
+    "fecha_emision": "2018-07-01",
+    "fecha_vencimiento": "2019-01-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 8000,
+    "amortizacion_detalle": [
+      [
+        "2019-01-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2018-07-01",
+    "activo_hasta": "2019-01-15",
+    "notas": "Stock promedio de LETES USD durante 2018-Q3. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2018-Q4",
+    "nombre": "Letras del Tesoro USD (Stock 2018-Q4)",
+    "moneda": "USD",
+    "fecha_emision": "2018-10-01",
+    "fecha_vencimiento": "2019-04-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 5000,
+    "amortizacion_detalle": [
+      [
+        "2019-04-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2018-10-01",
+    "activo_hasta": "2019-04-15",
+    "notas": "Stock promedio de LETES USD durante 2018-Q4. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2019-Q1",
+    "nombre": "Letras del Tesoro USD (Stock 2019-Q1)",
+    "moneda": "USD",
+    "fecha_emision": "2019-01-01",
+    "fecha_vencimiento": "2019-07-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 4000,
+    "amortizacion_detalle": [
+      [
+        "2019-07-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2019-01-01",
+    "activo_hasta": "2019-07-15",
+    "notas": "Stock promedio de LETES USD durante 2019-Q1. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2019-Q2",
+    "nombre": "Letras del Tesoro USD (Stock 2019-Q2)",
+    "moneda": "USD",
+    "fecha_emision": "2019-04-01",
+    "fecha_vencimiento": "2019-10-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 3500,
+    "amortizacion_detalle": [
+      [
+        "2019-10-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2019-04-01",
+    "activo_hasta": "2019-10-15",
+    "notas": "Stock promedio de LETES USD durante 2019-Q2. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2019-Q3",
+    "nombre": "Letras del Tesoro USD (Stock 2019-Q3)",
+    "moneda": "USD",
+    "fecha_emision": "2019-07-01",
+    "fecha_vencimiento": "2020-01-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 2000,
+    "amortizacion_detalle": [
+      [
+        "2020-01-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2019-07-01",
+    "activo_hasta": "2020-01-15",
+    "notas": "Stock promedio de LETES USD durante 2019-Q3. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "LETES_2019-Q4",
+    "nombre": "Letras del Tesoro USD (Stock 2019-Q4)",
+    "moneda": "USD",
+    "fecha_emision": "2019-10-01",
+    "fecha_vencimiento": "2020-04-15",
+    "cupon_info": "Zero-coupon (se emiten con descuento)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 500,
+    "amortizacion_detalle": [
+      [
+        "2020-04-15",
+        100.0
+      ]
+    ],
+    "era": "letes_usd",
+    "activo_desde": "2019-10-01",
+    "activo_hasta": "2020-04-15",
+    "notas": "Stock promedio de LETES USD durante 2019-Q4. Proxy aggregate rolling."
+  },
+  {
+    "ticker": "BPO27",
+    "nombre": "BOPREAL Serie 1 (2027)",
+    "moneda": "USD",
+    "fecha_emision": "2024-01-25",
+    "fecha_vencimiento": "2027-10-31",
+    "cupon_info": "5% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 5000,
+    "amortizacion_detalle": [
+      [
+        "2027-04-30",
+        50.0
+      ],
+      [
+        "2027-10-31",
+        50.0
+      ]
+    ],
+    "era": "bopreal",
+    "activo_desde": "2024-01-25",
+    "activo_hasta": "2027-10-31",
+    "notas": "BCRA. Para importadores. Sub-series 1A/1B/1C/1D. Usos fiscales especiales."
+  },
+  {
+    "ticker": "BPJ25",
+    "nombre": "BOPREAL Serie 2 (2025)",
+    "moneda": "USD",
+    "fecha_emision": "2024-02-05",
+    "fecha_vencimiento": "2025-06-15",
+    "cupon_info": "0% (zero coupon)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 2000,
+    "amortizacion_detalle": [
+      [
+        "2024-07-15",
+        8.333333333333334
+      ],
+      [
+        "2024-08-15",
+        8.333333333333334
+      ],
+      [
+        "2024-09-15",
+        8.333333333333334
+      ],
+      [
+        "2024-10-15",
+        8.333333333333334
+      ],
+      [
+        "2024-11-15",
+        8.333333333333334
+      ],
+      [
+        "2024-12-15",
+        8.333333333333334
+      ],
+      [
+        "2025-01-15",
+        8.333333333333334
+      ],
+      [
+        "2025-02-15",
+        8.333333333333334
+      ],
+      [
+        "2025-03-15",
+        8.333333333333334
+      ],
+      [
+        "2025-04-15",
+        8.333333333333334
+      ],
+      [
+        "2025-05-15",
+        8.333333333333334
+      ],
+      [
+        "2025-06-15",
+        8.333333333333334
+      ]
+    ],
+    "era": "bopreal",
+    "activo_desde": "2024-02-05",
+    "activo_hasta": "2025-06-15",
+    "notas": "BCRA. 12 cuotas mensuales. Zero-coupon."
+  },
+  {
+    "ticker": "BPY26",
+    "nombre": "BOPREAL Serie 3 (2026)",
+    "moneda": "USD",
+    "fecha_emision": "2024-02-19",
+    "fecha_vencimiento": "2026-05-31",
+    "cupon_info": "3% anual",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 3000,
+    "amortizacion_detalle": [
+      [
+        "2025-11-30",
+        33.33
+      ],
+      [
+        "2026-02-28",
+        33.33
+      ],
+      [
+        "2026-05-31",
+        33.34
+      ]
+    ],
+    "era": "bopreal",
+    "activo_desde": "2024-02-19",
+    "activo_hasta": "2026-05-31",
+    "notas": "BCRA. 3 cuotas trimestrales."
+  },
+  {
+    "ticker": "BPO28",
+    "nombre": "BOPREAL Serie 4 (2028)",
+    "moneda": "USD",
+    "fecha_emision": "2025-04-15",
+    "fecha_vencimiento": "2028-10-31",
+    "cupon_info": "TBD",
+    "frecuencia_cupon": "S",
+    "monto_original_mm_usd": 3000,
+    "amortizacion_detalle": [
+      [
+        "2028-10-31",
+        100.0
+      ]
+    ],
+    "era": "bopreal",
+    "activo_desde": "2025-04-15",
+    "activo_hasta": "2028-10-31",
+    "notas": "BCRA. Bullet. Para deuda acumulada hasta dic 2024."
+  },
+  {
+    "ticker": "LEBAC_USD_2006",
+    "nombre": "LEBAC USD (Stock promedio 2006)",
+    "moneda": "USD",
+    "fecha_emision": "2006-01-01",
+    "fecha_vencimiento": "2006-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 1500,
+    "amortizacion_detalle": [
+      [
+        "2006-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2006-01-01",
+    "activo_hasta": "2006-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2006. Proxy anual."
+  },
+  {
+    "ticker": "LEBAC_USD_2007",
+    "nombre": "LEBAC USD (Stock promedio 2007)",
+    "moneda": "USD",
+    "fecha_emision": "2007-01-01",
+    "fecha_vencimiento": "2007-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 2000,
+    "amortizacion_detalle": [
+      [
+        "2007-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2007-01-01",
+    "activo_hasta": "2007-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2007. Proxy anual."
+  },
+  {
+    "ticker": "LEBAC_USD_2008",
+    "nombre": "LEBAC USD (Stock promedio 2008)",
+    "moneda": "USD",
+    "fecha_emision": "2008-01-01",
+    "fecha_vencimiento": "2008-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 2500,
+    "amortizacion_detalle": [
+      [
+        "2008-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2008-01-01",
+    "activo_hasta": "2008-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2008. Proxy anual."
+  },
+  {
+    "ticker": "LEBAC_USD_2009",
+    "nombre": "LEBAC USD (Stock promedio 2009)",
+    "moneda": "USD",
+    "fecha_emision": "2009-01-01",
+    "fecha_vencimiento": "2009-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 2000,
+    "amortizacion_detalle": [
+      [
+        "2009-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2009-01-01",
+    "activo_hasta": "2009-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2009. Proxy anual."
+  },
+  {
+    "ticker": "LEBAC_USD_2010",
+    "nombre": "LEBAC USD (Stock promedio 2010)",
+    "moneda": "USD",
+    "fecha_emision": "2010-01-01",
+    "fecha_vencimiento": "2010-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 1500,
+    "amortizacion_detalle": [
+      [
+        "2010-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2010-01-01",
+    "activo_hasta": "2010-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2010. Proxy anual."
+  },
+  {
+    "ticker": "LEBAC_USD_2011",
+    "nombre": "LEBAC USD (Stock promedio 2011)",
+    "moneda": "USD",
+    "fecha_emision": "2011-01-01",
+    "fecha_vencimiento": "2011-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 1200,
+    "amortizacion_detalle": [
+      [
+        "2011-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2011-01-01",
+    "activo_hasta": "2011-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2011. Proxy anual."
+  },
+  {
+    "ticker": "LEBAC_USD_2012",
+    "nombre": "LEBAC USD (Stock promedio 2012)",
+    "moneda": "USD",
+    "fecha_emision": "2012-01-01",
+    "fecha_vencimiento": "2012-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 1000,
+    "amortizacion_detalle": [
+      [
+        "2012-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2012-01-01",
+    "activo_hasta": "2012-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2012. Proxy anual."
+  },
+  {
+    "ticker": "LEBAC_USD_2013",
+    "nombre": "LEBAC USD (Stock promedio 2013)",
+    "moneda": "USD",
+    "fecha_emision": "2013-01-01",
+    "fecha_vencimiento": "2013-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 800,
+    "amortizacion_detalle": [
+      [
+        "2013-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2013-01-01",
+    "activo_hasta": "2013-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2013. Proxy anual."
+  },
+  {
+    "ticker": "LEBAC_USD_2014",
+    "nombre": "LEBAC USD (Stock promedio 2014)",
+    "moneda": "USD",
+    "fecha_emision": "2014-01-01",
+    "fecha_vencimiento": "2014-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 600,
+    "amortizacion_detalle": [
+      [
+        "2014-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2014-01-01",
+    "activo_hasta": "2014-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2014. Proxy anual."
+  },
+  {
+    "ticker": "LEBAC_USD_2015",
+    "nombre": "LEBAC USD (Stock promedio 2015)",
+    "moneda": "USD",
+    "fecha_emision": "2015-01-01",
+    "fecha_vencimiento": "2015-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 500,
+    "amortizacion_detalle": [
+      [
+        "2015-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2015-01-01",
+    "activo_hasta": "2015-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2015. Proxy anual."
+  },
+  {
+    "ticker": "LEBAC_USD_2016",
+    "nombre": "LEBAC USD (Stock promedio 2016)",
+    "moneda": "USD",
+    "fecha_emision": "2016-01-01",
+    "fecha_vencimiento": "2016-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 300,
+    "amortizacion_detalle": [
+      [
+        "2016-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2016-01-01",
+    "activo_hasta": "2016-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2016. Proxy anual."
+  },
+  {
+    "ticker": "LEBAC_USD_2017",
+    "nombre": "LEBAC USD (Stock promedio 2017)",
+    "moneda": "USD",
+    "fecha_emision": "2017-01-01",
+    "fecha_vencimiento": "2017-12-31",
+    "cupon_info": "Variable (licitación)",
+    "frecuencia_cupon": "N/A",
+    "monto_original_mm_usd": 100,
+    "amortizacion_detalle": [
+      [
+        "2017-12-31",
+        100.0
+      ]
+    ],
+    "era": "lebac_usd",
+    "activo_desde": "2017-01-01",
+    "activo_hasta": "2017-12-31",
+    "notas": "Stock promedio de LEBAC USD durante 2017. Proxy anual."
+  }
+]

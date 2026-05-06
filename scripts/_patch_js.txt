@@ -1,0 +1,370 @@
+
+// ═══════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════
+function switchTab(t){
+  document.querySelectorAll('.mtab').forEach((b,i)=>{b.classList.toggle('active',['explorer','simulator','analysis'][i]===t)});
+  document.querySelectorAll('.tab-content').forEach(d=>d.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='analysis') populateAnalysisSeries();
+  setTimeout(()=>{if(t==='simulator'){['sc1','sc2','sc3'].forEach(id=>{const e=document.getElementById(id);if(e&&e.data)Plotly.Plots.resize(e)})}},50);
+}
+
+// ═══════════════════════════════════════
+// PRNG (seeded Mulberry32)
+// ═══════════════════════════════════════
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function boxMuller(rng){let u1,u2;do{u1=rng()}while(u1===0);u2=rng();return Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2)}
+function randn(rng,n){const a=[];for(let i=0;i<n;i++)a.push(boxMuller(rng));return a}
+
+// ═══════════════════════════════════════
+// PARSE COEFS
+// ═══════════════════════════════════════
+function parseCoefs(s){if(!s||!s.trim())return[];return s.split(',').map(x=>parseFloat(x.trim())).filter(x=>!isNaN(x))}
+
+// ═══════════════════════════════════════
+// GARCH NOISE
+// ═══════════════════════════════════════
+function genGarchNoise(n,rng,omega,alphas,betas,sigma2){
+  const eps=randn(rng,n),ht=new Float64Array(n),et=new Float64Array(n);
+  ht[0]=sigma2;et[0]=eps[0]*Math.sqrt(ht[0]);
+  for(let t=1;t<n;t++){
+    let h=omega;
+    for(let i=0;i<alphas.length;i++){const j=t-1-i;h+=alphas[i]*(j>=0?et[j]*et[j]:sigma2)}
+    for(let i=0;i<betas.length;i++){const j=t-1-i;h+=betas[i]*(j>=0?ht[j]:sigma2)}
+    if(h<1e-10)h=1e-10;ht[t]=h;et[t]=eps[t]*Math.sqrt(h);
+  }
+  return{et,ht}
+}
+
+// ═══════════════════════════════════════
+// ARMA FILTER
+// ═══════════════════════════════════════
+function armaFilter(noise,ar,ma,sar,sma,S){
+  const n=noise.length,y=new Float64Array(n);
+  for(let t=0;t<n;t++){
+    let v=noise[t];
+    for(let i=0;i<ma.length;i++){const j=t-1-i;if(j>=0)v+=ma[i]*noise[j]}
+    for(let i=0;i<sma.length;i++){const j=t-S*(i+1);if(j>=0)v+=sma[i]*noise[j]}
+    for(let i=0;i<ar.length;i++){const j=t-1-i;if(j>=0)v+=ar[i]*y[j]}
+    for(let i=0;i<sar.length;i++){const j=t-S*(i+1);if(j>=0)v+=sar[i]*y[j]}
+    y[t]=v;
+  }
+  return y;
+}
+
+// ═══════════════════════════════════════
+// INTEGRATION (cumsum d times)
+// ═══════════════════════════════════════
+function integrate(y,d){let r=Array.from(y);for(let i=0;i<d;i++){const n=new Float64Array(r.length);n[0]=r[0];for(let t=1;t<r.length;t++)n[t]=n[t-1]+r[t];r=n}return r}
+
+// ═══════════════════════════════════════
+// TREND
+// ═══════════════════════════════════════
+function genTrend(n,type,b0,b1,b2){
+  const t=new Float64Array(n);
+  for(let i=0;i<n;i++){
+    if(type==='linear')t[i]=b0+b1*i;
+    else if(type==='quadratic')t[i]=b0+b1*i+b2*i*i;
+    else if(type==='exponential')t[i]=b0*Math.exp(b1*i);
+    else t[i]=0;
+  }
+  return t;
+}
+
+// ═══════════════════════════════════════
+// DIFFERENCING
+// ═══════════════════════════════════════
+function diff(y,d,D,S){
+  let r=Array.from(y);
+  for(let i=0;i<D;i++){const n=[];for(let t=S;t<r.length;t++)n.push(r[t]-r[t-S]);r=n}
+  for(let i=0;i<d;i++){const n=[];for(let t=1;t<r.length;t++)n.push(r[t]-r[t-1]);r=n}
+  return r;
+}
+
+// ═══════════════════════════════════════
+// PLOTLY DARK LAYOUT
+// ═══════════════════════════════════════
+const DL={paper_bgcolor:'#0b0b18',plot_bgcolor:'#0b0b18',font:{family:'Inter',color:'#888',size:10},
+  xaxis:{gridcolor:'#1a1a3a',zerolinecolor:'#2a2a4a'},yaxis:{gridcolor:'#1a1a3a',zerolinecolor:'#2a2a4a'},
+  margin:{l:50,r:20,t:30,b:30},showlegend:false};
+
+// ═══════════════════════════════════════
+// RUN SIMULATION
+// ═══════════════════════════════════════
+let simData=null;
+function runSim(){
+  const N=+document.getElementById('s-n').value||500;
+  const seed=+document.getElementById('s-seed').value||42;
+  const rng=mulberry32(seed);
+  const ar=parseCoefs(document.getElementById('s-ar').value);
+  const ma=parseCoefs(document.getElementById('s-ma').value);
+  const sar=parseCoefs(document.getElementById('s-sar').value);
+  const sma=parseCoefs(document.getElementById('s-sma').value);
+  const S=+document.getElementById('s-s').value||12;
+  const d_int=+document.getElementById('s-d').value||0;
+  const D_int=+document.getElementById('s-D').value||0;
+  const useGarch=document.getElementById('s-garch').checked;
+  const omega=+document.getElementById('s-omega').value||0.1;
+  const alphas=parseCoefs(document.getElementById('s-alpha').value);
+  const betas=parseCoefs(document.getElementById('s-beta').value);
+  const sigma2=+document.getElementById('s-sigma').value||1;
+  const trendType=document.getElementById('s-trend').value;
+  const b0=+document.getElementById('s-b0').value||0;
+  const b1=+document.getElementById('s-b1').value||0;
+  const b2=+document.getElementById('s-b2').value||0;
+
+  // Generate noise
+  let noise,ht;
+  if(useGarch){const g=genGarchNoise(N+200,rng,omega,alphas,betas,sigma2);noise=g.et;ht=g.ht}
+  else{const eps=randn(rng,N+200);noise=new Float64Array(eps.map(e=>e*Math.sqrt(sigma2)));ht=new Float64Array(N+200).fill(sigma2)}
+
+  // ARMA
+  let arma=armaFilter(noise,ar,ma,sar,sma,S);
+  // Trim burn-in
+  arma=arma.slice(200);ht=ht.slice(200);noise=noise.slice(200);
+
+  // Integration
+  let integrated=integrate(arma,d_int);
+  for(let i=0;i<D_int;i++)integrated=integrate(integrated,1);
+
+  // Trend
+  const trend=genTrend(N,trendType,b0,b1,b2);
+  const final_series=new Float64Array(N);
+  for(let i=0;i<N;i++)final_series[i]=integrated[i]+trend[i];
+
+  // Store for analysis
+  simData={values:Array.from(final_series),name:'Serie Simulada'};
+
+  // Plot
+  const x=Array.from({length:N},(_,i)=>i+1);
+  Plotly.react('sc1',[{x,y:Array.from(final_series),type:'scatter',mode:'lines',line:{color:'#a78bfa',width:1.2}}],
+    {...DL,title:{text:'Serie Simulada',font:{size:11,color:'#a78bfa'}},height:undefined},{responsive:true});
+  
+  const diffed=diff(final_series,1,0,S);
+  Plotly.react('sc2',[{x:Array.from({length:diffed.length},(_,i)=>i+1),y:diffed,type:'scatter',mode:'lines',line:{color:'#34d399',width:1}}],
+    {...DL,title:{text:'Δ Primera Diferencia',font:{size:11,color:'#34d399'}},height:undefined},{responsive:true});
+  
+  Plotly.react('sc3',[{x,y:Array.from(ht),type:'scatter',mode:'lines',line:{color:'#f59e0b',width:1},fill:'tozeroy',fillcolor:'rgba(245,158,11,0.1)'}],
+    {...DL,title:{text:useGarch?'Volatilidad Condicional (hₜ)':'Varianza Constante',font:{size:11,color:'#f59e0b'}},height:undefined},{responsive:true});
+}
+
+// ═══════════════════════════════════════
+// ANALYSIS TAB
+// ═══════════════════════════════════════
+function populateAnalysisSeries(){
+  const sel=document.getElementById('anl-series');
+  const cur=sel.value;sel.innerHTML='';
+  if(simData){const o=document.createElement('option');o.value='__sim__';o.textContent='🔧 '+simData.name;sel.appendChild(o)}
+  Object.keys(D).forEach(k=>{if(k==='cer'||k==='tip_etf')return;const o=document.createElement('option');o.value=k;o.textContent=D[k].meta.nombre;sel.appendChild(o)});
+  if(cur)sel.value=cur;
+}
+
+function getAnalysisSeries(){
+  const k=document.getElementById('anl-series').value;
+  if(k==='__sim__'&&simData)return{values:simData.values,name:simData.name};
+  if(D[k])return{values:D[k].valores.filter(v=>v!=null),name:D[k].meta.nombre,fechas:D[k].fechas};
+  return null;
+}
+
+// ═══════════════════════════════════════
+// ACF / PACF
+// ═══════════════════════════════════════
+function computeACF(y,maxLag){
+  const n=y.length,mean=y.reduce((a,b)=>a+b,0)/n;
+  let c0=0;for(let i=0;i<n;i++)c0+=(y[i]-mean)*(y[i]-mean);c0/=n;
+  const acf=[1];
+  for(let k=1;k<=maxLag;k++){let ck=0;for(let i=k;i<n;i++)ck+=(y[i]-mean)*(y[i-k]-mean);ck/=n;acf.push(ck/c0)}
+  return acf;
+}
+
+function computePACF(acf,maxLag){
+  const pacf=[1];const phi=[];
+  for(let k=1;k<=maxLag;k++){
+    if(k===1){pacf.push(acf[1]);phi[1]=[acf[1]];continue}
+    let num=acf[k],den=1;
+    for(let j=1;j<k;j++){num-=phi[k-1][j]*acf[k-j];den-=phi[k-1][j]*acf[j]}
+    const pkk=den!==0?num/den:0;pacf.push(pkk);
+    phi[k]=new Array(k+1);phi[k][k]=pkk;
+    for(let j=1;j<k;j++)phi[k][j]=phi[k-1][j]-pkk*phi[k-1][k-j];
+  }
+  return pacf;
+}
+
+function plotCorrelogram(divId,vals,title,color){
+  const n=vals.length-1,lags=Array.from({length:n},(_,i)=>i+1);
+  const v=vals.slice(1);
+  const ci=1.96/Math.sqrt(vals._n||200);
+  const shapes=[{type:'line',x0:0,x1:n+1,y0:ci,y1:ci,line:{color:'#ef4444',width:1,dash:'dash'}},
+    {type:'line',x0:0,x1:n+1,y0:-ci,y1:-ci,line:{color:'#ef4444',width:1,dash:'dash'}}];
+  Plotly.react(divId,[{x:lags,y:v,type:'bar',marker:{color}}],
+    {...DL,title:{text:title,font:{size:10,color}},shapes,xaxis:{...DL.xaxis,title:'Lag'},yaxis:{...DL.yaxis,range:[-1,1]},height:undefined},{responsive:true});
+}
+
+// ═══════════════════════════════════════
+// OLS helpers for ADF/PP
+// ═══════════════════════════════════════
+function olsRegress(Y,X){
+  // X is array of arrays (each row is observation), Y is array
+  const n=Y.length,k=X[0].length;
+  // X'X
+  const XtX=Array.from({length:k},()=>new Float64Array(k));
+  const XtY=new Float64Array(k);
+  for(let i=0;i<n;i++){for(let j=0;j<k;j++){XtY[j]+=X[i][j]*Y[i];for(let l=0;l<k;l++)XtX[j][l]+=X[i][j]*X[i][l]}}
+  // Solve via Gauss elimination
+  const aug=XtX.map((row,i)=>[...row,XtY[i]]);
+  for(let i=0;i<k;i++){let mx=i;for(let j=i+1;j<k;j++)if(Math.abs(aug[j][i])>Math.abs(aug[mx][i]))mx=j;
+    [aug[i],aug[mx]]=[aug[mx],aug[i]];
+    if(Math.abs(aug[i][i])<1e-15)continue;
+    for(let j=i+1;j<k;j++){const f=aug[j][i]/aug[i][i];for(let l=i;l<=k;l++)aug[j][l]-=f*aug[i][l]}}
+  const beta=new Float64Array(k);
+  for(let i=k-1;i>=0;i--){beta[i]=aug[i][k];for(let j=i+1;j<k;j++)beta[i]-=aug[i][j]*beta[j];beta[i]/=aug[i][i]||1}
+  // Residuals & SE
+  const resid=new Float64Array(n);let sse=0;
+  for(let i=0;i<n;i++){let yh=0;for(let j=0;j<k;j++)yh+=X[i][j]*beta[j];resid[i]=Y[i]-yh;sse+=resid[i]*resid[i]}
+  const s2=sse/(n-k);
+  // (X'X)^-1 diagonal for SE
+  const inv=Array.from({length:k},()=>new Float64Array(k));
+  const id=Array.from({length:k},(_,i)=>{const r=new Float64Array(k);r[i]=1;return r});
+  // Forward
+  const L=XtX.map(r=>[...r]);
+  for(let i=0;i<k;i++){let mx=i;for(let j=i+1;j<k;j++)if(Math.abs(L[j][i])>Math.abs(L[mx][i]))mx=j;
+    [L[i],L[mx]]=[L[mx],L[i]];[id[i],id[mx]]=[id[mx],id[i]];
+    if(Math.abs(L[i][i])<1e-15)continue;
+    const p=L[i][i];for(let l=0;l<k;l++){L[i][l]/=p;id[i][l]/=p}
+    for(let j=0;j<k;j++){if(j===i)continue;const f=L[j][i];for(let l=0;l<k;l++){L[j][l]-=f*L[i][l];id[j][l]-=f*id[i][l]}}}
+  const se=new Float64Array(k);for(let i=0;i<k;i++)se[i]=Math.sqrt(Math.max(0,s2*id[i][i]));
+  return{beta,se,resid,s2,sse,n,k}
+}
+
+// ═══════════════════════════════════════
+// ADF TEST
+// ═══════════════════════════════════════
+function adfTest(y,reg,maxLag){
+  const n=y.length;
+  // Δy
+  const dy=[];for(let i=1;i<n;i++)dy.push(y[i]-y[i-1]);
+  const lag=maxLag>0?maxLag:Math.min(Math.floor(Math.pow(n-1,1/3)),Math.floor((n-1)/3)-2);
+  // Build regression: Δyₜ = γ·yₜ₋₁ + Σcⱼ·Δyₜ₋ⱼ + [const] + [trend] + εₜ
+  const start=lag+1,N=dy.length-start+1<1?dy.length:dy.length;
+  const Y=[],X=[];
+  for(let t=lag;t<dy.length;t++){
+    Y.push(dy[t]);
+    const row=[y[t]]; // yₜ₋₁ (since dy[t]=y[t+1]-y[t], yₜ₋₁=y[t])
+    for(let j=1;j<=lag;j++)row.push(dy[t-j]); // lagged Δy
+    if(reg==='c'||reg==='ct')row.push(1); // constant
+    if(reg==='ct')row.push(t); // trend
+    X.push(row);
+  }
+  const ols=olsRegress(Y,X);
+  const gamma=ols.beta[0],se_gamma=ols.se[0];
+  const tstat=se_gamma>0?gamma/se_gamma:0;
+  // MacKinnon critical values (approximate)
+  const cv={};
+  if(reg==='n'){cv['1%']=-2.58;cv['5%']=-1.95;cv['10%']=-1.62}
+  else if(reg==='c'){cv['1%']=-3.43;cv['5%']=-2.86;cv['10%']=-2.57}
+  else{cv['1%']=-3.96;cv['5%']=-3.41;cv['10%']=-3.13}
+  return{tstat,gamma,se:se_gamma,lag,cv,n:Y.length,reg}
+}
+
+// ═══════════════════════════════════════
+// PHILLIPS-PERRON TEST
+// ═══════════════════════════════════════
+function ppTest(y,reg,maxLag){
+  const n=y.length;
+  // OLS: yₜ = α + ρ·yₜ₋₁ + [trend] + εₜ
+  const Y=[],X=[];
+  for(let t=1;t<n;t++){
+    Y.push(y[t]);
+    const row=[y[t-1]];
+    if(reg==='c'||reg==='ct')row.push(1);
+    if(reg==='ct')row.push(t);
+    X.push(row);
+  }
+  const ols=olsRegress(Y,X);
+  const T=ols.n,rho=ols.beta[0],se_rho=ols.se[0];
+  const tstat_ols=(rho-1)/se_rho;
+  // Newey-West long-run variance
+  const e=ols.resid;
+  const l=maxLag>0?maxLag:Math.floor(4*Math.pow(T/100,2/9));
+  let gamma0=0;for(let i=0;i<T;i++)gamma0+=e[i]*e[i];gamma0/=T;
+  let lrv=gamma0;
+  for(let j=1;j<=l;j++){let gj=0;for(let i=j;i<T;i++)gj+=e[i]*e[i-j];gj/=T;lrv+=2*(1-j/(l+1))*gj}
+  // PP correction
+  const s2=ols.sse/T;
+  const correction=(lrv-s2)*(T*se_rho)/(2*Math.sqrt(lrv));
+  const Zt=Math.sqrt(s2/lrv)*tstat_ols - correction/Math.sqrt(lrv*T);
+  // Same MacKinnon CVs as ADF
+  const cv={};
+  if(reg==='n'){cv['1%']=-2.58;cv['5%']=-1.95;cv['10%']=-1.62}
+  else if(reg==='c'){cv['1%']=-3.43;cv['5%']=-2.86;cv['10%']=-2.57}
+  else{cv['1%']=-3.96;cv['5%']=-3.41;cv['10%']=-3.13}
+  return{tstat:Zt,rho,se:se_rho,lag:l,cv,n:T,reg}
+}
+
+// ═══════════════════════════════════════
+// RUN ANALYSIS
+// ═══════════════════════════════════════
+function runAnalysis(){
+  const s=getAnalysisSeries();if(!s)return;
+  const d=+document.getElementById('anl-d').value||0;
+  const Ds=+document.getElementById('anl-D').value||0;
+  const S=+document.getElementById('anl-S').value||12;
+  let y=s.values.filter(v=>v!=null&&!isNaN(v));
+  if(d>0||Ds>0)y=diff(y,d,Ds,S);
+  const n=y.length;if(n<10){document.getElementById('anl-stats-box').innerHTML='<span style="color:#f87171">Serie muy corta (N='+n+')</span>';return}
+  // Stats
+  const mean=y.reduce((a,b)=>a+b,0)/n;
+  const std=Math.sqrt(y.reduce((a,b)=>a+(b-mean)*(b-mean),0)/(n-1));
+  const mn=Math.min(...y),mx=Math.max(...y);
+  document.getElementById('anl-stats-box').innerHTML=
+    `<div class="anl-stat"><div class="val">${n}</div><div class="lbl">N</div></div>`+
+    `<div class="anl-stat"><div class="val">${mean.toFixed(2)}</div><div class="lbl">Media</div></div>`+
+    `<div class="anl-stat"><div class="val">${std.toFixed(2)}</div><div class="lbl">Desvío</div></div>`+
+    `<div class="anl-stat"><div class="val">${mn.toFixed(2)}</div><div class="lbl">Mín</div></div>`+
+    `<div class="anl-stat"><div class="val">${mx.toFixed(2)}</div><div class="lbl">Máx</div></div>`;
+  // Plot series
+  const x=s.fechas?s.fechas.slice(s.values.length-n):Array.from({length:n},(_,i)=>i);
+  const label=s.name+(d>0?' Δ'+d:'')+(Ds>0?' ΔS'+Ds:'');
+  Plotly.react('anl-chart',[{x,y,type:'scatter',mode:'lines',line:{color:'#a78bfa',width:1.2}}],
+    {...DL,title:{text:label,font:{size:11,color:'#a78bfa'}}},{responsive:true});
+  // ACF / PACF
+  const maxLag=Math.min(40,Math.floor(n/3));
+  const acf=computeACF(y,maxLag);acf._n=n;
+  const pacf=computePACF(acf,maxLag);pacf._n=n;
+  plotCorrelogram('anl-acf',acf,'FAC','#34d399');
+  plotCorrelogram('anl-pacf',pacf,'FACP','#60a5fa');
+  // Clear previous test results
+  document.getElementById('adf-results').innerHTML='';
+}
+
+// ═══════════════════════════════════════
+// RUN UNIT ROOT TESTS
+// ═══════════════════════════════════════
+function runUnitRoot(){
+  const s=getAnalysisSeries();if(!s)return;
+  const d=+document.getElementById('anl-d').value||0;
+  const Ds=+document.getElementById('anl-D').value||0;
+  const S=+document.getElementById('anl-S').value||12;
+  const reg=document.getElementById('anl-reg').value;
+  const lags=+document.getElementById('anl-lags').value||0;
+  let y=s.values.filter(v=>v!=null&&!isNaN(v));
+  if(d>0||Ds>0)y=diff(y,d,Ds,S);
+  if(y.length<20){document.getElementById('adf-results').innerHTML='<span style="color:#f87171">N insuficiente</span>';return}
+  const adf=adfTest(y,reg,lags);
+  const pp=ppTest(y,reg,lags);
+  const regLabels={n:'Sin constante',c:'Con constante',ct:'Constante + Tendencia'};
+  function row(name,t,cv){
+    const r1=t<cv['1%'],r5=t<cv['5%'],r10=t<cv['10%'];
+    const cls=r5?'adf-pass':'adf-fail';
+    const verdict=r1?'Rechaza H₀ (1%)':r5?'Rechaza H₀ (5%)':r10?'Rechaza H₀ (10%)':'No rechaza H₀';
+    return `<tr><td>${name}</td><td>${t.toFixed(4)}</td><td>${cv['1%'].toFixed(2)}</td><td>${cv['5%'].toFixed(2)}</td><td>${cv['10%'].toFixed(2)}</td><td class="${cls}">${verdict}</td></tr>`;
+  }
+  document.getElementById('adf-results').innerHTML=
+    `<h4>🧪 Tests de Raíz Unitaria — ${regLabels[reg]}</h4>`+
+    `<table><tr><th>Test</th><th>Estadístico</th><th>CV 1%</th><th>CV 5%</th><th>CV 10%</th><th>Decisión</th></tr>`+
+    row('ADF (lags='+adf.lag+')',adf.tstat,adf.cv)+
+    row('Phillips-Perron (l='+pp.lag+')',pp.tstat,pp.cv)+
+    `</table>`+
+    `<p style="color:#555;font-size:9px;margin-top:8px">⚠ Valores críticos de MacKinnon aproximados. Para publicación usar statsmodels.</p>`;
+}

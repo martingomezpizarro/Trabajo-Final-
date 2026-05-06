@@ -1,0 +1,2639 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Visualizador — TFG ARG</title>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:flex;height:100vh;overflow:hidden}
+/* sidebar */
+#sb{width:290px;min-width:180px;background:#10102a;border-right:1px solid #1e1e42;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+#sb-head{padding:10px 13px 7px;background:#14143a;border-bottom:1px solid #1e1e42}
+#sb-head h1{font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.06em}
+#sb-head small{color:#3a3a5a;font-size:9px}
+#search{margin:5px 7px;padding:4px 8px;background:#181838;border:1px solid #252550;border-radius:4px;color:#d4d4e8;font-size:11px;font-family:inherit;width:calc(100% - 14px)}
+#search:focus{outline:none;border-color:#7c3aed}
+#tree{flex:1;overflow-y:auto;padding-bottom:16px}
+#tree::-webkit-scrollbar{width:4px}#tree::-webkit-scrollbar-thumb{background:#2a2a50;border-radius:3px}
+.grp-hd{padding:6px 10px 3px;font-size:9.5px;font-weight:700;color:#404080;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px}
+.grp-hd:hover{color:#a78bfa}
+.grp-arr{font-size:8px;transition:transform .15s}
+.grp-hd.open .grp-arr{transform:rotate(90deg)}
+.grp-body{display:none}.grp-body.open{display:block}
+.sub-hd{padding:3px 10px 2px 20px;font-size:9px;font-weight:700;color:#303060;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px}
+.sub-hd:hover{color:#7c3aed}
+.sub-arr{font-size:7px;transition:transform .15s}
+.sub-hd.open .sub-arr{transform:rotate(90deg)}
+.sub-body{display:none}.sub-body.open{display:block}
+.sub2-hd{padding:2px 10px 2px 36px;font-size:7.5px;font-weight:700;color:#1e1e44;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px}
+.sub2-hd:hover{color:#7c3aed}
+.sub2-arr{font-size:6px;transition:transform .15s}
+.sub2-hd.open .sub2-arr{transform:rotate(90deg)}
+.sub2-body{display:none}.sub2-body.open{display:block}
+.sub2-body > .item{padding-left:44px}
+.item-folder-hd{padding:2px 10px 2px 22px;font-size:10.5px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;color:#4a4a88;transition:all .1s}
+.item-folder-hd:hover{background:#181840;color:#a78bfa}
+.folder-arr{font-size:7px;flex-shrink:0;transition:transform .15s;color:#404080}
+.item-folder-hd.open .folder-arr{transform:rotate(90deg)}
+.item-folder-body{display:none}.item-folder-body.open{display:block}
+.item-folder-body > .item,.item-folder-body > .item-folder > .item-folder-hd{padding-left:36px}
+.item-folder-body > .item-folder > .item-folder-body > .item,.item-folder-body > .item-folder > .item-folder-body > .item-folder > .item-folder-hd{padding-left:48px}
+.item-folder-body > .item-folder > .item-folder-body > .item-folder > .item-folder-body > .item{padding-left:60px}
+.item{padding:3px 10px 3px 28px;font-size:11px;cursor:pointer;border-left:2px solid transparent;display:flex;align-items:center;gap:6px;color:#5a5a98;transition:all .1s}
+.item:hover{background:#181840;color:#c4b5fd}
+.item.sel{background:#1a1a48;border-left-color:#7c3aed;color:#e0d4ff;font-weight:500}
+.item.cmp{border-left-color:#10b981;color:#6ee7b7}
+.item.sel.cmp{border-left-color:#10b981;background:#0c2a1e}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.chk{width:12px;height:12px;accent-color:#10b981;cursor:pointer;flex-shrink:0}
+.dummy-item{padding:3px 10px 3px 20px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#888;transition:all .1s}
+.dummy-item:hover{color:#fcd34d}
+.dchk{width:12px;height:12px;cursor:pointer;flex-shrink:0;accent-color:#f59e0b}
+/* main */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#main-tabs{display:flex;background:#0d0d22;border-bottom:1px solid #222244;padding:0}
+.mtab{padding:7px 18px;font-size:11px;font-weight:600;color:#666;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none;letter-spacing:.03em}
+.mtab:hover{color:#c4b5fd;background:#12122e}
+.mtab.active{color:#a78bfa;border-bottom-color:#7c3aed;background:#12122e}
+.tab-content{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
+.tab-content.active{display:flex}
+/* topbar */
+#bar{background:linear-gradient(180deg,#14143a 0%,#12122e 100%);border-bottom:1px solid #1e1e42;padding:5px 10px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex-shrink:0;min-height:38px}
+#title{font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#cccce8;min-width:80px}
+.mbtn{padding:3px 9px;font-size:10.5px;border:1px solid #252545;border-radius:3px;background:#161636;color:#777;cursor:pointer;font-family:inherit;transition:all .1s;white-space:nowrap}
+.mbtn:hover{border-color:#7c3aed;color:#c4b5fd}
+.mbtn.on{background:#7c3aed;border-color:#7c3aed;color:#fff;font-weight:600}
+.mbtn.amber{border-color:#92400e;color:#fbbf24}
+.mbtn.amber.on{background:#92400e;border-color:#f59e0b;color:#fcd34d}
+.sep{width:1px;height:16px;background:#1e1e42;flex-shrink:0}
+.blbl{font-size:9px;color:#404060;white-space:nowrap}
+#badge{background:#064e3b;border:1px solid #10b981;color:#6ee7b7;border-radius:12px;padding:2px 9px;font-size:10px;display:none}
+#clr{background:none;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;display:none;font-family:inherit}
+#clr:hover{background:#ef4444;color:#fff}
+/* ma row */
+#ma-row{background:#0f0f28;border-bottom:1px solid #1a1a3a;padding:3px 10px;display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:10px;color:#444}
+#ma-row label{color:#555;font-size:9.5px}
+#ma-row input{width:46px;padding:2px 5px;background:#181838;border:1px solid #2a2a50;border-radius:3px;color:#d4d4e8;font-size:10px;font-family:inherit}
+#ma-row input:focus{outline:none;border-color:#7c3aed}
+/* axis row */
+#axis-row{background:#0e0e26;border-bottom:1px solid #1a1a3a;padding:3px 10px;display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:10px;color:#444}
+#axis-row label{color:#555;font-size:9.5px;white-space:nowrap}
+#axis-row input{padding:2px 5px;background:#181838;border:1px solid #2a2a50;border-radius:3px;color:#d4d4e8;font-size:10px;font-family:inherit}
+#axis-row input[type=date]{width:120px}
+#axis-row input[type=number]{width:70px}
+#axis-row input:focus{outline:none;border-color:#7c3aed}
+.axis-btn{padding:2px 7px;font-size:9px;border:1px solid #252545;border-radius:3px;background:#161636;color:#666;cursor:pointer;font-family:inherit}
+.axis-btn:hover{border-color:#7c3aed;color:#c4b5fd}
+/* info bar */
+#info{background:#0e0e26;border-bottom:1px solid #151530;padding:2px 12px;min-height:22px;display:flex;align-items:center;gap:12px;overflow-x:auto;flex-shrink:0;font-size:10px;color:#33335a}
+#info::-webkit-scrollbar{height:2px}
+/* charts */
+#charts{flex:1;display:flex;flex-direction:column;min-height:0}
+#c1{flex:1;min-height:200px}
+#c2{flex:1;min-height:200px;border-top:1px solid #1a1a3a}
+#cw{flex:1;display:none;flex-direction:column;min-height:0;overflow-y:auto}
+#cw::-webkit-scrollbar{width:4px}#cw::-webkit-scrollbar-thumb{background:#2a2a50;border-radius:3px}
+#cmp-controls { display:flex; flex-direction:column; gap:5px; padding:8px 12px; background:#0f0f28; border-bottom:1px solid #1a1a3a; flex-shrink:0 }
+.cmp-row { display:flex; align-items:center; gap:8px; font-size:10px; color:#cccce8 }
+.cmp-lbl { font-weight:600; min-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.cmp-row select { background:#181838; border:1px solid #2a2a50; border-radius:3px; color:#d4d4e8; padding:2px 5px; font-size:9.5px; outline:none }
+.cmp-row input[type="checkbox"] { accent-color:#7c3aed; width:12px; height:12px }
+#cc{height:75vh;min-height:400px}
+#cs{height:35vh;min-height:200px}
+#cmp-corr{height:35vh;min-height:300px;border-top:1px solid #1a1a3a}
+#cmp-scatter{height:50vh;min-height:400px;border-top:1px solid #1a1a3a}
+#empty{display:none;flex:1;align-items:center;justify-content:center;color:#333;font-size:13px}
+/* variation bar */
+#vbar{background:#0f0f28;border-top:1px solid #1a1a3a;padding:2px 8px;display:flex;align-items:center;gap:5px;flex-shrink:0;font-size:9px;color:#444}
+.vbtn{padding:2px 7px;font-size:9.5px;border:1px solid #252545;border-radius:3px;background:#161636;color:#555;cursor:pointer;font-family:inherit}
+.vbtn:hover{border-color:#6d28d9;color:#c4b5fd}
+.vbtn.on{background:#4c1d95;border-color:#7c3aed;color:#ddd6fe}
+/* simulator */
+#sim-wrap{flex:1;display:flex;overflow:hidden}
+#sim-panel{width:300px;min-width:240px;background:#10102a;border-right:1px solid #222244;overflow-y:auto;padding:11px 13px}
+#sim-panel::-webkit-scrollbar{width:4px}#sim-panel::-webkit-scrollbar-thumb{background:#2a2a50;border-radius:3px}
+#sim-charts{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+#sim-charts>div{flex:1;min-height:0}
+.sim-section{margin-bottom:13px}
+.sim-section h3{font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid #1e1e44}
+.sim-row{display:flex;align-items:center;gap:5px;margin-bottom:4px}
+.sim-row label{font-size:10px;color:#888;min-width:65px;flex-shrink:0}
+.sim-row input,.sim-row select{flex:1;padding:2px 5px;background:#181838;border:1px solid #2a2a50;border-radius:3px;color:#d4d4e8;font-size:10px;font-family:inherit;min-width:0}
+.sim-row input:focus,.sim-row select:focus{outline:none;border-color:#7c3aed}
+.sim-row input[type=checkbox]{flex:none;width:13px;height:13px;accent-color:#7c3aed}
+#btn-sim{width:100%;padding:7px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:5px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:6px}
+#btn-sim:hover{filter:brightness(1.1)}
+/* analysis */
+#anl-wrap{flex:1;display:flex;overflow:hidden}
+#anl-left{width:280px;background:#10102a;border-right:1px solid #222244;overflow-y:auto;padding:12px}
+#anl-left::-webkit-scrollbar{width:4px}#anl-left::-webkit-scrollbar-thumb{background:#2a2a50;border-radius:3px}
+#anl-right{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+#anl-chart{height:45vh;min-height:250px;flex-shrink:0}
+#anl-acf{height:28vh;min-height:160px;flex-shrink:0;border-top:1px solid #1a1a3a}
+#anl-pacf{height:28vh;min-height:160px;flex-shrink:0;border-top:1px solid #1a1a3a}
+.anl-section{margin-bottom:14px}
+.anl-section h4{font-size:9.5px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;padding-bottom:3px;border-bottom:1px solid #1e1e44}
+.anl-row{display:flex;align-items:center;gap:5px;margin-bottom:5px;font-size:10px;color:#888}
+.anl-row label{min-width:70px;flex-shrink:0;font-size:10px}
+.anl-row select,.anl-row input{flex:1;padding:3px 6px;background:#181838;border:1px solid #2a2a50;border-radius:3px;color:#d4d4e8;font-size:10px;font-family:inherit}
+.anl-row select:focus,.anl-row input:focus{outline:none;border-color:#7c3aed}
+.abtn{padding:5px 12px;background:linear-gradient(135deg,#059669,#047857);border:none;border-radius:4px;color:#fff;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:2px;width:100%}
+.abtn:hover{filter:brightness(1.1)}
+.abtn-p{background:linear-gradient(135deg,#7c3aed,#6d28d9)}
+#adf-box{background:#0e0e26;border:1px solid #2a2a50;border-radius:5px;padding:8px;margin-top:8px;font-size:10px;color:#888;min-height:40px;white-space:pre-wrap;line-height:1.6}
+/* spinner */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #2a2a50;border-top-color:#7c3aed;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="sb">
+  <div id="sb-head">
+    <h1>📊 Series de Tiempo</h1>
+    <small>TFG — Riesgo País ARG — UNC</small>
+  </div>
+  <input id="search" placeholder="Buscar serie…" oninput="filterTree(this.value)"/>
+  <div id="tree"></div>
+</div>
+
+<div id="main">
+  <div id="main-tabs">
+    <button class="mtab active" onclick="switchTab('explorer')">📊 Explorador</button>
+    <button class="mtab" onclick="switchTab('simulator')">🔧 Simulador</button>
+    <button class="mtab" onclick="switchTab('analysis')">📐 Análisis</button>
+  </div>
+
+  <!-- EXPLORER -->
+  <div id="tab-explorer" class="tab-content active">
+    <div id="bar">
+      <span id="title">Seleccioná una serie</span>
+      <div class="sep"></div>
+      <span class="blbl">Modo:</span>
+      <button class="mbtn on" id="m1" onclick="setMode('ind')">Individual</button>
+      <button class="mbtn" id="m2" onclick="setMode('cmp')">Comparar</button>
+      <div class="sep"></div>
+      <span class="blbl">Frec.:</span>
+      <button class="mbtn on" id="fD" onclick="setFreq('D')">D</button>
+      <button class="mbtn" id="fW" onclick="setFreq('W')">S</button>
+      <button class="mbtn" id="fM" onclick="setFreq('M')">M</button>
+      <button class="mbtn" id="fQ" onclick="setFreq('Q')">T</button>
+      <button class="mbtn" id="fA" onclick="setFreq('A')">A</button>
+      <div class="sep"></div>
+      <button class="mbtn" id="bdiff" onclick="togDiff()">Δ Dif.</button>
+      <button class="mbtn" id="blog" onclick="togLog()">Log</button>
+      <div class="sep"></div>
+      <button class="mbtn amber" id="bpbi" onclick="togDefl('pbi')">÷ PBI</button>
+      <button class="mbtn amber" id="bmep" onclick="togDefl('mep')">÷ MEP</button>
+      <button class="mbtn amber" id="bcer" onclick="togDefl('cer')">÷ CER</button>
+      <button class="mbtn amber" id="bipc" onclick="togDefl('ipc')">÷ IPC USA</button>
+      <div class="sep"></div>
+      <span id="badge">0</span>
+      <button id="clr" onclick="clrCmp()">✕ Limpiar</button>
+    </div>
+    <div id="ma-row">
+      <label>Media Móvil:</label>
+      <input type="number" id="ma-win" value="0" min="0" max="500" placeholder="0=off" title="Ventana (0 = desactivado)"/>
+      <span style="color:#333;font-size:9px">obs. (0 = desactivado)</span>
+      <div class="sep" style="margin-left:6px"></div>
+      <div id="vbar">
+        <span class="blbl">Variación:</span>
+        <button class="vbtn on" id="vNone" onclick="setVar('none')">Niveles</button>
+        <button class="vbtn" id="vYoY" onclick="setVar('yoy')">i.a.</button>
+        <button class="vbtn" id="vQoQ" onclick="setVar('qoq')">i.t.</button>
+        <button class="vbtn" id="vMoM" onclick="setVar('mom')">i.m.</button>
+        <button class="vbtn" id="vWoW" onclick="setVar('wow')">i.s.</button>
+        <div class="sep"></div>
+        <button class="vbtn" id="vBars" onclick="togVarBars()">▥ Barras</button>
+      </div>
+    </div>
+    <div id="axis-row">
+      <label>Desde:</label>
+      <input type="date" id="ax-from" onchange="render()"/>
+      <label>Hasta:</label>
+      <input type="date" id="ax-to" onchange="render()"/>
+      <div class="sep" style="margin-left:6px; margin-right:6px"></div>
+      <label title="Fecha para Base 100 en Comparar. Dejar vacío para inicio automático.">Base 100:</label>
+      <input type="date" id="ax-base" onchange="render()"/>
+      <div class="sep" style="margin-left:6px; margin-right:6px"></div>
+      <div class="sep"></div>
+      <label>Y mín:</label>
+      <input type="number" id="ax-ymin" placeholder="Auto" step="any" onchange="render()"/>
+      <label>Y máx:</label>
+      <input type="number" id="ax-ymax" placeholder="Auto" step="any" onchange="render()"/>
+      <button class="axis-btn" onclick="resetAxes()">↺ Auto</button>
+    </div>
+    <div id="info">Elegí una serie del panel izquierdo</div>
+    <div id="charts">
+      <div id="c1"></div>
+      <div id="c2"></div>
+    </div>
+    <div id="cw" style="display:none">
+      <div id="cmp-controls"></div>
+      <div id="cc"></div>
+      <div id="cs"></div>
+      <div id="cmp-corr"></div>
+      <div id="cmp-scatter"></div>
+    </div>
+    <div id="empty" style="display:none;align-items:center;justify-content:center;color:#333;font-size:13px">Marcá 2+ series con el checkbox verde para comparar</div>
+  </div>
+
+  <!-- SIMULATOR -->
+  <div id="tab-simulator" class="tab-content">
+    <div id="sim-wrap">
+      <div id="sim-panel">
+        <div class="sim-section"><h3>⚙️ General</h3>
+          <div class="sim-row"><label>N obs</label><input id="s-n" type="number" value="400" min="50" max="5000"></div>
+          <div class="sim-row"><label>Semilla</label><input id="s-seed" type="number" value="42"></div>
+        </div>
+        <div class="sim-section"><h3>📈 Tendencia</h3>
+          <div class="sim-row"><label>Tipo</label><select id="s-trend"><option value="none">Ninguna</option><option value="linear">Lineal</option><option value="quadratic">Cuadrática</option><option value="exponential">Exponencial</option></select></div>
+          <div class="sim-row"><label>β₀</label><input id="s-b0" type="number" value="0" step="0.1"></div>
+          <div class="sim-row"><label>β₁</label><input id="s-b1" type="number" value="0.01" step="0.001"></div>
+          <div class="sim-row"><label>β₂</label><input id="s-b2" type="number" value="0" step="0.0001"></div>
+        </div>
+        <div class="sim-section"><h3>🔄 ARMA</h3>
+          <div class="sim-row"><label>AR (φ)</label><input id="s-ar" type="text" value="0.7" placeholder="0.5, 0.3"></div>
+          <div class="sim-row"><label>MA (θ)</label><input id="s-ma" type="text" value="" placeholder="0.4"></div>
+        </div>
+        <div class="sim-section"><h3>🌊 Estacional</h3>
+          <div class="sim-row"><label>Periodo S</label><input id="s-s" type="number" value="12" min="1"></div>
+          <div class="sim-row"><label>SAR</label><input id="s-sar" type="text" value="" placeholder="0.5"></div>
+          <div class="sim-row"><label>SMA</label><input id="s-sma" type="text" value="" placeholder="0.3"></div>
+        </div>
+        <div class="sim-section"><h3>📊 Integración</h3>
+          <div class="sim-row"><label>d</label><input id="s-d" type="number" value="0" min="0" max="3"></div>
+          <div class="sim-row"><label>D (estac.)</label><input id="s-D" type="number" value="0" min="0" max="2"></div>
+        </div>
+        <div class="sim-section"><h3>🔥 GARCH</h3>
+          <div class="sim-row"><label>Activar</label><input id="s-garch" type="checkbox"></div>
+          <div class="sim-row"><label>ω</label><input id="s-omega" type="number" value="0.1" step="0.01"></div>
+          <div class="sim-row"><label>α</label><input id="s-alpha" type="text" value="0.15"></div>
+          <div class="sim-row"><label>β</label><input id="s-beta" type="text" value="0.8"></div>
+          <div class="sim-row"><label>σ² base</label><input id="s-sigma" type="number" value="1" step="0.1"></div>
+        </div>
+        <button id="btn-sim" onclick="runSim()">▶ Generar Serie</button>
+      </div>
+      <div id="sim-charts">
+        <div id="sc1"></div><div id="sc2"></div><div id="sc3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYSIS -->
+  <div id="tab-analysis" class="tab-content">
+    <div id="anl-wrap">
+      <div id="anl-left">
+        <div class="anl-section"><h4>Serie y Periodo</h4>
+          <div class="anl-row"><label>Serie A</label><select id="anl-s1" onchange="anlUpdate()"><option value="">— elegir —</option></select></div>
+          <div class="anl-row"><label>Deflactor A</label>
+            <div style="display:flex;gap:5px;font-size:9px">
+              <label><input type="checkbox" id="anl-da-pbi" onchange="anlUpdate()">PBI</label>
+              <label><input type="checkbox" id="anl-da-mep" onchange="anlUpdate()">MEP</label>
+              <label><input type="checkbox" id="anl-da-cer" onchange="anlUpdate()">CER</label>
+              <label><input type="checkbox" id="anl-da-ipc" onchange="anlUpdate()">IPC</label>
+            </div>
+          </div>
+          <div class="anl-row"><label>Serie B</label><select id="anl-s2" onchange="anlUpdate()"><option value="">— ninguna —</option></select></div>
+          <div class="anl-row"><label>Deflactor B</label>
+            <div style="display:flex;gap:5px;font-size:9px">
+              <label><input type="checkbox" id="anl-db-pbi" onchange="anlUpdate()">PBI</label>
+              <label><input type="checkbox" id="anl-db-mep" onchange="anlUpdate()">MEP</label>
+              <label><input type="checkbox" id="anl-db-cer" onchange="anlUpdate()">CER</label>
+              <label><input type="checkbox" id="anl-db-ipc" onchange="anlUpdate()">IPC</label>
+            </div>
+          </div>
+          <div class="anl-row"><label>Operación</label>
+            <select id="anl-op" onchange="anlUpdate()">
+              <option value="A">Solo A</option>
+              <option value="B">Solo B</option>
+              <option value="A-B">A − B</option>
+              <option value="A+B">A + B</option>
+              <option value="A/B">A / B</option>
+              <option value="A*B">A × B</option>
+            </select>
+          </div>
+          <div class="anl-row"><label>Desde</label><input type="date" id="anl-from" onchange="anlUpdate()"/></div>
+          <div class="anl-row"><label>Hasta</label><input type="date" id="anl-to" onchange="anlUpdate()"/></div>
+          <div class="anl-row"><label>Frecuencia</label>
+            <select id="anl-freq" onchange="anlUpdate()">
+              <option value="">(Original)</option>
+              <option value="D">Diaria</option>
+              <option value="W">Semanal</option>
+              <option value="M">Mensual</option>
+              <option value="Q">Trimestral</option>
+              <option value="A">Anual</option>
+            </select>
+          </div>
+        </div>
+        <div class="anl-section"><h4>Transformación</h4>
+          <div class="anl-row"><label>Log</label><input type="checkbox" id="anl-log" onchange="anlUpdate()"/></div>
+          <div class="anl-row"><label>Diferencias</label><input type="number" id="anl-diff" value="0" min="0" max="5" style="width:50px" onchange="anlUpdate()"/></div>
+          <div class="anl-row"><label>MM (ventana)</label><input type="number" id="anl-ma" value="0" min="0" style="width:50px" onchange="anlUpdate()"/></div>
+        </div>
+        <div class="anl-section"><h4>ACF / PACF / GARCH</h4>
+          <div class="anl-row"><label>Lags</label><input type="number" id="anl-lags" value="40" min="5" max="200" onchange="anlUpdate()"/></div>
+          <div class="anl-row" style="margin-bottom: 2px"><label title="Evaluar correlograma de los residuos para ver efectos GARCH">Analizar Residuos</label></div>
+          <div class="anl-row">
+            <select id="anl-resid" onchange="anlUpdate()" style="width: 100%">
+              <option value="none">Niveles (Serie original)</option>
+              <option value="c">Errores (Regresión Constante)</option>
+              <option value="ct">Errores (Regresión Tendencia)</option>
+              <option value="ar1">Errores (AR(1))</option>
+            </select>
+          </div>
+          <div class="anl-row"><label>Mostrar errores al <b>cuadrado</b></label><input type="checkbox" id="anl-resid-sq" onchange="anlUpdate()"/></div>
+          <button class="abtn abtn-p" onclick="anlUpdate()">▶ Actualizar Gráficos</button>
+        </div>
+        <div class="anl-section"><h4>Test de Raíz Unitaria</h4>
+          <div class="anl-row"><label>Test</label>
+            <select id="anl-ur-test">
+              <option value="adf">ADF</option>
+              <option value="pp">Phillips-Perron</option>
+            </select>
+          </div>
+          <div class="anl-row"><label>Términos</label>
+            <select id="anl-ur-trend">
+              <option value="c">Constante</option>
+              <option value="ct">Constante + Tendencia</option>
+              <option value="nc">Ninguno</option>
+            </select>
+          </div>
+          <button class="abtn" onclick="runUnitRootTest()">▶ Ejecutar Test</button>
+          <div id="adf-box">Presioná "Ejecutar Test" para ejecutar</div>
+        </div>
+      </div>
+      <div id="anl-right">
+        <div id="anl-chart"></div>
+        <div id="anl-acf"></div>
+        <div id="anl-pacf"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── PATHS ── */
+const BASE = '../data/Variables%20Finales/';
+const RAW  = '../data/raw/indec/';
+
+/* ── COLOR PALETTE ── */
+const PALETTE = ['#7c3aed','#10b981','#f59e0b','#ef4444','#3b82f6','#ec4899','#14b8a6','#f97316','#8b5cf6','#06b6d4','#84cc16','#e11d48','#0891b2','#d97706','#7c3aed'];
+
+/* ── CATALOG ── */
+// Items: {id,label,file,dateCol,valCol,unit,freq} (single-source)
+// or:    {id,label,unit,sources:[{freq,file,dateCol,valCol},...]} (multi-source)
+// getSeries() picks the best available source for the current UI frequency.
+const CATALOG = [
+
+  /* ── SECTOR MONETARIO Y CAMBIARIO ── */
+
+  { grp:'Reservas y Liquidez', clr:'#7c3aed', items:[
+    { id:'res_brutas', label:'Reservas Brutas BCRA', file:'001_reservas_brutas.csv', dateCol:'fecha', valCol:'valor', unit:'Mill. USD', freq:'D' }
+  ]},
+
+  { grp:'Sistema Bancario', clr:'#0ea5e9', subs:[
+    { sub:'Depósitos', items:[
+      { id:'dep_total',    label:'Depósitos Totales (ARS)',    file:'021_dep_total.csv',              dateCol:'fecha', valCol:'valor',                      unit:'Mill. ARS', freq:'D' },
+      { id:'dep_usd_tot',  label:'Depósitos USD — Total',      file:'depositos_usd_totales.csv',      dateCol:'fecha', valCol:'depositos_usd_z',             unit:'Mill. USD', freq:'D' },
+      { id:'dep_usd_res',  label:'Depósitos USD — Residentes', file:'depositos_usd_residentes.csv',   dateCol:'fecha', valCol:'depositos_usd_residentes_aa', unit:'Mill. USD', freq:'D' },
+      { id:'dep_usd_priv', label:'Depósitos USD — Sec. Priv.', file:'depositos_usd_secprivnofin.csv', dateCol:'fecha', valCol:'depositos_usd_aa',            unit:'Mill. USD', freq:'D' }
+    ]},
+    { sub:'Préstamos', items:[
+      { id:'prest_usd', label:'Préstamos Privados USD', file:'prestamos_privados_usd_q.csv', dateCol:'fecha', valCol:'prestamos_privados_usd_q', unit:'Mill. USD', freq:'D' }
+    ]}
+  ]},
+
+  { grp:'Tipo de Cambio y Brecha', clr:'#f59e0b', items:[
+    { id:'tc_mep',   label:'TC MEP (dólar financiero)',    file:'brecha_cambiaria.csv', dateCol:'fecha', valCol:'mep',              unit:'ARS/USD', freq:'D' },
+    { id:'tc_a3500', label:'TC Oficial (A3500)',            file:'brecha_cambiaria.csv', dateCol:'fecha', valCol:'bcra_a3500',       unit:'ARS/USD', freq:'D' },
+    { id:'brecha',   label:'Brecha Cambiaria MEP/Oficial', file:'brecha_cambiaria.csv', dateCol:'fecha', valCol:'brecha_cambiaria', unit:'ratio',   freq:'D' }
+  ]},
+
+  { grp:'ITCRM — Tipo de Cambio Real Multilateral', clr:'#14b8a6', subs:[
+    { sub:'General', items:[
+      { id:'itcrm',     label:'ITCRM Multilateral', file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRM',               unit:'Índice base 2001=100', freq:'D' }
+    ]},
+    { sub:'América', items:[
+      { id:'itcrm_bra', label:'Brasil',      file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Brasil',         unit:'Índice', freq:'D' },
+      { id:'itcrm_usa', label:'EEUU',        file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Estados Unidos', unit:'Índice', freq:'D' },
+      { id:'itcrm_chi', label:'Chile',       file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Chile',          unit:'Índice', freq:'D' },
+      { id:'itcrm_uru', label:'Uruguay',     file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Uruguay',        unit:'Índice', freq:'D' },
+      { id:'itcrm_mex', label:'México',      file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB México',         unit:'Índice', freq:'D' },
+      { id:'itcrm_can', label:'Canadá',      file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Canadá',         unit:'Índice', freq:'D' },
+      { id:'itcrm_sud', label:'Sudamérica',  file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Sudamérica*',    unit:'Índice', freq:'D' }
+    ]},
+    { sub:'Europa', items:[
+      { id:'itcrm_eur', label:'Zona Euro',   file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Zona Euro',   unit:'Índice', freq:'D' },
+      { id:'itcrm_gbr', label:'Reino Unido', file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Reino Unido', unit:'Índice', freq:'D' },
+      { id:'itcrm_sui', label:'Suiza',       file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Suiza',       unit:'Índice', freq:'D' }
+    ]},
+    { sub:'Asia', items:[
+      { id:'itcrm_chn', label:'China',   file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB China',   unit:'Índice', freq:'D' },
+      { id:'itcrm_jap', label:'Japón',   file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Japón',   unit:'Índice', freq:'D' },
+      { id:'itcrm_ind', label:'India',   file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB India',   unit:'Índice', freq:'D' },
+      { id:'itcrm_vie', label:'Vietnam', file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Vietnam', unit:'Índice', freq:'D' }
+    ]}
+  ]},
+
+  /* ── SECTOR EXTERNO: COMERCIO ── */
+
+  { grp:'Intercambio Comercial (ICA)', clr:'#10b981', subs:[
+    { sub:'Resumen', items:[
+      { id:'ica_saldo', label:'Saldo Comercial',       unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_saldo_comercial'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'saldo_comercial'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'saldo_comercial'}
+      ]},
+      { id:'ica_expo',  label:'Exportaciones — Total', unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_expo_totales'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_expo_totales'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_expo_totales'}
+      ]},
+      { id:'ica_impo',  label:'Importaciones — Total', unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_importaciones_totales'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_importaciones_totales'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_importaciones_totales'}
+      ]}
+    ]},
+    { sub:'Exportaciones por Rubro', items:[
+      { id:'ica_pp',   label:'Prod. Primarios (PP)',   unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_exportacion_productos_primarios'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_exportacion_productos_primarios'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_exportacion_productos_primarios'}
+      ]},
+      { id:'ica_moa',  label:'MOA',                    unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_exportacion_manufacturas_origen_agropecuario'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_exportacion_manufacturas_origen_agropecuario'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_exportacion_manufacturas_origen_agropecuario'}
+      ]},
+      { id:'ica_moi',  label:'MOI',                    unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_exportacion_manufacturas_origen_industrial'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_exportacion_manufacturas_origen_industrial'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_exportacion_manufacturas_origen_industrial'}
+      ]},
+      { id:'ica_comb', label:'Combustible y Energía',  unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_exportacion_combustible_energia'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_exportacion_combustible_energia'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_exportacion_combustible_energia'}
+      ]}
+    ]},
+    { sub:'Importaciones por Rubro', items:[
+      { id:'ica_ibk',   label:'Bienes de Capital',     unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_importaciones_bienes_capital'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_importaciones_bienes_capital'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_importaciones_bienes_capital'}
+      ]},
+      { id:'ica_ibi',   label:'Bienes Intermedios',     unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_importaciones_bienes_intermedios'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_importaciones_bienes_intermedios'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_importaciones_bienes_intermedios'}
+      ]},
+      { id:'ica_icmb',  label:'Combustibles/Lubric.',   unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_importaciones_combustibles_lubricantes'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_importaciones_combustibles_lubricantes'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_importaciones_combustibles_lubricantes'}
+      ]},
+      { id:'ica_ipbk',  label:'Piezas y Acces. BK',     unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_importaciones_piezas_accesorios_bienes_capital'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_importaciones_piezas_accesorios_bienes_capital'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_importaciones_piezas_accesorios_bienes_capital'}
+      ]},
+      { id:'ica_ibc',   label:'Bienes de Consumo',      unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_importaciones_bienes_consumo'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_importaciones_bienes_consumo'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_importaciones_bienes_consumo'}
+      ]},
+      { id:'ica_iauto', label:'Vehículos Automotores',  unit:'Mill. USD', sources:[
+          {freq:'M', file:'ica_intercambio_comercial_argentino_valores_mensuales.csv',    dateCol:'indice_tiempo', valCol:'ica_importaciones_vehiculos_automotores_pasajeros'},
+          {freq:'Q', file:'ica_intercambio_comercial_argentino_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ica_importaciones_vehiculos_automotores_pasajeros'},
+          {freq:'A', file:'ica_intercambio_comercial_argentino_valores_anuales.csv',       dateCol:'indice_tiempo', valCol:'ica_importaciones_vehiculos_automotores_pasajeros'}
+      ]}
+    ]},
+    { sub:'Términos de Intercambio', items:[
+      { id:'ti_nominal',  label:'Términos de Intercambio (nominal)',   file:'ti_mensual.csv', dateCol:'fecha', valCol:'ti_nominal',      unit:'Índice 2004=100', freq:'M' },
+      { id:'ti_base100',  label:'Términos de Intercambio (base 100)',  file:'ti_mensual.csv', dateCol:'fecha', valCol:'ti_base100',      unit:'Índice',          freq:'M' },
+      { id:'ti_expo_p',   label:'Precios Exportaciones',               file:'ti_mensual.csv', dateCol:'fecha', valCol:'expo_precios',    unit:'Índice',          freq:'M' },
+      { id:'ti_expo_q',   label:'Cantidades Exportadas',               file:'ti_mensual.csv', dateCol:'fecha', valCol:'expo_cantidades', unit:'Índice',          freq:'M' },
+      { id:'ti_impo_p',   label:'Precios Importaciones',               file:'ti_mensual.csv', dateCol:'fecha', valCol:'impo_precios',    unit:'Índice',          freq:'M' },
+      { id:'ti_impo_q',   label:'Cantidades Importadas',               file:'ti_mensual.csv', dateCol:'fecha', valCol:'impo_cantidades', unit:'Índice',          freq:'M' }
+    ]}
+  ]},
+
+  { grp:'Saldo Comercial por Países', clr:'#06b6d4', subs:[
+    { sub:'Totales y Regiones', items:[
+      { id:'sc_tot',   label:'Total Mundial',        unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_totales'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_totales'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_totales'}
+      ]},
+      { id:'sc_alat',  label:'América Latina',       unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_america_latina'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_america_latina'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_america_latina'}
+      ]},
+      { id:'sc_merc',  label:'Mercosur',             unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_mercosur'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_mercosur'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_mercosur'}
+      ]},
+      { id:'sc_alp',   label:'Alianza del Pacífico', unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_alianza_pacifico'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_alianza_pacifico'}
+      ]},
+      { id:'sc_ue',    label:'Unión Europea',        unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_ue'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_ue'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_ue'}
+      ]},
+      { id:'sc_asia',  label:'Asia Pacífico',        unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_asia_pacifico'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_asia_pacifico'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_asia_pacifico'}
+      ]},
+      { id:'sc_afr',   label:'África',               unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_africa'}]},
+      { id:'sc_nafta', label:'NAFTA',                unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_nafta'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_total_nafta'}
+      ]},
+      { id:'sc_aladi', label:'ALADI',                unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_aladi'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_aladi'}
+      ]},
+      { id:'sc_asean', label:'ASEAN',                unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_asean'}]}
+    ]},
+    { sub:'América', items:[
+      { id:'sc_bra',   label:'Brasil',    unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_brasil'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_brasil'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_brasil'}
+      ]},
+      { id:'sc_usa',   label:'EEUU',     unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_estados_unidos'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_estados_unidos'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_estados_unidos'}
+      ]},
+      { id:'sc_uru',   label:'Uruguay',  unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_uruguay'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_uruguay'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_uruguay'}
+      ]},
+      { id:'sc_par',   label:'Paraguay', unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_paraguay'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_paraguay'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_paraguay'}
+      ]},
+      { id:'sc_chi',   label:'Chile',    unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_chile'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_chile'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_chile'}
+      ]},
+      { id:'sc_ven',   label:'Venezuela',     unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_venezuela'}]},
+      { id:'sc_bol',   label:'Bolivia',       unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_bolivia'}]},
+      { id:'sc_col',   label:'Colombia',      unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_colombia'}]},
+      { id:'sc_mex',   label:'México',        unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_mexico'}]},
+      { id:'sc_per',   label:'Perú',          unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_peru'}]},
+      { id:'sc_ecu',   label:'Ecuador',       unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_ecuador'}]},
+      { id:'sc_can',   label:'Canadá',        unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_canada'}]},
+      { id:'sc_rlat',  label:'Resto Am. Lat.',unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_resto_america_latina'}]}
+    ]},
+    { sub:'Europa', items:[
+      { id:'sc_ale',   label:'Alemania',    unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_alemania'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_alemania'}
+      ]},
+      { id:'sc_esp',   label:'España',      unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_espana'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_espana'}
+      ]},
+      { id:'sc_fra',   label:'Francia',     unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_francia'}]},
+      { id:'sc_ita',   label:'Italia',      unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_italia'}]},
+      { id:'sc_pba',   label:'Países Bajos',unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_paises_bajos'}]},
+      { id:'sc_gbr',   label:'Reino Unido', unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_reino_unido'}]},
+      { id:'sc_pol',   label:'Polonia',     unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_polonia'}]},
+      { id:'sc_por',   label:'Portugal',    unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_portugal'}]},
+      { id:'sc_aut',   label:'Austria',     unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_austria'}]},
+      { id:'sc_bel',   label:'Bélgica',     unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_belgica'}]},
+      { id:'sc_sui',   label:'Suiza',       unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_suiza'}]},
+      { id:'sc_reue',  label:'Resto UE',    unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_resto_ue'}]}
+    ]},
+    { sub:'Asia y Pacífico', items:[
+      { id:'sc_chn',   label:'China',       unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_china'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_china'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_china'}
+      ]},
+      { id:'sc_jap',   label:'Japón',       unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_japon'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_japon'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_japon'}
+      ]},
+      { id:'sc_ind',   label:'India',       unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_india'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_india'},
+          {freq:'A', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_anuale.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_india'}
+      ]},
+      { id:'sc_rus',   label:'Rusia',       unit:'Mill. USD', sources:[
+          {freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_rusia'},
+          {freq:'Q', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_trimes.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_rusia'}
+      ]},
+      { id:'sc_cor',   label:'Corea',       unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_corea'}]},
+      { id:'sc_tai',   label:'Tailandia',   unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_tailandia'}]},
+      { id:'sc_twn',   label:'Taiwán',      unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_taiwan'}]},
+      { id:'sc_vie',   label:'Vietnam',     unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_vietnam'}]},
+      { id:'sc_idn',   label:'Indonesia',   unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_indonesia'}]},
+      { id:'sc_isr',   label:'Israel',      unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_israel'}]},
+      { id:'sc_aus',   label:'Australia',   unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_australia'}]},
+      { id:'sc_nzl',   label:'Nueva Zelanda',unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_nueva_zelanda'}]},
+      { id:'sc_reap',  label:'Resto Asia Pac.',unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_resto_asia_pacifico'}]}
+    ]},
+    { sub:'África', items:[
+      { id:'sc_ang',   label:'Angola',      unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_angola'}]},
+      { id:'sc_arg2',  label:'Argelia',     unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_argelia'}]},
+      { id:'sc_egi',   label:'Egipto',      unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_egipto'}]},
+      { id:'sc_mar',   label:'Marruecos',   unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_marruecos'}]},
+      { id:'sc_saf',   label:'Sudáfrica',   unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_sudafrica'}]},
+      { id:'sc_reaf',  label:'Resto África',unit:'Mill. USD', sources:[{freq:'M', file:'saldo_comercial_paises_saldo_comercial_por_pa_ses_y_regiones_fob_cif_valores_mensua.csv', dateCol:'indice_tiempo', valCol:'ica_saldo_comercial_resto_africa'}]}
+    ]}
+  ]},
+
+  /* ── SECTOR EXTERNO: BALANCE DE PAGOS ── */
+
+  { grp:'Balance de Pagos (MBP6)', clr:'#8b5cf6', subs:[
+    { sub:'Cuenta Corriente', items:[
+      { id:'bp_cc',    label:'Total Cuenta Corriente',           unit:'Mill. USD', sources:[
+          {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'total_cuenta_corriente'},
+          {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'total_cuenta_corriente'}
+      ]},
+      { id:'bp_bys',   label:'Bienes y Servicios',              unit:'Mill. USD', sources:[
+          {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_total_bienes_servicios'},
+          {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_total_bienes_servicios'}
+        ], children:[
+        { id:'bp_bienes',label:'Bienes (neto)',               unit:'Mill. USD', sources:[
+            {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_bienes_servicios_total_bienes'},
+            {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_bienes_servicios_total_bienes'}
+          ], children:[
+          { id:'bp_exp', label:'Exportaciones FOB', unit:'Mill. USD', sources:[
+              {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corrientes_bienes_servicios_bienes_exportaciones_fob'},
+              {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corrientes_bienes_servicios_bienes_exportaciones_fob'}
+          ]},
+          { id:'bp_imp', label:'Importaciones FOB', unit:'Mill. USD', sources:[
+              {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corrientes_bienes_servicios_bienes_importaciones_fob'},
+              {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corrientes_bienes_servicios_bienes_importaciones_fob'}
+          ]}
+        ]},
+        { id:'bp_serv', label:'Servicios (neto)',              unit:'Mill. USD', sources:[
+            {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_bienes_servicios_total_servicios'},
+            {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_bienes_servicios_total_servicios'}
+          ], children:[
+          { id:'bp_si', label:'Ingresos de Servicios', unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_bienes_servicios_ingresos_servicios'}]},
+          { id:'bp_se', label:'Egresos de Servicios',  unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_bienes_servicios_egresos_servicios'}]}
+        ]}
+      ]},
+      { id:'bp_ip',    label:'Ingresos Primarios',              unit:'Mill. USD', sources:[
+          {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_total_ingresos_primarios'},
+          {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_total_ingresos_primarios'}
+        ], children:[
+        { id:'bp_ip_rem',label:'Remuneración de Empleados',  unit:'Mill. USD', sources:[
+            {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_ingresos_primarios_rem_empleados'},
+            {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_ingresos_primarios_rem_empleados'}
+        ]},
+        { id:'bp_ip_ri', label:'Rentas de Inversión',         unit:'Mill. USD', sources:[
+            {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_ingresos_primarios_total_rentas_inversion'},
+            {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_ingresos_primarios_total_rentas_inversion'}
+          ], children:[
+          { id:'bp_ip_id', label:'Inv. Directa',   unit:'Mill. USD', sources:[
+              {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cta_cte_ingresos_primarios_rentas_inversion_directa'},
+              {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cta_cte_ingresos_primarios_rentas_inversion_directa'}
+          ]},
+          { id:'bp_ip_ic', label:'Inv. de Cartera', unit:'Mill. USD', sources:[
+              {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'ingresos_primarios_rentas_inversion_inversion_cartera'},
+              {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'ingresos_primarios_rentas_inversion_inversion_cartera'}
+          ]},
+          { id:'bp_ip_oi', label:'Otra Inversión',  unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_ingresos_primarios_rentas_otra_inversion'}]}
+        ]}
+      ]},
+      { id:'bp_is',    label:'Ingresos Secundarios',           unit:'Mill. USD', sources:[
+          {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_ingresos_secundarios'},
+          {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_ingresos_secundarios'}
+      ]}
+    ]},
+    { sub:'Cuenta Financiera', items:[
+      { id:'bp_cap',   label:'Cuenta Capital',                 unit:'Mill. USD', sources:[
+          {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'total_cuenta_capital'},
+          {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'total_cuenta_capital'}
+      ]},
+      { id:'bp_cf',    label:'Total Cuenta Financiera',        unit:'Mill. USD', sources:[
+          {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'total_cuenta_financiera'},
+          {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'total_cuenta_financiera'}
+      ]},
+      { id:'bp_id',    label:'Inversión Directa',              unit:'Mill. USD', sources:[
+          {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_inversion_directa'},
+          {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_inversion_directa'}
+        ], children:[
+        { id:'bp_id_ap', label:'Activos: Particip. Capital', unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cta_fin_inversion_directa_activos_participaciones_capital'}]},
+        { id:'bp_id_pp', label:'Pasivos: Particip. Capital', unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cta_fin_inversion_directa_pasivos_participaciones_capital'}]},
+        { id:'bp_id_pd', label:'Pasivos: Inst. Deuda',       unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cta_fin_inversion_directa_pasivos_instrumentos_deuda'}]}
+      ]},
+      { id:'bp_ic',    label:'Inversión de Cartera',           unit:'Mill. USD', sources:[
+          {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_inversion_cartera'},
+          {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_inversion_cartera'}
+        ], children:[
+        { id:'bp_ic_ap', label:'Activos: Participaciones', unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cta_fin_inversion_cartera_activos_participaciones_capital'}]},
+        { id:'bp_ic_ad', label:'Activos: Inst. Deuda',     unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financiera_inversion_cartera_activos_instrumentosuda'}]},
+        { id:'bp_ic_pp', label:'Pasivos: Participaciones', unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cta_fin_inversion_cartera_pasivos_participaciones_capital'}]},
+        { id:'bp_ic_pd', label:'Pasivos: Inst. Deuda',     unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financiera_inversion_cartera_pasivos_instrumentosuda'}]}
+      ]},
+      { id:'bp_df',    label:'Derivados Financieros',          unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financierarivados_financieros'}]},
+      { id:'bp_oi',    label:'Otra Inversión',                 unit:'Mill. USD', sources:[
+          {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_otra_inversion'},
+          {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_otra_inversion'}
+        ], children:[
+        { id:'bp_oi_a', label:'Activos (adquisición neta)', unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cta_fin_otra_inversion_adquisicion_neta_activos_financieros'}]},
+        { id:'bp_oi_p', label:'Pasivos (emisión neta)',     unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financieratra_inversion_emision_neta_pasivos'}]}
+      ]},
+      { id:'bp_res',   label:'Activos de Reserva',             unit:'Mill. USD', sources:[
+          {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'activos_reserva'},
+          {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'activos_reserva'}
+      ]},
+      { id:'bp_err',   label:'Errores y Omisiones',            unit:'Mill. USD', sources:[
+          {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'errores_omisiones_netos'},
+          {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'errores_omisiones_netos'}
+      ]}
+    ]}
+  ]},
+
+  /* ── FINANZAS PÚBLICAS ── */
+
+  { grp:'Finanzas Públicas', clr:'#84cc16', subs:[
+    { sub:'Resultado Fiscal', items:[
+      { id:'fis_prima',    label:'Superávit Primario',              file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'superavit_primario',                            unit:'Mill. ARS', freq:'M' },
+      { id:'fis_prima2',   label:'Superávit Primario s/ privat.',   file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'superavit_primario_sin_privatizaciones',        unit:'Mill. ARS', freq:'M' },
+      { id:'fis_fin',      label:'Resultado Financiero',            file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'resultado_fin',                                unit:'Mill. ARS', freq:'M' },
+      { id:'fis_fin2',     label:'Resultado Financiero s/ privat.', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'resultado_fin_sin_privatizaciones',             unit:'Mill. ARS', freq:'M' },
+      { id:'fis_res_eco',  label:'Resultado Económico',             file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'resultado_economico_ahorro_desahorro',          unit:'Mill. ARS', freq:'M' },
+      { id:'fis_prima_sf', label:'Resultado Primario s/ rentas',    file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'resultados_primarios_sin_rentas',               unit:'Mill. ARS', freq:'M' }
+    ]},
+    { sub:'Ingresos', items:[
+      { id:'fis_ing', label:'Ingresos Corrientes — Total', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'ing_corr', unit:'Mill. ARS', freq:'M',
+        children:[
+        { id:'fis_ing_trib',    label:'Tributarios',            file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'ing_corr_ing_tributarios',               unit:'Mill. ARS', freq:'M' },
+        { id:'fis_ing_ss',      label:'Aportes Seg. Social',    file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'ing_corr_aportes_contrib_seg_soc',       unit:'Mill. ARS', freq:'M' },
+        { id:'fis_ing_ntrib',   label:'No Tributarios',         file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'ing_corr_ing_no_tributarios',            unit:'Mill. ARS', freq:'M' },
+        { id:'fis_ing_rp',      label:'Rentas de la Propiedad', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'ing_corr_ren_prop_total_ren_prop',       unit:'Mill. ARS', freq:'M' },
+        { id:'fis_ing_ren_bcra',label:'Rentas percibidas BCRA', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'ing_corr_ren_prop_ren_percidas_bcra',   unit:'Mill. ARS', freq:'M' },
+        { id:'fis_ing_tc',      label:'Transf. Corrientes',     file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'ing_corr_transf_corr',                   unit:'Mill. ARS', freq:'M' }
+      ]}
+    ]},
+    { sub:'Gastos', items:[
+      { id:'fis_gtos', label:'Gastos Corrientes — Total', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'gtos_corr', unit:'Mill. ARS', freq:'M',
+        children:[
+        { id:'fis_gtos_rem',  label:'Remuneraciones',           file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'gtos_corr_gtos_cons_operacion_remuneraciones',   unit:'Mill. ARS', freq:'M' },
+        { id:'fis_gtos_bs',   label:'Bienes y Servicios',       file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'gtos_corr_gtos_cons_operacion_bienes_servicios', unit:'Mill. ARS', freq:'M' },
+        { id:'fis_gtos_ii',   label:'Intereses Deuda Interna',  file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'gtos_corr_int_ot_ren_prop_int_deuda_int',       unit:'Mill. ARS', freq:'M' },
+        { id:'fis_gtos_ie',   label:'Intereses Deuda Externa',  file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'gtos_corr_int_ot_ren_prop_int_deuda_ext',       unit:'Mill. ARS', freq:'M' },
+        { id:'fis_gtos_int_n',label:'Intereses Netos',          file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'gtos_corr_int_ot_ren_prop_int_netos',           unit:'Mill. ARS', freq:'M' },
+        { id:'fis_gtos_ss',   label:'Prestaciones Seg. Social', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'gtos_corr_prestaciones_seg_soc',                unit:'Mill. ARS', freq:'M' },
+        { id:'fis_gtos_tcp',  label:'Transf. Corrientes Prov.', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'gtos_corr_transf_corr_sec_pub_prov_caba_rec_cop',unit:'Mill. ARS', freq:'M' },
+        { id:'fis_gtos_uni',  label:'Transf. Corrientes Univ.', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'gtos_corr_transf_corr_sec_pub_uni',              unit:'Mill. ARS', freq:'M' }
+      ]},
+      { id:'fis_gtos_cap', label:'Gastos de Capital — Total', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'gtos_cap', unit:'Mill. ARS', freq:'M',
+        children:[
+        { id:'fis_gtos_ird', label:'Inversión Real Directa', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'gtos_cap_inversion_real_directa', unit:'Mill. ARS', freq:'M' }
+      ]}
+    ]}
+  ]},
+
+  /* ── DEUDA Y RIESGO SOBERANO ── */
+
+  { grp:'Deuda y Defaults', clr:'#f97316', subs:[
+    { sub:'Riesgo Soberano (EMBI)', items:[
+      { id:'embi_arg',   label:'Riesgo País ARG (EMBI+)',  file:'riesgo_pais_arg.csv', dateCol:'fecha', valCol:'embi_arg',   unit:'p.b.', freq:'D' },
+      { id:'embi_latam', label:'EMBI+ Latinoamérica',      file:'embi_latam.csv',      dateCol:'fecha', valCol:'embi_latam', unit:'%',    freq:'D' }
+    ]},
+    { sub:'Historia Crediticia', items:[
+      { id:'def_hist',  label:'Nº de Defaults (histórico)',  file:'defaults_history.csv',    dateCol:'fecha', valCol:'n_defaults',          unit:'count', freq:'D' },
+      { id:'yrs_def',   label:'Años desde último Default',   file:'years_since_default.csv', dateCol:'fecha', valCol:'years_since_default', unit:'años',  freq:'D' }
+    ]},
+    { sub:'Saldo de Deuda Bruta (USD)', items:[
+      { id:'deu_total', label:'Deuda Bruta Total', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_total', unit:'Mill. USD', freq:'Q',
+        children:[
+        { id:'deu_normal', label:'En situación de pago normal', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_pago_normal', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'deu_titulos', label:'Títulos Públicos', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_titulos_publicos', unit:'Mill. USD', freq:'Q',
+            children:[
+            { id:'deu_bonos',      label:'Bonos',          file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_bonos',  unit:'Mill. USD', freq:'Q' },
+            { id:'deu_letras',     label:'Letras (total)', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_letras', unit:'Mill. USD', freq:'Q',
+              children:[
+              { id:'deu_letras_tes', label:'Letras del Tesoro', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_letras_tesoro', unit:'Mill. USD', freq:'Q' }
+            ]}
+          ]},
+          { id:'deu_prestamos', label:'Préstamos', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_prestamos', unit:'Mill. USD', freq:'Q',
+            children:[
+            { id:'deu_prest_gar', label:'Préstamos Garantizados',     file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_prest_garantiz', unit:'Mill. USD', freq:'Q' },
+            { id:'deu_org',       label:'Organismos Internacionales', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_org_internac',    unit:'Mill. USD', freq:'Q',
+              children:[
+              { id:'deu_fmi',  label:'FMI',  file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_fmi',  unit:'Mill. USD', freq:'Q' },
+              { id:'deu_bid',  label:'BID',  file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_bid',  unit:'Mill. USD', freq:'Q' },
+              { id:'deu_birf', label:'BIRF', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_birf', unit:'Mill. USD', freq:'Q' },
+              { id:'deu_caf',  label:'CAF',  file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_caf',  unit:'Mill. USD', freq:'Q' }
+            ]},
+            { id:'deu_bilat',     label:'Bilaterales',    file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_bilaterales',  unit:'Mill. USD', freq:'Q' },
+            { id:'deu_cparis',    label:'Club de París',  file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_club_paris',   unit:'Mill. USD', freq:'Q' },
+            { id:'deu_banca_com', label:'Banca Comercial',file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_banca_com',    unit:'Mill. USD', freq:'Q' }
+          ]},
+          { id:'deu_bcra', label:'Anticipos BCRA', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_anticipos_bcra', unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'deu_diferido', label:'En situación de pago diferido',   file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_pago_diferido', unit:'Mill. USD', freq:'Q' },
+        { id:'deu_elegib',   label:'Deuda elegible pendiente reestr.', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_elegible_pend', unit:'Mill. USD', freq:'Q' }
+      ]}
+    ]},
+    { sub:'Vencimientos a 2 años (USD)', items:[
+      { id:'venc_total', label:'Vencimientos Totales', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_total', unit:'Mill. USD', freq:'Q',
+        children:[
+        { id:'venc_tot_loc', label:'Moneda Local (ARS)',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_total_local', unit:'Mill. USD', freq:'Q' },
+        { id:'venc_tot_ext', label:'Moneda Extranjera (USD+)', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_total_ext',   unit:'Mill. USD', freq:'Q' },
+        { id:'venc_bcra',    label:'Anticipos BCRA',           file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_anticipos_bcra', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_bcra_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_anticipos_bcra_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_bcra_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_anticipos_bcra_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_avales', label:'Avales', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_avales', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_avales_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_avales_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_avales_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_avales_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_banca', label:'Banca Comercial', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_banca_comercial', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_banca_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_banca_comercial_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_banca_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_banca_comercial_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_bcie', label:'BCIE', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bcie', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_bcie_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bcie_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_bcie_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bcie_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_bei', label:'BEI', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bei', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_bei_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bei_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_bei_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bei_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_bid', label:'BID', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bid', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_bid_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bid_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_bid_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bid_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_bilat', label:'Bilaterales', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bilaterales', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_bilat_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bilaterales_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_bilat_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bilaterales_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_birf', label:'BIRF', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_birf', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_birf_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_birf_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_birf_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_birf_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_bocon', label:'BOCON 9ª Serie/2010/PR16', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bocon_9_serie_2010_pr16', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_bocon_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bocon_9_serie_2010_pr16_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_bocon_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bocon_9_serie_2010_pr16_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_bonos', label:'Bonos', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bonos', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_bonos_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bonos_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_bonos_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_bonos_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_caf', label:'CAF', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_caf', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_caf_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_caf_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_caf_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_caf_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_cparis', label:'Club de París', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_club_de_paris', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_cparis_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_club_de_paris_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_cparis_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_club_de_paris_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_dec1579', label:'Decreto 1579', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_1579', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_dec1579_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_1579_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_dec1579_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_1579_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_dec977', label:'Decreto 977', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_977', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_dec977_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_977_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_dec977_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_977_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_fida', label:'FIDA', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_fida', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_fida_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_fida_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_fida_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_fida_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_fmi', label:'FMI', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_fmi', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_fmi_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_fmi_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_fmi_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_fmi_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_fonplata', label:'FONPLATA', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_fonplata', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_fonplata_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_fonplata_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_fonplata_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_fonplata_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_letras', label:'Letras del Tesoro', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_del_tesoro', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_letras_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_del_tesoro_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_letras_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_del_tesoro_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_l_gar', label:'Letras en Garantía', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_en_garantia', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_l_gar_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_en_garantia_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_l_gar_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_en_garantia_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_ofid', label:'OFID', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_ofid', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_ofid_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_ofid_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_ofid_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_ofid_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_org_bilat', label:'Organ. Ofic. Bilateral Interna', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_organism_oficiales_bilateral_interna', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_org_bilat_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_organism_oficiales_bilateral_interna_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_org_bilat_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_organism_oficiales_bilateral_interna_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_otros', label:'Otros', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_otros_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_otros_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_oa_ext', label:'Otros Acreeds. — Proveed. Externa', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_externa', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_oa_ext_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_externa_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_oa_ext_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_externa_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_oa_int', label:'Otros Acreeds. — Proveed. Interna', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_interna', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_oa_int_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_interna_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_oa_int_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_interna_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_pag', label:'Pagarés', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_pagares', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_pag_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_pagares_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_pag_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_pagares_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_pg', label:'Préstamos Garantizados', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_prestamos_garantizados', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_pg_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_prestamos_garantizados_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_pg_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_prestamos_garantizados_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc_tit_bocon', label:'Títulos Públicos — BOCON', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_titulos_publicos_bocon_9_serie_2010_pr16', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc_tit_bocon_loc', label:'Moneda Local',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_titulos_publicos_bocon_9_serie_2010_pr16_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc_tit_bocon_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_titulos_publicos_bocon_9_serie_2010_pr16_ext',  unit:'Mill. USD', freq:'Q' }
+        ]}
+      ]}
+    ]}
+  ]},
+
+  /* ── CONDICIONES FINANCIERAS GLOBALES ── */
+
+  { grp:'Condiciones Financieras Globales', clr:'#ef4444', subs:[
+    { sub:'Volatilidad e Incertidumbre', items:[
+      { id:'vix',    label:'VIX — CBOE Volatility Index', file:'vix.csv',    dateCol:'fecha', valCol:'Adj Close', unit:'Índice', freq:'D' },
+      { id:'dxy',    label:'DXY — US Dollar Index',       file:'dxy.csv',    dateCol:'fecha', valCol:'Adj Close', unit:'Índice', freq:'D' }
+    ]},
+    { sub:'Tasas de Interés EEUU', items:[
+      { id:'ust2y',  label:'US Treasury 2Y',  file:'ust2y.csv',  dateCol:'fecha', valCol:'Adj Close', unit:'%', freq:'D' },
+      { id:'ust5y',  label:'US Treasury 5Y',  file:'ust5y.csv',  dateCol:'fecha', valCol:'Adj Close', unit:'%', freq:'D' },
+      { id:'ust10y', label:'US Treasury 10Y', file:'ust10y.csv', dateCol:'fecha', valCol:'Adj Close', unit:'%', freq:'D' },
+      { id:'ust30y', label:'US Treasury 30Y', file:'ust30y.csv', dateCol:'fecha', valCol:'Adj Close', unit:'%', freq:'D' }
+    ]},
+    { sub:'OFR — Financial Stress Index', items:[
+      { id:'ofr_fsi', label:'OFR FSI — Total',               file:'ofr_fsi.csv', dateCol:'Date', valCol:'OFR FSI',                  unit:'Índice', freq:'D' },
+      { id:'ofr_cre', label:'  ↳ Crédito',                   file:'ofr_fsi.csv', dateCol:'Date', valCol:'Credit',                   unit:'Índice', freq:'D' },
+      { id:'ofr_eq',  label:'  ↳ Acciones (valuación)',       file:'ofr_fsi.csv', dateCol:'Date', valCol:'Equity valuation',         unit:'Índice', freq:'D' },
+      { id:'ofr_sf',  label:'  ↳ Activos Seguros',            file:'ofr_fsi.csv', dateCol:'Date', valCol:'Safe assets',              unit:'Índice', freq:'D' },
+      { id:'ofr_fund',label:'  ↳ Financiamiento',             file:'ofr_fsi.csv', dateCol:'Date', valCol:'Funding',                  unit:'Índice', freq:'D' },
+      { id:'ofr_vol', label:'  ↳ Volatilidad',                file:'ofr_fsi.csv', dateCol:'Date', valCol:'Volatility',               unit:'Índice', freq:'D' },
+      { id:'ofr_us',  label:'  ↳ Componente EEUU',            file:'ofr_fsi.csv', dateCol:'Date', valCol:'United States',            unit:'Índice', freq:'D' },
+      { id:'ofr_adv', label:'  ↳ Otras Ec. Avanzadas',        file:'ofr_fsi.csv', dateCol:'Date', valCol:'Other advanced economies', unit:'Índice', freq:'D' },
+      { id:'ofr_em',  label:'  ↳ Mercados Emergentes',        file:'ofr_fsi.csv', dateCol:'Date', valCol:'Emerging markets',         unit:'Índice', freq:'D' }
+    ]}
+  ]}
+];
+
+/* ── DUMMY CATALOG ── */
+const DUMMIES = [
+  { id:'cepo',  label:'Cepo Cambiario', file:'dummy_cepo.csv', dateCol:'fecha', valCol:'dummy_cepo',
+    color:'rgba(239,68,68,0.12)', borderColor:'rgba(239,68,68,0.4)', mode:'binary' },
+  { id:'gob',   label:'Gobierno', file:'dummy_gob.csv', dateCol:'fecha', valCol:'gobierno_nombre',
+    mode:'categorical',
+    palette:{ Menem:'rgba(251,191,36,0.13)', 'De la Rua':'rgba(59,130,246,0.12)', 'Rodriguez Saa':'rgba(16,185,129,0.12)', Duhalde:'rgba(120,53,15,0.14)', Kirchner:'rgba(236,72,153,0.12)', 'Cristina Fernandez':'rgba(147,51,234,0.12)', Macri:'rgba(234,179,8,0.11)', 'Alberto Fernandez':'rgba(220,38,38,0.12)', Milei:'rgba(20,184,166,0.12)' },
+    borderPalette:{ Menem:'rgba(251,191,36,0.5)', 'De la Rua':'rgba(59,130,246,0.4)', 'Rodriguez Saa':'rgba(16,185,129,0.4)', Duhalde:'rgba(120,53,15,0.5)', Kirchner:'rgba(236,72,153,0.4)', 'Cristina Fernandez':'rgba(147,51,234,0.4)', Macri:'rgba(234,179,8,0.4)', 'Alberto Fernandez':'rgba(220,38,38,0.4)', Milei:'rgba(20,184,166,0.4)' }
+  },
+  { id:'elec',  label:'Elecciones', file:'dummy_elec.csv', dateCol:'fecha', valCol:'dummy_electoral',
+    color:'rgba(16,185,129,0.10)', borderColor:'rgba(16,185,129,0.35)', mode:'binary' }
+];
+
+/* ── STATE ── */
+let selId   = null;   // selected item id
+let cmpSet  = new Set(); // comparison set
+let cmpBase = '';        // selected base variable id for correlation (empty = full matrix)
+let mode    = 'ind';
+let freq    = 'D';
+let varType = 'none';
+const seriesConfig = {};
+function getCfg(id) {
+  if (!id) return { doLog:false, doDiff:false, deflModes:[] };
+  if (!seriesConfig[id]) seriesConfig[id] = { doLog:false, doDiff:false, deflModes:[], customDeflId:null };
+  return seriesConfig[id];
+}
+let varBars = true; // show variation as bars
+let activeDummies = new Set();
+
+/* ── LABEL BUILDER (transform-aware names) ── */
+function buildTransformLabel(id) {
+  const it = IDX[id];
+  const cfg = getCfg(id);
+  let base = it.label;
+  const parts = [];
+  if (cfg.deflModes.includes('pbi')) parts.push('÷ PBI');
+  if (cfg.deflModes.includes('mep')) parts.push('÷ MEP');
+  if (cfg.deflModes.includes('cer')) parts.push('÷ CER');
+  if (cfg.deflModes.includes('ipc')) parts.push('÷ IPC USA');
+  if (cfg.deflModes.includes('custom') && cfg.customDeflId) {
+    const d = IDX[cfg.customDeflId];
+    if (d) parts.push('÷ ' + d.label);
+  }
+  if (cfg.doDiff) parts.unshift('Δ');
+  if (cfg.doLog) parts.unshift('log');
+  if (parts.length) base += ' (' + parts.join(', ') + ')';
+  return base;
+}
+
+const dataCache = {};      // file path → parsed data
+const pbiCache  = {};      // quarter key → pbi value in millions ARS
+const mepCache  = {};      // date → mep rate
+let pbiLoaded = false;
+let mepLoaded = false;
+
+/* ── CATALOG INDEX ── */
+const IDX = {}; // id → catalog item
+function buildIndex() {
+  const order = {D:0,W:1,M:2,Q:3,A:4};
+  function indexItems(items, clr) {
+    items.forEach(it => {
+      IDX[it.id] = it;
+      it.grpClr = clr;
+      if (it.sources && !it.freq) {
+        it.freq = it.sources.reduce((best, s) => order[s.freq] < order[best] ? s.freq : best, it.sources[0].freq);
+      }
+      if (it.children) indexItems(it.children, clr);
+    });
+  }
+  function indexLevel(subs, clr) {
+    subs.forEach(s => {
+      if (s.items) indexItems(s.items, clr);
+      if (s.subs)  indexLevel(s.subs, clr);
+    });
+  }
+  CATALOG.forEach(g => {
+    if (g.items) indexItems(g.items, g.clr);
+    if (g.subs)  indexLevel(g.subs, g.clr);
+  });
+}
+buildIndex();
+
+/* ── CSV PARSER ── */
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const hraw  = lines[0];
+  // handle BOM
+  const headers = (hraw.charCodeAt(0) === 0xFEFF ? hraw.slice(1) : hraw)
+    .split(',').map(h => h.trim().replace(/^"|"$/g,''));
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitCSVLine(lines[i]);
+    if (cols.length < 2) continue;
+    const row = {};
+    headers.forEach((h, j) => { row[h] = (cols[j] || '').trim().replace(/^"|"$/g,''); });
+    rows.push(row);
+  }
+  return { headers, rows };
+}
+function splitCSVLine(line) {
+  const res = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { res.push(cur); cur = ''; }
+    else cur += c;
+  }
+  res.push(cur);
+  return res;
+}
+
+function xhrGet(url) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onload = () => {
+      if (xhr.status === 200 || xhr.status === 0) resolve(xhr.responseText);
+      else reject(new Error(`HTTP ${xhr.status}: ${url}`));
+    };
+    xhr.onerror = () => reject(new Error(`No se pudo cargar: ${url}`));
+    xhr.send();
+  });
+}
+
+async function loadFile(filename) {
+  if (dataCache[filename]) return dataCache[filename];
+  if (typeof EMBEDDED !== 'undefined' && EMBEDDED[filename]) {
+    const cols = EMBEDDED[filename];
+    const headers = Object.keys(cols);
+    const n = cols[headers[0]].length;
+    const rows = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const row = {};
+      for (const h of headers) row[h] = cols[h][i];
+      rows[i] = row;
+    }
+    dataCache[filename] = { headers, rows };
+    return dataCache[filename];
+  }
+  const path = BASE + encodeURIComponent(filename).replace(/%2F/g,'/');
+  if (dataCache[path]) return dataCache[path];
+  const text = await xhrGet(path);
+  dataCache[path] = parseCSV(text);
+  return dataCache[path];
+}
+
+/* ── EXTRACT SERIES ── */
+function extractSeries(parsed, dateCol, valCol) {
+  const dates = [], values = [];
+  parsed.rows.forEach(r => {
+    const d = r[dateCol]; const v = parseFloat(r[valCol]);
+    if (d && !isNaN(v)) { dates.push(d.substring(0,10)); values.push(v); }
+  });
+  return { dates, values };
+}
+
+/* ── RESAMPLE ── */
+function periodKey(dateStr, f) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  switch(f) {
+    case 'D': return dateStr;
+    case 'W': {
+      const dt = new Date(y,m-1,d);
+      const jan1 = new Date(y,0,1);
+      const wk = Math.ceil(((dt - jan1)/864e5 + jan1.getDay()+1)/7);
+      return `${y}-W${String(wk).padStart(2,'0')}`;
+    }
+    case 'M': return `${y}-${String(m).padStart(2,'0')}`;
+    case 'Q': return `${y}-Q${Math.ceil(m/3)}`;
+    case 'A': return `${y}`;
+  }
+  return dateStr;
+}
+
+function resample(dates, values, fromFreq, toFreq) {
+  // If target is finer than source, return as-is
+  const order = {D:0,W:1,M:2,Q:3,A:4};
+  if (order[toFreq] <= order[fromFreq]) return { dates, values };
+  const map = new Map();
+  dates.forEach((d,i) => {
+    const k = periodKey(d, toFreq);
+    if (!map.has(k)) map.set(k, { dates:[], values:[] });
+    const e = map.get(k);
+    e.dates.push(d);
+    if (!isNaN(values[i]) && values[i] != null) e.values.push(values[i]);
+  });
+  const out = { dates:[], values:[] };
+  [...map.entries()].sort(([a],[b])=>a<b?-1:1).forEach(([,e]) => {
+    out.dates.push(e.dates[e.dates.length-1]);
+    out.values.push(e.values.length ? e.values.reduce((a,b)=>a+b,0)/e.values.length : NaN);
+  });
+  return out;
+}
+
+/* ── MOVING AVERAGE ── */
+function movingAvg(values, win) {
+  if (!win || win < 2) return values;
+  return values.map((_,i) => {
+    const sl = values.slice(Math.max(0,i-win+1), i+1).filter(v => !isNaN(v));
+    return sl.length ? sl.reduce((a,b)=>a+b,0)/sl.length : NaN;
+  });
+}
+
+/* ── VARIATION ── */
+function computeVariation(dates, values, vtype) {
+  if (vtype === 'none') return null;
+  const result = new Array(values.length).fill(NaN);
+  dates.forEach((d,i) => {
+    if (isNaN(values[i])) return;
+    let targetDate;
+    if (vtype === 'yoy') {
+      const [y,m,day] = d.split('-');
+      targetDate = `${+y-1}-${m}-${day}`;
+    } else if (vtype === 'qoq') {
+      const dt = new Date(d); dt.setMonth(dt.getMonth()-3);
+      targetDate = dt.toISOString().slice(0,10);
+    } else if (vtype === 'mom') {
+      const dt = new Date(d); dt.setMonth(dt.getMonth()-1);
+      targetDate = dt.toISOString().slice(0,10);
+    } else if (vtype === 'wow') {
+      const dt = new Date(d); dt.setDate(dt.getDate()-7);
+      targetDate = dt.toISOString().slice(0,10);
+    }
+    // find closest date
+    const tIdx = dates.findIndex(x => x === targetDate);
+    if (tIdx !== -1 && !isNaN(values[tIdx]) && values[tIdx] !== 0) {
+      result[i] = (values[i] - values[tIdx]) / Math.abs(values[tIdx]);
+    } else {
+      // find nearest ≤ targetDate
+      let best = -1;
+      for (let j = 0; j < dates.length; j++) {
+        if (dates[j] <= targetDate && (best === -1 || dates[j] > dates[best])) best = j;
+      }
+      if (best !== -1 && !isNaN(values[best]) && values[best] !== 0) {
+        result[i] = (values[i] - values[best]) / Math.abs(values[best]);
+      }
+    }
+  });
+  return result;
+}
+
+/* ── DEFLATION ── */
+const cerCache  = {}; // date → cer value
+const tipCache  = {}; // date → tip_close value
+let cerLoaded = false;
+let tipLoaded = false;
+
+async function loadPBI() {
+  if (pbiLoaded) return;
+  try {
+    const d = await loadFile('pbi_constante_2004.csv');
+    d.rows.forEach(r => {
+      if (r.fecha && r.pbi != null) {
+        const [y, m] = r.fecha.split('-').map(Number);
+        const q = Math.ceil(m / 3);
+        pbiCache[`${y}-Q${q}`] = parseFloat(r.pbi);
+      }
+    });
+    pbiLoaded = true;
+  } catch(e) { console.warn('PBI no cargado', e); }
+}
+
+async function loadMEP() {
+  if (mepLoaded) return;
+  try {
+    const d = await loadFile('brecha_cambiaria.csv');
+    d.rows.forEach(r => {
+      if (r.fecha && r.mep) mepCache[r.fecha.substring(0,10)] = parseFloat(r.mep);
+    });
+    mepLoaded = true;
+  } catch(e) { console.warn('MEP no cargado', e); }
+}
+
+async function loadCER() {
+  if (cerLoaded) return;
+  try {
+    let parsed;
+    if (typeof EMBEDDED !== 'undefined' && EMBEDDED['__cer__']) {
+      const cols = EMBEDDED['__cer__'];
+      const headers = Object.keys(cols);
+      const n = cols[headers[0]].length;
+      const rows = [];
+      for (let i = 0; i < n; i++) { const row = {}; for (const h of headers) row[h] = cols[h][i]; rows.push(row); }
+      parsed = { headers, rows };
+    } else {
+      parsed = parseCSV(await xhrGet('../data/raw/bcra/cer.csv'));
+    }
+    parsed.rows.forEach(r => {
+      if (r.fecha && r.cer) cerCache[r.fecha.substring(0,10)] = parseFloat(r.cer);
+    });
+    cerLoaded = true;
+  } catch(e) { console.warn('CER no cargado', e); }
+}
+
+async function loadTIP() {
+  if (tipLoaded) return;
+  try {
+    let parsed;
+    if (typeof EMBEDDED !== 'undefined' && EMBEDDED['__tip__']) {
+      const cols = EMBEDDED['__tip__'];
+      const headers = Object.keys(cols);
+      const n = cols[headers[0]].length;
+      const rows = [];
+      for (let i = 0; i < n; i++) { const row = {}; for (const h of headers) row[h] = cols[h][i]; rows.push(row); }
+      parsed = { headers, rows };
+    } else {
+      parsed = parseCSV(await xhrGet('../data/raw/global/tip_etf.csv'));
+    }
+    parsed.rows.forEach(r => {
+      if (r.fecha && r.tip_close) tipCache[r.fecha.substring(0,10)] = parseFloat(r.tip_close);
+    });
+    tipLoaded = true;
+  } catch(e) { console.warn('TIP ETF no cargado', e); }
+}
+
+// generic nearest-date lookup helper
+function nearestValue(cache, dateStr) {
+  if (cache[dateStr]) return cache[dateStr];
+  const keys = Object.keys(cache).sort();
+  if (!keys.length) return NaN;
+  let best = keys[0], bestDiff = Infinity;
+  keys.forEach(k => { const diff = Math.abs(new Date(k)-new Date(dateStr)); if (diff < bestDiff) { bestDiff=diff; best=k; } });
+  return cache[best];
+}
+
+function getPBICacheValue(key) {
+  if (pbiCache[key]) return pbiCache[key];
+  const keys = Object.keys(pbiCache).sort();
+  if (!keys.length) return NaN;
+  let best = keys[0];
+  for (let i = 0; i < keys.length; i++) {
+    if (keys[i] <= key) best = keys[i];
+    else break;
+  }
+  return pbiCache[best];
+}
+
+function deflectByPBI(dates, values) {
+  const pbiVals = dates.map(d => {
+    const [y,m] = d.split('-').map(Number);
+    const key = `${y}-Q${Math.ceil(m/3)}`;
+    return getPBICacheValue(key);
+  });
+  const firstPbi = pbiVals.find(x => !isNaN(x) && x > 0) || 1;
+  return values.map((v,i) => {
+    const pbi = pbiVals[i];
+    // PBI en base 100 respecto al primer dato para no alterar la magnitud de la serie original en t=0
+    return pbi && !isNaN(pbi) && pbi > 0 ? (v * firstPbi) / pbi : NaN;
+  });
+}
+
+function deflectByMEP(dates, values) {
+  return values.map((v,i) => {
+    const rate = nearestValue(mepCache, dates[i]);
+    return rate ? v / rate : NaN;
+  });
+}
+
+function deflectByCER(dates, values) {
+  // normalise to latest CER value so series is in real terms (last date = 1)
+  const cerVals = dates.map(d => nearestValue(cerCache, d));
+  const lastCer = cerVals.filter(x => !isNaN(x) && x > 0).at(-1) || 1;
+  return values.map((v,i) => {
+    const c = cerVals[i];
+    return c && !isNaN(c) && c > 0 ? v / c * lastCer : NaN;
+  });
+}
+
+function deflectByTIP(dates, values) {
+  // normalise to latest TIP value
+  const tipVals = dates.map(d => nearestValue(tipCache, d));
+  const lastTip = tipVals.filter(x => !isNaN(x) && x > 0).at(-1) || 1;
+  return values.map((v,i) => {
+    const t = tipVals[i];
+    return t && !isNaN(t) && t > 0 ? v / t * lastTip : NaN;
+  });
+}
+
+/* ── DUMMY DATA ── */
+const dummyData = {}; // id → { dates, values }
+
+async function loadDummy(d) {
+  if (dummyData[d.id]) return dummyData[d.id];
+  let parsed;
+  if (typeof EMBEDDED !== 'undefined' && EMBEDDED[d.file]) {
+    const cols = EMBEDDED[d.file];
+    const headers = Object.keys(cols);
+    const n = cols[headers[0]].length;
+    const rows = [];
+    for (let i = 0; i < n; i++) { const row = {}; for (const h of headers) row[h] = cols[h][i]; rows.push(row); }
+    parsed = { headers, rows };
+  } else {
+    const path = BASE + encodeURIComponent(d.file).replace(/%2F/g,'/');
+    const text = await xhrGet(path);
+    parsed = parseCSV(text);
+  }
+  const dates = [], values = [];
+  parsed.rows.forEach(r => { if (r[d.dateCol]) { dates.push(r[d.dateCol].substring(0,10)); values.push(r[d.valCol]); } });
+  dummyData[d.id] = { dates, values };
+  return dummyData[d.id];
+}
+
+function buildDummyShapes(chartDates) {
+  const shapes = [];
+  if (!chartDates || !chartDates.length) return shapes;
+  const tMin = chartDates[0], tMax = chartDates[chartDates.length-1];
+
+  DUMMIES.forEach(dd => {
+    if (!activeDummies.has(dd.id) || !dummyData[dd.id]) return;
+    const { dates, values } = dummyData[dd.id];
+    if (dd.mode === 'binary') {
+      // find contiguous intervals where value == '1' or 1
+      let start = null;
+      dates.forEach((d,i) => {
+        if (d < tMin || d > tMax) return;
+        const on = values[i] == '1' || values[i] === 1;
+        if (on && start === null) start = d;
+        if (!on && start !== null) {
+          shapes.push({ type:'rect', xref:'x', yref:'paper', x0:start, x1:dates[i-1]||d, y0:0, y1:1,
+            fillcolor:dd.color, line:{color:dd.borderColor,width:0.5}, layer:'below' });
+          start = null;
+        }
+      });
+      if (start !== null) shapes.push({ type:'rect', xref:'x', yref:'paper', x0:start, x1:tMax, y0:0, y1:1,
+        fillcolor:dd.color, line:{color:dd.borderColor,width:0.5}, layer:'below' });
+    } else if (dd.mode === 'categorical') {
+      let start = null, curVal = null;
+      dates.forEach((d,i) => {
+        if (d < tMin || d > tMax) return;
+        const v = values[i];
+        if (v !== curVal) {
+          if (curVal !== null && start !== null) {
+            const clr = dd.palette[curVal] || 'rgba(128,128,128,0.1)';
+            const bclr = dd.borderPalette[curVal] || 'rgba(128,128,128,0.3)';
+            shapes.push({ type:'rect', xref:'x', yref:'paper', x0:start, x1:dates[i-1]||d, y0:0, y1:1,
+              fillcolor:clr, line:{color:bclr,width:0.5}, layer:'below' });
+          }
+          curVal = v; start = d;
+        }
+      });
+      if (curVal !== null && start !== null) {
+        const clr = dd.palette[curVal] || 'rgba(128,128,128,0.1)';
+        const bclr = dd.borderPalette[curVal] || 'rgba(128,128,128,0.3)';
+        shapes.push({ type:'rect', xref:'x', yref:'paper', x0:start, x1:tMax, y0:0, y1:1,
+          fillcolor:clr, line:{color:bclr,width:0.5}, layer:'below' });
+      }
+    }
+  });
+  return shapes;
+}
+
+/* ── APPLY TRANSFORMS ── */
+async function applyTransforms(dates, values, item, nativeFreq) {
+  let d = [...dates], v = [...values];
+  const cfg = getCfg(item.id);
+  // 1. resample
+  ({ dates:d, values:v } = resample(d, v, nativeFreq || item.freq, freq));
+  // 2. deflation
+  if (cfg.deflModes.includes('pbi')) { await loadPBI(); v = deflectByPBI(d, v); }
+  if (cfg.deflModes.includes('mep')) { await loadMEP(); v = deflectByMEP(d, v); }
+  if (cfg.deflModes.includes('cer')) { await loadCER(); v = deflectByCER(d, v); }
+  if (cfg.deflModes.includes('ipc')) { await loadTIP(); v = deflectByTIP(d, v); }
+  // 3. log
+  if (cfg.doLog) v = v.map(x => x > 0 ? Math.log(x) : NaN);
+  // 4. diff
+  if (cfg.doDiff) { const nv = new Array(v.length).fill(NaN); for(let i=1;i<v.length;i++) nv[i]=v[i]-v[i-1]; v=nv; }
+  // 5. moving average as overlay
+  const win = parseInt(document.getElementById('ma-win').value)||0;
+  let maValues = null;
+  if (win >= 2) maValues = movingAvg(v, win);
+  return { dates:d, values:v, maValues };
+}
+
+/* ── AXIS RANGE HELPERS ── */
+function getAxisRanges() {
+  const from = document.getElementById('ax-from').value || null;
+  const to   = document.getElementById('ax-to').value || null;
+  const base = document.getElementById('ax-base')?.value || null;
+  const ymin = document.getElementById('ax-ymin').value;
+  const ymax = document.getElementById('ax-ymax').value;
+  return { from, to, base, ymin: ymin !== '' ? +ymin : null, ymax: ymax !== '' ? +ymax : null };
+}
+function filterByDateRange(dates, values, maValues, from, to) {
+  if (!from && !to) return { dates, values, maValues };
+  const fd = [], fv = [], fm = maValues ? [] : null;
+  for (let i = 0; i < dates.length; i++) {
+    if (from && dates[i] < from) continue;
+    if (to && dates[i] > to) continue;
+    fd.push(dates[i]); fv.push(values[i]);
+    if (fm) fm.push(maValues[i]);
+  }
+  return { dates:fd, values:fv, maValues:fm };
+}
+function resetAxes() {
+  document.getElementById('ax-from').value = '';
+  document.getElementById('ax-to').value = '';
+  document.getElementById('ax-ymin').value = '';
+  document.getElementById('ax-ymax').value = '';
+  render();
+}
+
+async function getSeries(id) {
+  const item = IDX[id];
+  if (!item) throw new Error(`Serie ${id} no encontrada`);
+  if (!item.sources) {
+    const parsed = await loadFile(item.file);
+    return { ...extractSeries(parsed, item.dateCol, item.valCol), nativeFreq: item.freq };
+  }
+  const order = {D:0,W:1,M:2,Q:3,A:4};
+  const tgt = order[freq];
+  const srcs = item.sources;
+  let src = srcs.find(s => s.freq === freq);
+  if (!src) {
+    const finer = srcs.filter(s => order[s.freq] < tgt).sort((a,b) => order[b.freq]-order[a.freq]);
+    if (finer.length) src = finer[0];
+  }
+  if (!src) {
+    const coarser = srcs.filter(s => order[s.freq] > tgt).sort((a,b) => order[a.freq]-order[b.freq]);
+    if (coarser.length) src = coarser[0];
+  }
+  if (!src) src = srcs[0];
+  const parsed = await loadFile(src.file);
+  return { ...extractSeries(parsed, src.dateCol, src.valCol), nativeFreq: src.freq };
+}
+
+/* ── LAYOUT HELPERS ── */
+const LAYOUT_BASE = {
+  paper_bgcolor:'#0b0b18', plot_bgcolor:'#0d0d22',
+  font:{ family:'Inter,sans-serif', color:'#7a7aaa', size:10 },
+  margin:{ l:55, r:20, t:28, b:38 },
+  xaxis:{ gridcolor:'#1a1a38', linecolor:'#252550', showgrid:true, zeroline:false, type:'date' },
+  yaxis:{ gridcolor:'#1a1a38', linecolor:'#252550', showgrid:true, zeroline:true, zerolinecolor:'#252550' },
+  legend:{ bgcolor:'rgba(0,0,0,0)', font:{size:9} },
+  hoverlabel:{ bgcolor:'#1a1a38', font:{size:10,family:'Inter'} },
+  hovermode:'x unified'
+};
+
+function mkLayout(title, yTitle, shapes) {
+  return Object.assign({}, LAYOUT_BASE, {
+    title:{ text:title||'', font:{size:11,color:'#9090c0'}, x:0.5, xanchor:'center', pad:{t:4} },
+    yaxis: Object.assign({}, LAYOUT_BASE.yaxis, { title:{ text:yTitle||'', font:{size:9}, standoff:4 } }),
+    shapes: shapes || []
+  });
+}
+
+const CONF = { displayModeBar:true, displaylogo:false, modeBarButtonsToRemove:['toImage','sendDataToCloud'], responsive:true };
+
+/* ── RENDER INDIVIDUAL ── */
+async function renderInd() {
+  if (!selId) return;
+  const item = IDX[selId];
+  document.getElementById('title').textContent = item.label;
+
+  const raw = await getSeries(selId);
+  let { dates, values, maValues } = await applyTransforms(raw.dates, raw.values, item, raw.nativeFreq);
+
+  // axis filtering
+  const ax = getAxisRanges();
+  ({ dates, values, maValues } = filterByDateRange(dates, values, maValues, ax.from, ax.to));
+
+  const shapes = buildDummyShapes(dates);
+
+  // variation
+  const variation = computeVariation(dates, values, varType);
+  const varLabel = { none:'Niveles', yoy:'Var. Interanual', qoq:'Var. Intertrimestral', mom:'Var. Intermensual', wow:'Var. Intersemanal' };
+
+  const cfg = getCfg(selId);
+  const deflStrs = [];
+  if (cfg.deflModes.includes('pbi')) deflStrs.push('÷ PBI');
+  if (cfg.deflModes.includes('mep')) deflStrs.push('÷ MEP');
+  if (cfg.deflModes.includes('cer')) deflStrs.push('real (CER)');
+  if (cfg.deflModes.includes('ipc')) deflStrs.push('real (IPC USA)');
+  const yUnit = deflStrs.length ? `${item.unit} ${deflStrs.join(' ')}` : item.unit;
+  const logPfx = cfg.doLog ? 'log(' : '';
+  const logSfx = cfg.doLog ? ')' : '';
+  const yLabel = cfg.doDiff ? `Δ ${logPfx}${yUnit}${logSfx}` : `${logPfx}${yUnit}${logSfx}`;
+
+  // Y-axis range
+  const yaxis = Object.assign({}, LAYOUT_BASE.yaxis, { title:{ text:yLabel, font:{size:9}, standoff:4 } });
+  if (ax.ymin !== null || ax.ymax !== null) {
+    const valid = values.filter(x => !isNaN(x) && x !== null);
+    const dMin = valid.length ? Math.min(...valid) : 0;
+    const dMax = valid.length ? Math.max(...valid) : 100;
+    const mrg = (dMax - dMin) * 0.05 || 1;
+    yaxis.range = [ax.ymin !== null ? ax.ymin : dMin - mrg, ax.ymax !== null ? ax.ymax : dMax + mrg];
+    yaxis.autorange = false;
+  }
+
+  // Main chart traces
+  const mainTraces = [];
+  const clr = item.grpClr||'#7c3aed';
+  
+  if (cfg.doDiff && varBars) {
+    mainTraces.push({ x:dates, y:values, type:'bar', name:item.label,
+      marker:{color:values.map(v=>v>=0?'rgba(16,185,129,0.7)':'rgba(239,68,68,0.7)')},
+      hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.3g}</b><extra></extra>' });
+  } else {
+    mainTraces.push({ x:dates, y:values, mode:'lines', name:item.label,
+      line:{color:clr, width:1.5},
+      hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.3g}</b><extra></extra>' });
+  }
+  
+  // MA overlay
+  if (maValues) {
+    mainTraces.push({ x:dates, y:maValues, mode:'lines', name:`MM(${parseInt(document.getElementById('ma-win').value)})`,
+      line:{color:'#f59e0b', width:2.5, shape:'spline'},
+      hovertemplate:'MM: <b>%{y:.3g}</b><extra></extra>' });
+  }
+
+  const layout1 = Object.assign({}, LAYOUT_BASE, {
+    title:{ text:item.label, font:{size:11,color:'#9090c0'}, x:0.5, xanchor:'center', pad:{t:4} },
+    yaxis, shapes, showlegend: !!maValues,
+    xaxis: Object.assign({}, LAYOUT_BASE.xaxis, { rangeslider: { visible: true } })
+  });
+  Plotly.react('c1', mainTraces, layout1, CONF);
+
+  // Variation chart
+  if (variation && varType !== 'none') {
+    const varY = variation.map(x=>isNaN(x)?null:x*100);
+    const trVar = varBars
+      ? { x:dates, y:varY, type:'bar', name:varLabel[varType],
+          marker:{color:varY.map(v=>v>=0?'rgba(16,185,129,0.7)':'rgba(239,68,68,0.7)')},
+          hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.2f}%</b><extra></extra>' }
+      : { x:dates, y:varY, mode:'lines', name:varLabel[varType],
+          line:{color:'#10b981', width:1.3},
+          hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.2f}%</b><extra></extra>' };
+    document.getElementById('c2').style.display = '';
+    Plotly.react('c2', [trVar], mkLayout(varLabel[varType], '% cambio', shapes), CONF);
+  } else {
+    document.getElementById('c2').style.display = 'none';
+  }
+
+  // info bar
+  const valid = values.filter(x => !isNaN(x));
+  const last = valid[valid.length-1], mn = Math.min(...valid), mx = Math.max(...valid);
+  document.getElementById('info').innerHTML =
+    `<span>Último: <b style="color:#c4b5fd">${last?.toFixed(3)}</b></span>` +
+    `<span>Mín: <b style="color:#6ee7b7">${mn?.toFixed(3)}</b></span>` +
+    `<span>Máx: <b style="color:#f87171">${mx?.toFixed(3)}</b></span>` +
+    `<span>N: <b style="color:#fbbf24">${valid.length}</b></span>` +
+    `<span style="color:#333">${dates[0]} → ${dates[dates.length-1]}</span>`;
+}
+
+/* ── RENDER COMPARE ── */
+async function renderCmp() {
+  const ids = [...cmpSet];
+  if (!ids.length) { document.getElementById('cw').style.display='none'; document.getElementById('empty').style.display='flex'; return; }
+  document.getElementById('cw').style.display='flex';
+  document.getElementById('empty').style.display='none';
+  document.getElementById('charts').style.display='none';
+
+  // Build UI controls
+  const cDiv = document.getElementById('cmp-controls');
+  cDiv.innerHTML = '';
+
+  // Global "Variable Base" selector (shared across all series)
+  if (ids.length >= 2) {
+    const baseRow = document.createElement('div');
+    baseRow.className = 'cmp-base-row';
+    baseRow.innerHTML = `
+      <label style="color:#aaa;font-size:10px;font-weight:600">Variable Base (correlación):</label>
+      <select id="cmp-base-select" onchange="setCmpBase(this.value)" style="background:#181838;border:1px solid #2a2a50;border-radius:3px;color:#d4d4e8;padding:2px 5px;font-size:9.5px;outline:none;min-width:140px">
+        <option value="">— Matriz completa —</option>
+        ${ids.map(id => `<option value="${id}">${buildTransformLabel(id)}</option>`).join('')}
+      </select>
+    `;
+    cDiv.appendChild(baseRow);
+    const newSelect = baseRow.querySelector('#cmp-base-select');
+    if (ids.includes(cmpBase)) newSelect.value = cmpBase;
+  }
+
+  ids.forEach(id => {
+    const it = IDX[id];
+    const cfg = getCfg(id);
+    const row = document.createElement('div');
+    row.className = 'cmp-row';
+    row.innerHTML = `
+      <div class="dot" style="background:${it.grpClr||'#7c3aed'}"></div>
+      <div class="cmp-lbl" style="color:${it.grpClr||'#cccce8'};max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${buildTransformLabel(id)}">${buildTransformLabel(id)}</div>
+      <label><input type="checkbox" ${cfg.doLog?'checked':''} onchange="getCfg('${id}').doLog=this.checked; renderCmp()"> Log</label>
+      <label><input type="checkbox" ${cfg.doDiff?'checked':''} onchange="getCfg('${id}').doDiff=this.checked; renderCmp()"> Δ Dif.</label>
+      <span style="margin-left:6px; color:#aaa">Deflactores:</span>
+      <label><input type="checkbox" ${cfg.deflModes.includes('pbi')?'checked':''} onchange="togDeflMode('${id}','pbi',this.checked)"> PBI</label>
+      <label><input type="checkbox" ${cfg.deflModes.includes('mep')?'checked':''} onchange="togDeflMode('${id}','mep',this.checked)"> MEP</label>
+      <label><input type="checkbox" ${cfg.deflModes.includes('cer')?'checked':''} onchange="togDeflMode('${id}','cer',this.checked)"> CER</label>
+      <label><input type="checkbox" ${cfg.deflModes.includes('ipc')?'checked':''} onchange="togDeflMode('${id}','ipc',this.checked)"> IPC USA</label>
+      <select style="margin-left:4px;background:#181838;border:1px solid #2a2a50;border-radius:3px;color:#d4d4e8;padding:2px 5px;font-size:9.5px;outline:none" onchange="getCfg('${id}').customDeflId=this.value||null;if(this.value){if(!getCfg('${id}').deflModes.includes('custom'))getCfg('${id}').deflModes.push('custom');}else{const i=getCfg('${id}').deflModes.indexOf('custom');if(i>-1)getCfg('${id}').deflModes.splice(i,1);} renderCmp()"><option value="">— Deflactor propio —</option>${Object.values(IDX).map(s=>`<option value="${s.id}" ${cfg.customDeflId===s.id?'selected':''}>${s.label}</option>`).join('')}</select>
+    `;
+    cDiv.appendChild(row);
+  });
+
+  const ax = getAxisRanges();
+  const seriesData = []; // { dates, values, maValues, item, clr }
+  const allDates = [];
+
+  for (let i = 0; i < ids.length; i++) {
+    const item = IDX[ids[i]];
+    const raw = await getSeries(ids[i]);
+    let { dates, values, maValues } = await applyTransforms(raw.dates, raw.values, item, raw.nativeFreq);
+    ({ dates, values, maValues } = filterByDateRange(dates, values, maValues, ax.from, ax.to));
+    const clr = PALETTE[i % PALETTE.length] || item.grpClr || '#7c3aed';
+    seriesData.push({ dates, values, maValues, item, clr });
+    allDates.push(...dates);
+  }
+
+  // Find common start date for Base 100
+  let commonStart = null;
+  const starts = seriesData.map(s => {
+    const validIdx = s.values.findIndex(v => !isNaN(v) && v !== null);
+    return validIdx !== -1 ? s.dates[validIdx] : null;
+  }).filter(d => d);
+  
+  if (starts.length > 0) {
+    // max of all start dates is the first overlapping date
+    commonStart = starts.reduce((a, b) => a > b ? a : b);
+  }
+
+  // Normalize to Base 100
+  let yTitle = '';
+  if (commonStart && !ids.some(id => getCfg(id).doDiff)) {
+    seriesData.forEach(s => {
+      let idx = -1;
+      for (let i = 0; i < s.dates.length; i++) {
+        if (s.dates[i] >= commonStart && !isNaN(s.values[i]) && s.values[i] !== null && s.values[i] !== 0) {
+          idx = i;
+          break;
+        }
+      }
+      const baseVal = idx !== -1 ? s.values[idx] : null;
+      if (baseVal && baseVal !== 0) {
+        s.values = s.values.map(v => (v / baseVal) * 100);
+        if (s.maValues) s.maValues = s.maValues.map(v => (v / baseVal) * 100);
+      }
+    });
+    yTitle = `Índice (Base 100 = ${commonStart})`;
+  }
+
+  const uniqDates = [...new Set(allDates)].sort();
+  const shapes = buildDummyShapes(uniqDates);
+
+  // Main chart — all series as lines
+  const traces = [];
+  seriesData.forEach((s, i) => {
+    const tLbl = buildTransformLabel(ids[i]);
+    traces.push({ x:s.dates, y:s.values, mode:'lines', name:tLbl,
+      line:{color:s.clr, width:1.5},
+      hovertemplate:`${tLbl}: <b>%{y:.3g}</b><extra></extra>` });
+    if (s.maValues) {
+      traces.push({ x:s.dates, y:s.maValues, mode:'lines', name:`${tLbl} MM`,
+        line:{color:s.clr, width:2.5, dash:'dot'},
+        hovertemplate:`${tLbl} MM: <b>%{y:.3g}</b><extra></extra>` });
+    }
+  });
+
+  const ccLayout = Object.assign(mkLayout('Comparación', yTitle, shapes), {
+    height: undefined,
+    xaxis: Object.assign({}, LAYOUT_BASE.xaxis, { rangeslider: { visible: true } }),
+    legend: { x: 0.01, y: 0.99, xanchor: 'left', yanchor: 'top', bgcolor: 'rgba(11,11,24,0.7)' }
+  });
+  
+  if (ax.ymin !== null || ax.ymax !== null) {
+    let dMin = Infinity, dMax = -Infinity;
+    seriesData.forEach(s => s.values.forEach(v => {
+      if (!isNaN(v) && v !== null) { if (v < dMin) dMin = v; if (v > dMax) dMax = v; }
+    }));
+    if (dMin === Infinity) dMin = 0; if (dMax === -Infinity) dMax = 100;
+    const mrg = (dMax - dMin) * 0.05 || 1;
+    ccLayout.yaxis = Object.assign({}, ccLayout.yaxis, { range: [ax.ymin !== null ? ax.ymin : dMin - mrg, ax.ymax !== null ? ax.ymax : dMax + mrg], autorange: false });
+  }
+
+  Plotly.react('cc', traces, ccLayout, CONF);
+
+  // 2nd chart: spread (A-B) if exactly 2 series, else variation
+  if (ids.length === 2) {
+    const sA = seriesData[0], sB = seriesData[1];
+    const mapB = {};
+    sB.dates.forEach((d,i) => mapB[d] = sB.values[i]);
+    const spreadDates = [], spreadVals = [];
+    sA.dates.forEach((d,i) => {
+      if (mapB[d] !== undefined && !isNaN(sA.values[i]) && !isNaN(mapB[d])) {
+        spreadDates.push(d);
+        spreadVals.push(sA.values[i] - mapB[d]);
+      }
+    });
+    
+    // Shaded lines logic
+    const spreadTraces = [];
+    const posVals = spreadVals.map(v => v > 0 ? v : 0);
+    const negVals = spreadVals.map(v => v < 0 ? v : 0);
+    const lA = buildTransformLabel(ids[0]), lB = buildTransformLabel(ids[1]);
+    spreadTraces.push({ x:spreadDates, y:posVals, mode:'lines', fill:'tozeroy', fillcolor:'rgba(16,185,129,0.3)', line:{color:'#10b981', width:1.5}, name:`${lA} − ${lB} (>0)`, hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.3g}</b><extra></extra>', showlegend:false });
+    spreadTraces.push({ x:spreadDates, y:negVals, mode:'lines', fill:'tozeroy', fillcolor:'rgba(239,68,68,0.3)', line:{color:'#ef4444', width:1.5}, name:`${lA} − ${lB} (<0)`, hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.3g}</b><extra></extra>', showlegend:false });
+
+    document.getElementById('cs').style.display='';
+    Plotly.react('cs', spreadTraces,
+      Object.assign(mkLayout(`Spread: ${lA} − ${lB}`, '', shapes),{ height:undefined, hovermode:'x' }), CONF);
+  } else if (varType !== 'none') {
+    const varTraces = [];
+    seriesData.forEach((s, i) => {
+      const vari = computeVariation(s.dates, s.values, varType);
+      if (vari) {
+        const varY = vari.map(x=>isNaN(x)?null:x*100);
+        const tLbl = buildTransformLabel(ids[i]);
+        varTraces.push(varBars
+          ? { x:s.dates, y:varY, type:'bar', name:tLbl,
+              marker:{color:s.clr, opacity:0.7},
+              hovertemplate:`${tLbl}: <b>%{y:.2f}%</b><extra></extra>` }
+          : { x:s.dates, y:varY, mode:'lines', name:tLbl,
+              line:{color:s.clr, width:1.3, dash:'dot'},
+              hovertemplate:`${tLbl}: <b>%{y:.2f}%</b><extra></extra>` });
+      }
+    });
+    const varLabel = { yoy:'Var. Interanual', qoq:'Var. Intertrimestral', mom:'Var. Intermensual', wow:'Var. Intersemanal' };
+    document.getElementById('cs').style.display='';
+    Plotly.react('cs', varTraces, Object.assign(mkLayout(varLabel[varType], '% cambio', shapes),{ height:undefined }), CONF);
+  } else {
+    document.getElementById('cs').style.display='none';
+  }
+
+  // 3rd: Correlation Matrix and Scatter matrix
+  if (ids.length >= 2) {
+    const commonIdx = uniqDates.filter(d => seriesData.every(s => {
+      const idx = s.dates.indexOf(d);
+      return idx !== -1 && !isNaN(s.values[idx]) && s.values[idx] !== null;
+    }));
+    
+    if (commonIdx.length > 5) {
+      const mat = seriesData.map(s => commonIdx.map(d => s.values[s.dates.indexOf(d)]));
+      const labels = seriesData.map((s, i) => {
+        let lbl = buildTransformLabel(ids[i]);
+        if (lbl.length > 28) lbl = lbl.substring(0, 25) + '...';
+        return lbl;
+      });
+      const fullLabels = seriesData.map((_, i) => buildTransformLabel(ids[i]));
+      
+      const corr = labels.map((_, i) => labels.map((_, j) => {
+        if (i === j) return 1;
+        const x = mat[i], y = mat[j];
+        const mx = x.reduce((a,b)=>a+b)/x.length, my = y.reduce((a,b)=>a+b)/y.length;
+        let num=0, den1=0, den2=0;
+        for(let k=0;k<x.length;k++) {
+          const dx = x[k]-mx, dy = y[k]-my;
+          num += dx*dy; den1 += dx*dx; den2 += dy*dy;
+        }
+        return num / Math.sqrt(den1*den2);
+      }));
+
+      // Render correlation list
+      const corrListDiv = document.getElementById('cmp-corr-list');
+      const baseIdx = cmpBase ? ids.indexOf(cmpBase) : -1;
+      if (baseIdx >= 0) {
+        const rows = ids.map((id, i) => {
+          if (i === baseIdx) return '';
+          const c = corr[baseIdx][i];
+          return `<tr><td>${fullLabels[i]}</td><td style="color:${c > 0 ? '#10b981' : '#ef4444'}">${c.toFixed(4)}</td></tr>`;
+        }).join('');
+        corrListDiv.innerHTML = `<table><thead><tr><th>Variable</th><th>Corr. vs ${fullLabels[baseIdx]}</th></tr></thead><tbody>${rows}</tbody></table>`;
+      } else {
+        let headerRow = '<tr><th></th>' + fullLabels.map(l => `<th>${l}</th>`).join('') + '</tr>';
+        let bodyRows = ids.map((id, i) => {
+          return '<tr><td><b>' + fullLabels[i] + '</b></td>' + ids.map((_, j) => {
+            const c = corr[i][j];
+            const color = i === j ? '#aaa' : (c > 0 ? '#10b981' : '#ef4444');
+            return `<td style="color:${color}">${c.toFixed(3)}</td>`;
+          }).join('') + '</tr>';
+        }).join('');
+        corrListDiv.innerHTML = `<table><thead>${headerRow}</thead><tbody>${bodyRows}</tbody></table>`;
+      }
+      corrListDiv.style.display = '';
+
+      document.getElementById('cmp-corr').style.display = '';
+      const hLayout = Object.assign(mkLayout(`Matriz de Correlación de Pearson (${commonIdx.length} obs.)`, '', []), {height:undefined, margin:{l:100, b:100, t:40, r:20}});
+      hLayout.xaxis = { tickangle: 45, tickfont: {size: 9, color:'#9090c0'} };
+      hLayout.yaxis = { tickfont: {size: 9, color:'#9090c0'} };
+      Plotly.react('cmp-corr', [{ z: corr, x: labels, y: labels, type: 'heatmap', colorscale: 'RdBu', zmin:-1, zmax:1, hoverongaps: false }], hLayout, CONF);
+      
+      document.getElementById('cmp-scatter').style.display = '';
+      const dimensions = labels.map((l, i) => ({ label: l, values: mat[i] }));
+      // splom requires axes config to style correctly but default works. Let's customize grid.
+      const sLayout = Object.assign(mkLayout('Matriz de Dispersión', '', []), {height:undefined, dragmode:'select', hovermode:'closest', margin:{l:50, b:50, t:40, r:20}});
+      Plotly.react('cmp-scatter', [{ type: 'splom', dimensions, marker:{size:3, color:'rgba(124, 58, 237, 0.6)', line:{color:'#0b0b18', width:0.5}} }], sLayout, CONF);
+    } else {
+      document.getElementById('cmp-corr').style.display = 'none';
+      document.getElementById('cmp-scatter').style.display = 'none';
+      document.getElementById('cmp-corr').innerHTML = '<div style="padding: 20px; color: #f59e0b">No hay suficientes datos superpuestos para calcular correlaciones.</div>';
+    }
+  } else {
+    document.getElementById('cmp-corr').style.display = 'none';
+    document.getElementById('cmp-scatter').style.display = 'none';
+  }
+}
+
+/* ── MAIN RENDER ── */
+async function render() {
+  try {
+    if (mode === 'ind') {
+      document.getElementById('charts').style.display='flex';
+      document.getElementById('cw').style.display='none';
+      document.getElementById('empty').style.display='none';
+      await renderInd();
+    } else {
+      document.getElementById('charts').style.display='none';
+      await renderCmp();
+    }
+  } catch(e) {
+    console.error(e);
+    document.getElementById('info').textContent = '⚠ Error cargando datos: ' + e.message;
+  }
+}
+
+/* ── CONTROLS ── */
+function setMode(m) {
+  mode = m;
+  document.getElementById('m1').classList.toggle('on', m==='ind');
+  document.getElementById('m2').classList.toggle('on', m==='cmp');
+  document.getElementById('badge').style.display = m==='cmp' ? '' : 'none';
+  document.getElementById('clr').style.display   = m==='cmp' ? '' : 'none';
+  render();
+}
+function setFreq(f) {
+  freq = f;
+  ['D','W','M','Q','A'].forEach(x => document.getElementById('f'+x).classList.toggle('on', x===f));
+  render();
+}
+function updateTopbarButtons() {
+  const cfg = getCfg(selId);
+  document.getElementById('bdiff').classList.toggle('on', cfg.doDiff);
+  document.getElementById('blog').classList.toggle('on', cfg.doLog);
+  document.getElementById('bpbi').classList.toggle('on', cfg.deflModes.includes('pbi'));
+  document.getElementById('bmep').classList.toggle('on', cfg.deflModes.includes('mep'));
+  document.getElementById('bcer').classList.toggle('on', cfg.deflModes.includes('cer'));
+  document.getElementById('bipc').classList.toggle('on', cfg.deflModes.includes('ipc'));
+}
+function togDiff() { if(!selId) return; const cfg = getCfg(selId); cfg.doDiff = !cfg.doDiff; updateTopbarButtons(); render(); }
+function togLog()  { if(!selId) return; const cfg = getCfg(selId); cfg.doLog = !cfg.doLog; updateTopbarButtons(); render(); }
+function setVar(v) {
+  varType = v;
+  ['None','YoY','QoQ','MoM','WoW'].forEach(x => document.getElementById('v'+x).classList.toggle('on', x.toLowerCase()===v));
+  render();
+}
+function togDefl(m) {
+  if(!selId) return; const cfg = getCfg(selId);
+  const idx = cfg.deflModes.indexOf(m);
+  if (idx > -1) cfg.deflModes.splice(idx, 1);
+  else cfg.deflModes.push(m);
+  updateTopbarButtons();
+  render();
+}
+window.togDeflMode = function(id, mode, isChecked) {
+  const cfg = getCfg(id);
+  if (isChecked) {
+    if (!cfg.deflModes.includes(mode)) cfg.deflModes.push(mode);
+  } else {
+    const i = cfg.deflModes.indexOf(mode);
+    if (i > -1) cfg.deflModes.splice(i, 1);
+  }
+  renderCmp();
+};
+function togVarBars() {
+  varBars = !varBars;
+  document.getElementById('vBars').classList.toggle('on', varBars);
+  render();
+}
+function clrCmp() {
+  cmpSet.clear();
+  cmpBase = '';
+  document.querySelectorAll('.chk').forEach(c => c.checked=false);
+  document.querySelectorAll('.item.cmp').forEach(el => el.classList.remove('cmp'));
+  document.getElementById('badge').textContent = '0';
+  render();
+}
+function setCmpBase(val) {
+  cmpBase = val;
+  renderCmp();
+}
+
+/* ── ITEM CLICK / CHECK ── */
+function clickItem(id) {
+  selId = id;
+  updateTopbarButtons();
+  document.querySelectorAll('.item.sel').forEach(el => el.classList.remove('sel'));
+  document.getElementById('item-'+id)?.classList.add('sel');
+  render();
+  // populate analysis selects
+  populateAnlSelects();
+}
+
+function toggleCmp(id, checked) {
+  if (checked) { cmpSet.add(id); } else { cmpSet.delete(id); }
+  document.getElementById('badge').textContent = cmpSet.size;
+  document.getElementById('item-'+id)?.classList.toggle('cmp', checked);
+  if (mode === 'cmp') render();
+}
+
+async function toggleDummy(did, checked) {
+  if (checked) {
+    activeDummies.add(did);
+    const dd = DUMMIES.find(d => d.id===did);
+    if (dd) await loadDummy(dd);
+  } else {
+    activeDummies.delete(did);
+  }
+  render();
+}
+
+/* ── TREE BUILD ── */
+function buildTree() {
+  const tree = document.getElementById('tree');
+  tree.innerHTML = '';
+
+  function renderSubs(subs, container, clr, depth) {
+    subs.forEach(s => {
+      const subDiv = document.createElement('div');
+      const isLevel2 = depth === 1;
+      const shd = document.createElement('div');
+      shd.className = (isLevel2 ? 'sub-hd' : 'sub2-hd') + ' open';
+      shd.innerHTML = `<span class="${isLevel2?'sub-arr':'sub2-arr'}">▶</span>${s.sub}`;
+      const sbody = document.createElement('div');
+      sbody.className = (isLevel2 ? 'sub-body' : 'sub2-body') + ' open';
+      if (s.items) s.items.forEach(it => sbody.appendChild(makeItemEl(it, clr)));
+      if (s.subs)  renderSubs(s.subs, sbody, clr, depth + 1);
+      shd.onclick = (e) => { e.stopPropagation(); shd.classList.toggle('open'); sbody.classList.toggle('open'); };
+      subDiv.appendChild(shd); subDiv.appendChild(sbody);
+      container.appendChild(subDiv);
+    });
+  }
+
+  CATALOG.forEach((g) => {
+    const grpDiv = document.createElement('div');
+    grpDiv.className = 'grp';
+    const hd = document.createElement('div');
+    hd.className = 'grp-hd open';
+    hd.innerHTML = `<span class="grp-arr">▶</span><span style="color:${g.clr||'#7c3aed'}">${g.grp}</span>`;
+    const body = document.createElement('div');
+    body.className = 'grp-body open';
+
+    if (g.items) g.items.forEach(it => body.appendChild(makeItemEl(it, g.clr)));
+    if (g.subs)  renderSubs(g.subs, body, g.clr, 1);
+
+    hd.onclick = () => { hd.classList.toggle('open'); body.classList.toggle('open'); };
+    grpDiv.appendChild(hd); grpDiv.appendChild(body);
+    tree.appendChild(grpDiv);
+  });
+
+  // Dummy section
+  const dummyGrp = document.createElement('div');
+  const dhd = document.createElement('div');
+  dhd.className = 'grp-hd open';
+  dhd.innerHTML = `<span class="grp-arr">▶</span><span style="color:#f59e0b">Variables Dummy (bandas)</span>`;
+  const dbody = document.createElement('div');
+  dbody.className = 'grp-body open';
+  DUMMIES.forEach(dd => {
+    const el = document.createElement('div');
+    el.className = 'dummy-item';
+    el.innerHTML = `<input type="checkbox" class="dchk" id="dchk-${dd.id}" onchange="toggleDummy('${dd.id}',this.checked)"/>
+      <label for="dchk-${dd.id}" style="cursor:pointer">${dd.label}</label>`;
+    dbody.appendChild(el);
+  });
+  dhd.onclick = () => { dhd.classList.toggle('open'); dbody.classList.toggle('open'); };
+  dummyGrp.appendChild(dhd); dummyGrp.appendChild(dbody);
+  tree.appendChild(dummyGrp);
+}
+
+function makeItemEl(it, grpClr) {
+  if (it.children && it.children.length) return makeFolderEl(it, grpClr);
+  const el = document.createElement('div');
+  el.className = 'item'; el.id = 'item-'+it.id;
+  el.innerHTML = `<span class="dot" style="background:${grpClr||'#7c3aed'}"></span>
+    <span style="flex:1" onclick="clickItem('${it.id}')">${it.label}</span>
+    <input type="checkbox" class="chk" title="Comparar" onchange="toggleCmp('${it.id}',this.checked)" onclick="event.stopPropagation()"/>`;
+  return el;
+}
+
+function makeFolderEl(it, grpClr) {
+  const clr = grpClr || '#7c3aed';
+  const folder = document.createElement('div');
+  folder.className = 'item-folder';
+
+  // Folder header (collapse/expand arrow + label as folder title)
+  const hd = document.createElement('div');
+  hd.className = 'item-folder-hd open';
+  hd.innerHTML = `<span class="folder-arr">▶</span><span style="color:${clr};font-weight:600;flex:1">${it.label}</span>`;
+  hd.onclick = () => { hd.classList.toggle('open'); body.classList.toggle('open'); };
+
+  // Body: "Total" item (parent series) + children
+  const body = document.createElement('div');
+  body.className = 'item-folder-body open';
+
+  // Total = parent series item
+  const totalEl = document.createElement('div');
+  totalEl.className = 'item'; totalEl.id = 'item-' + it.id;
+  totalEl.innerHTML = `<span class="dot" style="background:${clr}"></span>
+    <span style="flex:1;font-style:italic" onclick="clickItem('${it.id}')">Total</span>
+    <input type="checkbox" class="chk" title="Comparar" onchange="toggleCmp('${it.id}',this.checked)" onclick="event.stopPropagation()"/>`;
+  body.appendChild(totalEl);
+
+  // Children
+  it.children.forEach(child => body.appendChild(makeItemEl(child, clr)));
+
+  folder.appendChild(hd);
+  folder.appendChild(body);
+  return folder;
+}
+
+/* ── SEARCH / FILTER ── */
+function filterTree(q) {
+  const lq = q.toLowerCase();
+  // Filter leaf items
+  document.querySelectorAll('.item').forEach(el => {
+    const label = el.querySelector('span:nth-child(2)')?.textContent || '';
+    el.style.display = (!lq || label.toLowerCase().includes(lq)) ? '' : 'none';
+  });
+  // Show/hide folder headers based on visible children (innermost first)
+  document.querySelectorAll('.item-folder').forEach(folder => {
+    const hasVisible = [...folder.querySelectorAll('.item')].some(el => el.style.display !== 'none');
+    folder.style.display = hasVisible ? '' : 'none';
+  });
+  ['.sub2-body', '.sub-body'].forEach(cls => {
+    document.querySelectorAll(cls).forEach(sb => {
+      const visible = [...sb.querySelectorAll('.item')].some(el => el.style.display !== 'none');
+      sb.style.display = visible ? '' : 'none';
+      const shd = sb.previousElementSibling;
+      if (shd) shd.style.display = visible ? '' : 'none';
+    });
+  });
+  document.querySelectorAll('.grp-body').forEach(gb => {
+    const visible = [...gb.querySelectorAll('.item')].some(el => el.style.display !== 'none');
+    gb.style.display = visible ? '' : 'none';
+    const ghd = gb.previousElementSibling;
+    if (ghd) ghd.style.display = visible ? '' : 'none';
+  });
+}
+
+/* ── TAB SWITCH ── */
+function switchTab(t) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.mtab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.querySelectorAll('.mtab')[['explorer','simulator','analysis'].indexOf(t)].classList.add('active');
+}
+
+/* ── ANALYSIS TAB ── */
+function populateAnlSelects() {
+  const ids = Object.keys(IDX);
+  ['anl-s1','anl-s2'].forEach((sid, si) => {
+    const sel = document.getElementById(sid);
+    const cur = sel.value;
+    sel.innerHTML = si===0 ? '<option value="">— elegir —</option>' : '<option value="">— ninguna —</option>';
+    ids.forEach(id => {
+      const opt = document.createElement('option');
+      opt.value = id; opt.textContent = IDX[id].label;
+      sel.appendChild(opt);
+    });
+    sel.value = cur;
+  });
+}
+
+async function anlGetSeries() {
+  const s1 = document.getElementById('anl-s1').value;
+  const s2 = document.getElementById('anl-s2').value;
+  const op = document.getElementById('anl-op').value;
+  if (!s1) return null;
+  
+  const fFrom = document.getElementById('anl-from').value;
+  const fTo = document.getElementById('anl-to').value;
+  const fFreq = document.getElementById('anl-freq').value;
+
+  const raw1 = await getSeries(s1);
+  const it1 = IDX[s1];
+  const freq1 = raw1.nativeFreq || it1.freq;
+  let dates = raw1.dates, vals = raw1.values;
+
+  // Deflate A
+  if (document.getElementById('anl-da-pbi').checked) { await loadPBI(); vals = deflectByPBI(dates, vals); }
+  if (document.getElementById('anl-da-mep').checked) { await loadMEP(); vals = deflectByMEP(dates, vals); }
+  if (document.getElementById('anl-da-cer').checked) { await loadCER(); vals = deflectByCER(dates, vals); }
+  if (document.getElementById('anl-da-ipc').checked) { await loadTIP(); vals = deflectByTIP(dates, vals); }
+
+  if (fFreq) {
+    const res = resample(dates, vals, freq1, fFreq);
+    dates = res.dates; vals = res.values;
+  }
+
+  if (s2 && op !== 'A' && op !== 'B') {
+    const raw2 = await getSeries(s2);
+    const it2 = IDX[s2];
+    const freq2 = raw2.nativeFreq || it2.freq;
+    let d2 = raw2.dates, v2 = raw2.values;
+    
+    // Deflate B
+    if (document.getElementById('anl-db-pbi').checked) { await loadPBI(); v2 = deflectByPBI(d2, v2); }
+    if (document.getElementById('anl-db-mep').checked) { await loadMEP(); v2 = deflectByMEP(d2, v2); }
+    if (document.getElementById('anl-db-cer').checked) { await loadCER(); v2 = deflectByCER(d2, v2); }
+    if (document.getElementById('anl-db-ipc').checked) { await loadTIP(); v2 = deflectByTIP(d2, v2); }
+
+    if (fFreq) {
+      const res2 = resample(d2, v2, freq2, fFreq);
+      d2 = res2.dates; v2 = res2.values;
+    }
+    // align by date
+    const map2 = {};
+    d2.forEach((d,i) => map2[d] = v2[i]);
+    const aligned = dates.map((d,i) => {
+      const v2_val = map2[d];
+      if (v2_val == null || isNaN(v2_val)) return NaN;
+      if (op === 'A-B') return vals[i] - v2_val;
+      if (op === 'A+B') return vals[i] + v2_val;
+      if (op === 'A/B') return v2_val !== 0 ? vals[i]/v2_val : NaN;
+      if (op === 'A*B') return vals[i]*v2_val;
+      return NaN;
+    });
+    vals = aligned;
+  } else if (op === 'B' && s2) {
+    const raw2 = await getSeries(s2);
+    const it2 = IDX[s2];
+    const freq2b = raw2.nativeFreq || it2.freq;
+    dates = raw2.dates; vals = raw2.values;
+
+    // Deflate B
+    if (document.getElementById('anl-db-pbi').checked) { await loadPBI(); vals = deflectByPBI(dates, vals); }
+    if (document.getElementById('anl-db-mep').checked) { await loadMEP(); vals = deflectByMEP(dates, vals); }
+    if (document.getElementById('anl-db-cer').checked) { await loadCER(); vals = deflectByCER(dates, vals); }
+    if (document.getElementById('anl-db-ipc').checked) { await loadTIP(); vals = deflectByTIP(dates, vals); }
+
+    if (fFreq) {
+      const res = resample(dates, vals, freq2b, fFreq);
+      dates = res.dates; vals = res.values;
+    }
+  }
+
+  // apply log/diff
+  if (document.getElementById('anl-log').checked) vals = vals.map(x => x > 0 ? Math.log(x) : NaN);
+  const nd = parseInt(document.getElementById('anl-diff').value)||0;
+  for (let d = 0; d < nd; d++) {
+    const nv = new Array(vals.length).fill(NaN);
+    for(let i=1;i<vals.length;i++) nv[i] = vals[i]-vals[i-1];
+    vals = nv;
+  }
+  const ma = parseInt(document.getElementById('anl-ma').value)||0;
+  if (ma >= 2) vals = movingAvg(vals, ma);
+
+  // date filtering
+  const fd = [], fv = [];
+  for (let i = 0; i < dates.length; i++) {
+    if (fFrom && dates[i] < fFrom) continue;
+    if (fTo && dates[i] > fTo) continue;
+    fd.push(dates[i]); fv.push(vals[i]);
+  }
+  return { dates: fd, values: fv };
+}
+
+async function anlUpdate() {
+  const data = await anlGetSeries();
+  if (!data) return;
+  const { dates, values } = data;
+  let clean = values.map(x => isNaN(x)||x===null?null:x);
+  const lags = parseInt(document.getElementById('anl-lags').value)||40;
+
+  const s1Label = IDX[document.getElementById('anl-s1').value]?.label || '';
+  const s2 = document.getElementById('anl-s2').value;
+  const op  = document.getElementById('anl-op').value;
+  const title = s2 && op!=='A' ? `${s1Label} ${op} ${IDX[s2]?.label}` : s1Label;
+
+  Plotly.react('anl-chart', [{ x:dates, y:clean, mode:'lines', line:{color:'#7c3aed',width:1.5},
+    hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.4g}</b><extra></extra>' }],
+    Object.assign(mkLayout(title, '', []),{ height:undefined }), CONF);
+
+  // Error Analysis / GARCH
+  const residMode = document.getElementById('anl-resid').value;
+  let anlVals = clean;
+  let isResid = false;
+  if (residMode !== 'none') {
+    const validIdx = [];
+    for (let i = 0; i < clean.length; i++) {
+      if (clean[i] !== null) validIdx.push(i);
+    }
+    if (validIdx.length > 5) {
+      const y = validIdx.map(i => clean[i]);
+      let X = [];
+      if (residMode === 'c') {
+        X = y.map(() => [1]);
+      } else if (residMode === 'ct') {
+        X = y.map((_, i) => [1, i]);
+      } else if (residMode === 'ar1') {
+        const y_trim = y.slice(1);
+        X = y.slice(0, -1).map(yi => [1, yi]);
+        const coeffs = ols(X, y_trim);
+        const resid = y_trim.map((yi, i) => yi - (coeffs[0] + coeffs[1]*X[i][1]));
+        anlVals = new Array(clean.length).fill(null);
+        for (let j = 0; j < validIdx.length - 1; j++) {
+          anlVals[validIdx[j+1]] = resid[j];
+        }
+        isResid = true;
+      }
+      
+      if (!isResid && (residMode === 'c' || residMode === 'ct')) {
+        const coeffs = ols(X, y);
+        const resid = y.map((yi, i) => yi - X[i].reduce((s, x_ij, j) => s + x_ij * coeffs[j], 0));
+        anlVals = new Array(clean.length).fill(null);
+        for (let j = 0; j < validIdx.length; j++) {
+          anlVals[validIdx[j]] = resid[j];
+        }
+      }
+    }
+  }
+
+  const showSq = document.getElementById('anl-resid-sq').checked;
+  if (showSq) {
+    anlVals = anlVals.map(x => x !== null ? x*x : null);
+  }
+
+  // ACF
+  const validVals = anlVals.filter(x=>x!==null);
+  const acfVals  = computeACF(validVals, lags);
+  const pacfVals = computePACF(validVals, lags);
+  const ci = 1.96 / Math.sqrt(validVals.length);
+  const lagX = Array.from({length:lags+1},(_,i)=>i);
+
+  const layACF = mkLayout(showSq ? 'ACF (Errores al cuadrado)' : 'ACF', '', []);
+  layACF.xaxis = Object.assign({}, LAYOUT_BASE.xaxis, { type: 'linear', title: 'Lags' });
+  const layPACF = mkLayout(showSq ? 'PACF (Errores al cuadrado)' : 'PACF', '', []);
+  layPACF.xaxis = Object.assign({}, LAYOUT_BASE.xaxis, { type: 'linear', title: 'Lags' });
+
+  Plotly.react('anl-acf',
+    [ { x:lagX, y:acfVals, type:'bar', marker:{color:'#7c3aed'}, name:'ACF' },
+      { x:[0,lags], y:[ci,ci],   mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false },
+      { x:[0,lags], y:[-ci,-ci], mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false } ],
+    layACF, CONF);
+
+  Plotly.react('anl-pacf',
+    [ { x:lagX, y:pacfVals, type:'bar', marker:{color:'#10b981'}, name:'PACF' },
+      { x:[0,lags], y:[ci,ci],   mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false },
+      { x:[0,lags], y:[-ci,-ci], mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false } ],
+    layPACF, CONF);
+}
+
+function computeACF(vals, maxLag) {
+  const n = vals.length;
+  const mean = vals.reduce((a,b)=>a+b,0)/n;
+  const variance = vals.reduce((a,v)=>(a + (v-mean)**2),0)/n;
+  return Array.from({length:maxLag+1},(_,lag) => {
+    if (lag === 0) return 1;
+    let s = 0;
+    for (let i=0;i<n-lag;i++) s += (vals[i]-mean)*(vals[i+lag]-mean);
+    return variance > 0 ? (s/n)/variance : 0;
+  });
+}
+
+function computePACF(vals, maxLag) {
+  // Levinson-Durbin recursion
+  const acf = computeACF(vals, maxLag);
+  const phi = [[],[1]];
+  const pacf = [1, acf[1]];
+  phi[1] = [acf[1]];
+  for (let k = 2; k <= maxLag; k++) {
+    const prev = phi[k-1];
+    let num = acf[k];
+    for (let j=1;j<k;j++) num -= prev[j-1]*acf[k-j];
+    let den = 1;
+    for (let j=1;j<k;j++) den -= prev[j-1]*acf[j];
+    const phikk = den !== 0 ? num/den : 0;
+    pacf.push(phikk);
+    const cur = new Array(k);
+    cur[k-1] = phikk;
+    for (let j=0;j<k-1;j++) cur[j] = prev[j] - phikk*prev[k-2-j];
+    phi[k] = cur;
+  }
+  return pacf;
+}
+
+/* ── UNIT ROOT TESTS ── */
+async function runUnitRootTest() {
+  const data = await anlGetSeries();
+  if (!data) return;
+  const { values } = data;
+  const clean = values.filter(x => x !== null && !isNaN(x));
+  if (clean.length < 20) { document.getElementById('adf-box').textContent = 'Datos insuficientes (< 20 obs.)'; return; }
+
+  const testType = document.getElementById('anl-ur-test').value;
+  const trend = document.getElementById('anl-ur-trend').value;
+  const lags = 4; // default
+  
+  let result;
+  let testName = '';
+  if (testType === 'adf') {
+    result = adfTest(clean, lags, trend);
+    testName = `ADF Test (${lags} lags)`;
+  } else {
+    result = ppTest(clean, trend);
+    testName = `Phillips-Perron Test`;
+  }
+  
+  const termName = { nc:'Sin Constante', c:'Con Constante', ct:'Constante y Tendencia' }[trend];
+
+  const box = document.getElementById('adf-box');
+  box.innerHTML = `<b style="color:#a78bfa">${testName} — ${termName}</b>\n` +
+    `Estadístico t: <b style="color:#${result.stat < result.cv05 ? '10b981':'ef4444'}">${result.stat.toFixed(4)}</b>\n` +
+    `Valor crítico 1%: <b>${result.cv01.toFixed(4)}</b>\n` +
+    `Valor crítico 5%: <b>${result.cv05.toFixed(4)}</b>\n` +
+    `Valor crítico 10%: <b>${result.cv10.toFixed(4)}</b>\n` +
+    `p-valor ≈: <b>${result.pval.toFixed(4)}</b>\n` +
+    `N obs.: ${clean.length}\n\n` +
+    `<b style="color:${result.stat < result.cv05 ? '#10b981':'#fbbf24'}">` +
+    (result.stat < result.cv05 ? '✓ Rechaza raíz unitaria al 5% (estacionaria)' : '✗ No rechaza raíz unitaria al 5% (no estacionaria)') +
+    `</b>`;
+}
+
+function getURCriticalValues(trend) {
+  // Approximate large-sample critical values
+  if (trend === 'nc') return { cv01: -2.58, cv05: -1.95, cv10: -1.62 };
+  if (trend === 'c')  return { cv01: -3.43, cv05: -2.86, cv10: -2.57 };
+  if (trend === 'ct') return { cv01: -3.96, cv05: -3.41, cv10: -3.12 };
+  return { cv01:-3.43, cv05:-2.86, cv10:-2.57 };
+}
+
+function adfPval(t, trend) {
+  let table = [];
+  if (trend === 'nc') table = [[-3.5,0.001],[-2.58,0.01],[-2.23,0.025],[-1.95,0.05],[-1.62,0.10],[-1.0,0.25],[0,0.5],[0.5,0.75]];
+  else if (trend === 'c') table = [[-4.0,0.001],[-3.43,0.01],[-3.12,0.025],[-2.86,0.05],[-2.57,0.10],[-1.94,0.25],[-0.5,0.5],[0.5,0.75]];
+  else table = [[-4.5,0.001],[-3.96,0.01],[-3.66,0.025],[-3.41,0.05],[-3.12,0.10],[-2.4,0.25],[-1.0,0.5],[0,0.75]];
+  
+  if (t <= table[0][0]) return 0.001;
+  if (t >= table[table.length-1][0]) return 0.99;
+  for (let i=0;i<table.length-1;i++) {
+    if (t>=table[i][0] && t<=table[i+1][0]) {
+      const r=(t-table[i][0])/(table[i+1][0]-table[i][0]);
+      return table[i][1] + r*(table[i+1][1]-table[i][1]);
+    }
+  }
+  return 0.5;
+}
+
+function adfTest(y, lags, trend) {
+  const dy = y.slice(1).map((v,i) => v - y[i]);
+  const N = dy.length - lags;
+  const cvs = getURCriticalValues(trend);
+  if (N < 10) return { stat:NaN, ...cvs, pval:1 };
+
+  const X = [], Yv = [];
+  for (let i = lags; i < dy.length; i++) {
+    const row = [];
+    if (trend === 'c' || trend === 'ct') row.push(1);
+    if (trend === 'ct') row.push(i + 1);
+    row.push(y[i]); // y_{t-1}
+    const idx_yt1 = row.length - 1;
+    for (let l = 1; l <= lags; l++) row.push(dy[i-l]);
+    X.push(row); Yv.push(dy[i]);
+  }
+  
+  const coeffs = ols(X, Yv);
+  const resid = Yv.map((yi,i) => yi - X[i].reduce((s,xi,j)=>s+xi*coeffs[j],0));
+  const s2 = resid.reduce((a,r)=>a+r*r,0)/(N - coeffs.length);
+  const XtX = matMul(transpose(X), X);
+  const XtXinv = matInv(XtX);
+  
+  // y_{t-1} is the last variable before lags
+  const idx_yt1 = (trend === 'ct' ? 2 : (trend === 'c' ? 1 : 0));
+  const se_b = Math.sqrt(s2 * XtXinv[idx_yt1][idx_yt1]);
+  const stat = coeffs[idx_yt1] / se_b;
+  const pval = adfPval(stat, trend);
+  
+  return { stat, ...cvs, pval };
+}
+
+function ppTest(y, trend) {
+  const dy = y.slice(1).map((v,i) => v - y[i]);
+  const N = dy.length;
+  const cvs = getURCriticalValues(trend);
+  if (N < 10) return { stat:NaN, ...cvs, pval:1 };
+
+  const X = [], Yv = [];
+  for (let i = 0; i < dy.length; i++) {
+    const row = [];
+    if (trend === 'c' || trend === 'ct') row.push(1);
+    if (trend === 'ct') row.push(i + 1);
+    row.push(y[i]); // y_{t-1}
+    X.push(row); Yv.push(dy[i]);
+  }
+  
+  const coeffs = ols(X, Yv);
+  const resid = Yv.map((yi,i) => yi - X[i].reduce((s,xi,j)=>s+xi*coeffs[j],0));
+  const s2 = resid.reduce((a,r)=>a+r*r,0)/(N - coeffs.length);
+  const XtX = matMul(transpose(X), X);
+  const XtXinv = matInv(XtX);
+  
+  const idx_yt1 = (trend === 'ct' ? 2 : (trend === 'c' ? 1 : 0));
+  const se_b = Math.sqrt(s2 * XtXinv[idx_yt1][idx_yt1]);
+  const t_stat = coeffs[idx_yt1] / se_b;
+  
+  // Newey-West estimator (Bartlett kernel)
+  const lagNW = Math.floor(4 * Math.pow(N/100, 2/9));
+  const s0 = resid.reduce((a,r)=>a+r*r,0)/N;
+  let s1 = s0;
+  for (let j=1; j<=lagNW; j++) {
+    let cov = 0;
+    for (let t=j; t<N; t++) cov += resid[t] * resid[t-j];
+    s1 += 2 * (1 - j/(lagNW+1)) * (cov / N);
+  }
+  
+  // Z_t stat
+  const myy = XtXinv[idx_yt1][idx_yt1];
+  const stat = Math.sqrt(s0/s1) * t_stat - 0.5 * (s1 - s0) * Math.sqrt(N * N * myy / s1);
+  const pval = adfPval(stat, trend);
+  
+  return { stat, ...cvs, pval };
+}
+
+// Matrix utilities (for small matrices only)
+function ols(X, y) {
+  const Xt = transpose(X);
+  const XtX = matMul(Xt, X);
+  const XtXinv = matInv(XtX);
+  const Xty = vecMul(Xt, y);
+  return XtXinv.map(row => row.reduce((s,v,j)=>s+v*Xty[j],0));
+}
+function transpose(M) { return M[0].map((_,j)=>M.map(r=>r[j])); }
+function matMul(A,B) {
+  return A.map(ra=>transpose(B).map(cb=>ra.reduce((s,v,k)=>s+v*cb[k],0)));
+}
+function vecMul(A,v) { return A.map(row=>row.reduce((s,x,j)=>s+x*v[j],0)); }
+function matInv(M) {
+  const n=M.length, A=M.map(r=>[...r]), I=M.map((_,i)=>M.map((_,j)=>i===j?1:0));
+  for(let c=0;c<n;c++){
+    let p=c; for(let r=c+1;r<n;r++) if(Math.abs(A[r][c])>Math.abs(A[p][c])) p=r;
+    [A[c],A[p]]=[A[p],A[c]]; [I[c],I[p]]=[I[p],I[c]];
+    const d=A[c][c]; if(Math.abs(d)<1e-12) continue;
+    for(let j=0;j<n;j++){A[c][j]/=d;I[c][j]/=d;}
+    for(let r=0;r<n;r++) if(r!==c){const f=A[r][c]; for(let j=0;j<n;j++){A[r][j]-=f*A[c][j];I[r][j]-=f*I[c][j];}}
+  }
+  return I;
+}
+
+/* ── SIMULATOR ── */
+function seededRand(seed) {
+  let s = seed;
+  return function() { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+}
+function boxMuller(rng) { const u=rng(), v=rng(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+function runSim() {
+  const n = +document.getElementById('s-n').value;
+  const seed = +document.getElementById('s-seed').value;
+  const rng = seededRand(seed);
+  const trend = document.getElementById('s-trend').value;
+  const b0=+document.getElementById('s-b0').value, b1=+document.getElementById('s-b1').value, b2=+document.getElementById('s-b2').value;
+  const arPhi = document.getElementById('s-ar').value.split(',').map(Number).filter(x=>!isNaN(x)&&x!==0);
+  const maTh  = document.getElementById('s-ma').value.split(',').map(Number).filter(x=>!isNaN(x)&&x!==0);
+  const S=+document.getElementById('s-s').value;
+  const sarPhi=document.getElementById('s-sar').value.split(',').map(Number).filter(x=>!isNaN(x)&&x!==0);
+  const smaTh =document.getElementById('s-sma').value.split(',').map(Number).filter(x=>!isNaN(x)&&x!==0);
+  const d=+document.getElementById('s-d').value, D=+document.getElementById('s-D').value;
+  const useGarch=document.getElementById('s-garch').checked;
+  const omega=+document.getElementById('s-omega').value;
+  const alpha=document.getElementById('s-alpha').value.split(',').map(Number).filter(x=>!isNaN(x));
+  const beta =document.getElementById('s-beta').value.split(',').map(Number).filter(x=>!isNaN(x));
+  const sigma0=+document.getElementById('s-sigma').value;
+
+  const N = n + 200;
+  // GARCH variance
+  let h = new Array(N).fill(sigma0);
+  const eps = new Array(N).fill(0);
+  const z = Array.from({length:N},()=>boxMuller(rng));
+  for (let t=1;t<N;t++) {
+    if (useGarch) {
+      let ht = omega;
+      alpha.forEach((a,i)=>{ if(t>i) ht+=a*eps[t-i-1]**2; });
+      beta.forEach((b,i)=>{ if(t>i) ht+=b*h[t-i-1]; });
+      h[t]=Math.max(ht,1e-8);
+    }
+    eps[t]=z[t]*Math.sqrt(h[t]);
+  }
+  // ARMA(p,q)
+  const ar=[...arPhi,...sarPhi.map((v,i)=>({ v, lag:(i+1)*S }))].flatMap(x=>typeof x==='object'?[{v:x.v,lag:x.lag}]:[{v:x,lag:arPhi.indexOf(x)+1}]);
+  const ma=[...maTh,...smaTh.map((v,i)=>({v,lag:(i+1)*S}))].flatMap(x=>typeof x==='object'?[x]:[{v:x,lag:maTh.indexOf(x)+1}]);
+  let y=new Array(N).fill(0);
+  for(let t=Math.max(arPhi.length,maTh.length,sarPhi.length*S,smaTh.length*S)+1;t<N;t++){
+    let val=eps[t];
+    arPhi.forEach((a,i)=>{if(t>i) val+=a*y[t-i-1];});
+    sarPhi.forEach((a,i)=>{if(t>(i+1)*S) val+=a*y[t-(i+1)*S];});
+    maTh.forEach((a,i)=>{if(t>i) val+=a*eps[t-i-1];});
+    smaTh.forEach((a,i)=>{if(t>(i+1)*S) val+=a*eps[t-(i+1)*S];});
+    y[t]=val;
+  }
+  // integrate d times
+  for(let i=0;i<d;i++){for(let t=1;t<N;t++) y[t]+=y[t-1];}
+  // seasonal integrate D times
+  for(let i=0;i<D;i++){for(let t=S;t<N;t++) y[t]+=y[t-S];}
+  // trend
+  for(let t=0;t<N;t++){
+    if(trend==='linear') y[t]+=b0+b1*t;
+    else if(trend==='quadratic') y[t]+=b0+b1*t+b2*t*t;
+    else if(trend==='exponential') y[t]+=b0*Math.exp(b1*t);
+  }
+  // trim burn-in
+  y=y.slice(200); const ep2=eps.slice(200); const ht=h.slice(200);
+  const xs=Array.from({length:n},(_,i)=>i);
+
+  const cfg={displayModeBar:false,responsive:true};
+  Plotly.react('sc1',[{x:xs,y,mode:'lines',line:{color:'#7c3aed',width:1.5},name:'Serie'}],
+    Object.assign({},LAYOUT_BASE,{title:{text:'Serie Simulada',font:{size:11,color:'#9090c0'}},margin:{l:50,r:10,t:28,b:30},xaxis:{...LAYOUT_BASE.xaxis,type:'linear'},height:undefined}),cfg);
+  Plotly.react('sc2',[{x:xs,y:ep2,mode:'lines',line:{color:'#10b981',width:1},name:'Residuos ε'}],
+    Object.assign({},LAYOUT_BASE,{title:{text:'Residuos / Innovaciones',font:{size:11,color:'#9090c0'}},margin:{l:50,r:10,t:28,b:30},xaxis:{...LAYOUT_BASE.xaxis,type:'linear'},height:undefined}),cfg);
+  Plotly.react('sc3',[{x:xs,y:ht,mode:'lines',line:{color:'#f59e0b',width:1},name:'Varianza h_t'}],
+    Object.assign({},LAYOUT_BASE,{title:{text:'Varianza Condicional h_t',font:{size:11,color:'#9090c0'}},margin:{l:50,r:10,t:28,b:30},xaxis:{...LAYOUT_BASE.xaxis,type:'linear'},height:undefined}),cfg);
+}
+
+/* ── MA LIVE UPDATE ── */
+document.getElementById('ma-win').addEventListener('change', render);
+
+/* ── INIT ── */
+buildTree();
+populateAnlSelects();
+
+// Auto-load first item
+setTimeout(() => { clickItem('res_brutas'); }, 100);
+</script>
+</body></html>
