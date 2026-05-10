@@ -1,0 +1,8 @@
+#,Serie A,Deflactor A,Serie B,Deflactor B,Operación,Desde,Hasta,Frecuencia,Log,Dif.,MM,Test UR,Estadístico,p-valor,Resultado (5%)
+"1","Reservas Brutas BCRA","PBI","—","—","Solo A","—","—","Original","No","1","0","ADF","-33.6450","0.0010","Rechaza H0 (estacionario)"
+"2","ITCRM Multilateral","—","—","—","Solo A","—","—","Original","No","1","0","ADF","-46.2700","0.0010","Rechaza H0 (estacionario)"
+"3","Riesgo País ARG (EMBI+)","—","EMBI+ Latinoamérica","—","A − B","—","—","Original","No","1","0","ADF","-32.2127","0.0010","Rechaza H0 (estacionario)"
+"4","Términos de Intercambio (nominal)","—","—","—","A − B","—","—","Original","No","1","0","ADF","-9.3646","0.0010","Rechaza H0 (estacionario)"
+"5","Saldo Comercial","PBI","—","—","A − B","—","—","Original","No","1","0","ADF","-11.6574","0.0010","Rechaza H0 (estacionario)"
+"6","Brecha Cambiaria MEP/Oficial","—","—","—","A − B","—","—","Original","No","1","0","ADF","-27.8153","0.0010","Rechaza H0 (estacionario)"
+"7","VIX — CBOE Volatility Index","—","—","—","A − B","—","—","Original","No","1","0","ADF","-41.0251","0.0010","Rechaza H0 (estacionario)"

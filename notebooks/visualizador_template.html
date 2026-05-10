@@ -143,6 +143,15 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
 .abtn:hover{filter:brightness(1.1)}
 .abtn-p{background:linear-gradient(135deg,#7c3aed,#6d28d9)}
 #adf-box{background:#0e0e26;border:1px solid #2a2a50;border-radius:5px;padding:8px;margin-top:8px;font-size:10px;color:#888;min-height:40px;white-space:pre-wrap;line-height:1.6}
+#anl-saved-scroll{overflow-x:auto}
+#anl-saved-scroll::-webkit-scrollbar{width:5px;height:5px}
+#anl-saved-scroll::-webkit-scrollbar-thumb{background:#2a2a50;border-radius:3px}
+#anl-saved-table{width:100%;border-collapse:collapse;font-size:9px;color:#aaa;font-family:inherit}
+#anl-saved-table th{position:sticky;top:0;background:#14143a;color:#a78bfa;padding:5px 8px;border-bottom:1px solid #2a2a50;text-align:left;font-weight:600;font-size:8.5px;white-space:nowrap}
+#anl-saved-table td{padding:4px 8px;border-bottom:1px solid #1a1a3a;white-space:nowrap}
+#anl-saved-table tr:hover td{background:#1a1a40}
+#anl-saved-table .ur-reject{color:#10b981}
+#anl-saved-table .ur-fail{color:#fbbf24}
 /* spinner */
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid #2a2a50;border-top-color:#7c3aed;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -375,12 +384,23 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
           </div>
           <button class="abtn" onclick="runUnitRootTest()">▶ Ejecutar Test</button>
           <div id="adf-box">Presioná "Ejecutar Test" para ejecutar</div>
+          <button class="abtn" style="margin-top:8px;background:linear-gradient(135deg,#f59e0b,#d97706)" onclick="saveAnalysis()">💾 Guardar Análisis</button>
         </div>
       </div>
       <div id="anl-right">
         <div id="anl-chart"></div>
         <div id="anl-acf"></div>
         <div id="anl-pacf"></div>
+        <div id="anl-saved-section">
+          <h4 style="font-size:9.5px;font-weight:700;color:#7c3aed;text-transform:uppercase;margin:10px 0 6px;padding-bottom:3px;border-bottom:1px solid #1e1e44">📋 Análisis Guardados</h4>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            <button class="abtn" style="width:auto;padding:4px 10px;font-size:9.5px;background:linear-gradient(135deg,#059669,#047857)" onclick="downloadAnalysesCSV()">⬇ CSV</button>
+            <button class="abtn" style="width:auto;padding:4px 10px;font-size:9.5px;background:linear-gradient(135deg,#ef4444,#b91c1c)" onclick="clearAnalyses()">✕ Limpiar</button>
+          </div>
+          <div id="anl-saved-scroll" style="max-height:30vh;overflow:auto;border:1px solid #1e1e44;border-radius:4px">
+            <table id="anl-saved-table"></table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2669,6 +2689,143 @@ function downloadCorrListCSV() {
   document.body.removeChild(link);
   URL.revokeObjectURL(link.href);
 }
+
+/* ── SAVE ANALYSES ── */
+window.ANALYSES = [];
+
+function getDeflactorString(prefix) {
+  const defl = [];
+  ['pbi','mep','cer','ipc'].forEach(d => {
+    if (document.getElementById('anl-' + prefix + '-' + d).checked) defl.push(d.toUpperCase());
+  });
+  return defl.length > 0 ? defl.join(',') : '—';
+}
+
+function parseURResult() {
+  const box = document.getElementById('adf-box');
+  if (!box || box.textContent.includes('Presioná')) return { test: '—', stat: '', pval: '', result: '—' };
+  const txt = box.textContent;
+  const testMatch = txt.match(/^(ADF|Phillips-Perron)/m);
+  const statMatch = txt.match(/Estadístico t:*\s*([-\d.]+)/);
+  const pvalMatch = txt.match(/p-valor\s*≈:*\s*([-\d.]+)/);
+  const resMatch = txt.match(/(✓|✗) Rechaza/);
+  const test = testMatch ? testMatch[1] : '?';
+  const stat = statMatch ? statMatch[1] : '';
+  const pval = pvalMatch ? pvalMatch[1] : '';
+  const res = resMatch ? (resMatch[1] === '✓' ? 'Rechaza H0 (estacionario)' : 'No rechaza H0 (no estacionario)') : '—';
+  return { test, stat, pval, result: res };
+}
+
+function saveAnalysis() {
+  const s1 = document.getElementById('anl-s1').value;
+  if (!s1) { alert('Seleccioná una Serie A primero'); return; }
+
+  const s1Label = IDX[s1]?.label || s1;
+  const s2 = document.getElementById('anl-s2').value;
+  const s2Label = s2 ? (IDX[s2]?.label || s2) : '—';
+  const op = document.getElementById('anl-op').value;
+  const opLabel = { 'A':'Solo A', 'B':'Solo B', 'A-B':'A − B', 'A+B':'A + B', 'A/B':'A / B', 'A*B':'A × B' }[op] || op;
+
+  const defl1 = getDeflactorString('da');
+  const defl2 = getDeflactorString('db');
+  const from = document.getElementById('anl-from').value || '—';
+  const to = document.getElementById('anl-to').value || '—';
+  const freq = document.getElementById('anl-freq').value || 'Original';
+  const log = document.getElementById('anl-log').checked ? 'Sí' : 'No';
+  const diff = document.getElementById('anl-diff').value || '0';
+  const ma = document.getElementById('anl-ma').value || '0';
+
+  const ur = parseURResult();
+
+  window.ANALYSES.push({
+    id: window.ANALYSES.length + 1,
+    s1: s1Label, defl1, s2: s2Label, defl2, op: opLabel,
+    from, to, freq, log, diff, ma,
+    ur_test: ur.test, ur_stat: ur.stat, ur_pval: ur.pval, ur_result: ur.result
+  });
+
+  renderSavedTable();
+}
+
+function renderSavedTable() {
+  const cols = [
+    { k:'id', l:'#' },
+    { k:'s1', l:'Serie A' },
+    { k:'defl1', l:'Deflactor A' },
+    { k:'s2', l:'Serie B' },
+    { k:'defl2', l:'Deflactor B' },
+    { k:'op', l:'Operación' },
+    { k:'from', l:'Desde' },
+    { k:'to', l:'Hasta' },
+    { k:'freq', l:'Frecuencia' },
+    { k:'log', l:'Log' },
+    { k:'diff', l:'Dif.' },
+    { k:'ma', l:'MM' },
+    { k:'ur_test', l:'Test UR' },
+    { k:'ur_stat', l:'Estadístico' },
+    { k:'ur_pval', l:'p-valor' },
+    { k:'ur_result', l:'Resultado (5%)' }
+  ];
+
+  const table = document.getElementById('anl-saved-table');
+  if (window.ANALYSES.length === 0) {
+    table.innerHTML = '<tr><td style="padding:8px;color:#555;font-style:italic">No hay análisis guardados</td></tr>';
+    return;
+  }
+
+  let html = '<thead><tr>';
+  cols.forEach(c => html += '<th>' + c.l + '</th>');
+  html += '</tr></thead><tbody>';
+
+  window.ANALYSES.forEach(a => {
+    html += '<tr>';
+    cols.forEach(c => {
+      let val = a[c.k];
+      let cls = '';
+      if (c.k === 'ur_result') {
+        if (val.includes('Rechaza')) cls = ' class="ur-reject"';
+        else if (val.includes('No')) cls = ' class="ur-fail"';
+      }
+      html += '<td' + cls + '>' + val + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+function downloadAnalysesCSV() {
+  if (window.ANALYSES.length === 0) { alert('No hay análisis para exportar'); return; }
+  const cols = ['id','s1','defl1','s2','defl2','op','from','to','freq','log','diff','ma','ur_test','ur_stat','ur_pval','ur_result'];
+  const headers = ['#','Serie A','Deflactor A','Serie B','Deflactor B','Operación','Desde','Hasta','Frecuencia','Log','Dif.','MM','Test UR','Estadístico','p-valor','Resultado (5%)'];
+
+  let csv = headers.join(',') + '\n';
+  window.ANALYSES.forEach(a => {
+    const row = cols.map(c => {
+      const v = a[c];
+      return '"' + String(v).replace(/"/g, '""') + '"';
+    });
+    csv += row.join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const lnk = document.createElement('a');
+  lnk.href = url;
+  lnk.download = 'analisis_series_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(lnk);
+  lnk.click();
+  document.body.removeChild(lnk);
+  URL.revokeObjectURL(url);
+}
+
+function clearAnalyses() {
+  if (window.ANALYSES.length === 0) return;
+  if (!confirm('¿Eliminar todos los análisis guardados?')) return;
+  window.ANALYSES = [];
+  renderSavedTable();
+}
+
 /* ── MA LIVE UPDATE ── */
 document.getElementById('ma-win').addEventListener('change', render);
 

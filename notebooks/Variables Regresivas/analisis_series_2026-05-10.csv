@@ -1,0 +1,12 @@
+#,Serie A,Deflactor A,Serie B,Deflactor B,Operación,Desde,Hasta,Frecuencia,Log,Dif.,MM,Test UR,Estadístico,p-valor,Resultado (5%)
+"1","Riesgo País ARG (EMBI+)","—","EMBI+ Latinoamérica","—","A − B","2007-10-30","2026-04-01","Original","No","1","0","ADF","-32.1613","0.0010","Rechaza H0 (estacionario)"
+"2","Reservas Brutas BCRA","PBI","—","PBI","Solo A","2007-10-30","2026-04-01","Original","No","1","0","ADF","-29.9143","0.0010","Rechaza H0 (estacionario)"
+"3","ITCRM Multilateral","—","—","—","Solo A","2007-10-30","2026-04-01","Original","No","1","0","ADF","-38.4489","0.0010","Rechaza H0 (estacionario)"
+"4","Saldo Comercial","PBI","—","—","Solo A","2007-10-30","2026-04-01","Original","No","1","0","ADF","-8.6129","0.0010","Rechaza H0 (estacionario)"
+"5","Términos de Intercambio (nominal)","—","—","—","Solo A","2007-10-30","2026-04-01","Original","No","1","0","ADF","-8.9276","0.0010","Rechaza H0 (estacionario)"
+"6","Total Cuenta Corriente","PBI","—","—","Solo A","2007-10-30","2026-04-01","Original","No","1","0","ADF","-4.6705","0.0010","Rechaza H0 (estacionario)"
+"7","Cuenta Capital","PBI","—","—","Solo A","2007-10-30","2026-04-01","Original","No","1","0","ADF","-5.7453","0.0010","Rechaza H0 (estacionario)"
+"8","Resultado Financiero","PBI,CER","—","—","Solo A","2007-10-30","2026-04-01","Original","No","1","0","ADF","-13.2627","0.0010","Rechaza H0 (estacionario)"
+"9","Deuda Bruta Total","PBI","—","—","Solo A","2007-10-30","2026-04-01","Original","Sí","1","0","ADF","-3.8487","0.0034","Rechaza H0 (estacionario)"
+"10","VIX — CBOE Volatility Index","PBI","—","—","Solo A","2007-10-30","2026-04-01","Original","Sí","1","0","ADF","-34.0126","0.0010","Rechaza H0 (estacionario)"
+"11","DXY — US Dollar Index","—","—","—","Solo A","2007-10-30","2026-04-01","Original","Sí","1","0","ADF","-30.5822","0.0010","Rechaza H0 (estacionario)"
