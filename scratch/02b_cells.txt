@@ -1,0 +1,504 @@
+﻿================================================================================
+CELL 10 (code)
+================================================================================
+# ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+#  ELEG├ì LA VARIABLE DEPENDIENTE ÔÇö cambi├í solo el n├║mero de abajo
+#  y volv├® a correr esta celda
+# ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+
+# Auto-detecta riesgo pa├¡s; si no lo encuentra usa 1
+_KEYWORDS_DEP = ['embi', 'riesgo', 'spread', 'cds', 'country risk']
+_auto_idx = next(
+    (i + 1 for i, c in enumerate(_LISTA_SERIES)
+     if any(kw in c.lower() for kw in _KEYWORDS_DEP)),
+    1
+)
+
+VARIABLE_DEPENDIENTE = _auto_idx   # ÔåÉ CAMBI├ü ESTE N├ÜMERO SI QUER├ëS OTRA VARIABLE
+
+# ÔöÇÔöÇ Lista disponible ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+print('ÔòÉ' * 65)
+for _i, _c in enumerate(_LISTA_SERIES, 1):
+    marca = '  Ôùä seleccionada' if _i == VARIABLE_DEPENDIENTE else ''
+    print(f'  [{_i:>2}]  {_c}{marca}')
+print('ÔòÉ' * 65)
+
+# ÔöÇÔöÇ Aplicar selecci├│n ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+if not (1 <= VARIABLE_DEPENDIENTE <= len(_LISTA_SERIES)):
+    raise ValueError(f'VARIABLE_DEPENDIENTE={VARIABLE_DEPENDIENTE} fuera de rango (1ÔÇô{len(_LISTA_SERIES)})')
+
+ETI_DEP  = _LISTA_SERIES[VARIABLE_DEPENDIENTE - 1]
+ETI_EXPL = [c for c in _LISTA_SERIES if c != ETI_DEP]
+
+_all_cols = [ETI_DEP] + ETI_EXPL
+COL_SAFE  = {c: f'v{i:02d}' for i, c in enumerate(_all_cols)}
+COL_LABEL = {v: k for k, v in COL_SAFE.items()}
+df_safe   = df_panel[_all_cols].rename(columns=COL_SAFE)
+Y_SAFE    = COL_SAFE[ETI_DEP]
+X_SAFE    = [COL_SAFE[e] for e in ETI_EXPL]
+
+print(f'\nÔ£à Y = {ETI_DEP}')
+print(f'   {len(ETI_EXPL)} variables explicativas')
+
+
+================================================================================
+CELL 14 (code)
+================================================================================
+# ÔöÇÔöÇ Tests ADF + KPSS ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+print('ÔòÉ'*70)
+print('6.  TESTS DE ESTACIONARIEDAD (ADF + KPSS)')
+print('ÔòÉ'*70)
+_est_rows = []
+for _col in df_panel.columns:
+    _r = test_estacionariedad(df_panel[_col], _col)
+    _est_rows.append(_r)
+df_est = pd.DataFrame(_est_rows).set_index('Variable')
+display(df_est[['ADF_stat','ADF_pvalue','ADF_estacionaria',
+                'KPSS_stat','KPSS_pvalue','KPSS_estacionaria','Conclusi├│n']])
+
+# ÔöÇÔöÇ Identificar series no estacionarias ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+_non_stat_labels = set(
+    df_est.index[df_est['Conclusi├│n'].isin(['No Estacionaria', 'Conflicto'])]
+)
+
+# Diccionario safe_name -> label de las no estacionarias (excluyendo dep. variable)
+VARS_NO_ESTACIONARIAS = {
+    _s: COL_LABEL.get(_s, _s)
+    for _s in X_SAFE
+    if COL_LABEL.get(_s, _s) in _non_stat_labels
+}
+
+# Variables explicativas disponibles para estimaci├│n (solo estacionarias)
+X_SAFE_EST = [v for v in X_SAFE if v not in VARS_NO_ESTACIONARIAS]
+
+# ÔöÇÔöÇ Aviso al usuario ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+if VARS_NO_ESTACIONARIAS:
+    _dep_non_stat = ETI_DEP in _non_stat_labels
+    print('\n' + '='*70)
+    print('  ADVERTENCIA - VARIABLES NO ESTACIONARIAS DETECTADAS')
+    print('='*70)
+    if _dep_non_stat:
+        print(f'\n  La variable dependiente "{ETI_DEP}" no es estacionaria.')
+        print('  Considere transformarla (diferencias, log) antes de estimar.')
+    print(f'\n  Variables explicativas no estacionarias ({len(VARS_NO_ESTACIONARIAS)}):')
+    for _s, _l in VARS_NO_ESTACIONARIAS.items():
+        print(f'    - {_l}')
+    print()
+    print('  Estas variables seran DESCARTADAS automaticamente de las regresiones.')
+    print('  Para incluirlas, aplique una transformacion (delta, log, log-delta, etc.)')
+    print('  y vuelva a correr desde la Seccion 4 con los datos transformados.')
+    print('='*70)
+else:
+    print('\nTodas las variables son estacionarias. Puede proceder con las estimaciones.')
+
+print(f'\nVariables para estimacion: {len(X_SAFE_EST)} de {len(X_SAFE)} explicativas disponibles.')
+if VARS_NO_ESTACIONARIAS:
+    print(f'Descartadas: {", ".join(VARS_NO_ESTACIONARIAS.values())}')
+print('\nTests de estacionariedad completados.')
+
+
+================================================================================
+CELL 20 (code)
+================================================================================
+# ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+# 7.2  ESTIMACIONES ARDL EXHAUSTIVAS + DIAGNOSTICOS DE RESIDUOS
+# ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+from itertools import combinations
+import statsmodels.api as sm
+from statsmodels.stats.stattools import durbin_watson, jarque_bera
+from statsmodels.tsa.stattools import acf
+
+# Importar tests de autocorrelacion con fallback
+try:
+    from statsmodels.stats.diagnostic import acorr_ljungbox
+    _has_ljungbox = True
+except ImportError:
+    _has_ljungbox = False
+try:
+    from statsmodels.stats.diagnostic import acorr_breusch_godfrey
+    _has_bg = True
+except ImportError:
+    _has_bg = False
+
+print('ÔòÉ'*70)
+print('7.2  ESTIMACIONES ARDL ÔÇö TODAS LAS VARIABLES COMO DEPENDIENTES')
+print('ÔòÉ'*70)
+
+_y_vars = ALL_VARS if TODAS_COMO_DEPENDIENTE else [Y_SAFE]
+results_list = []
+
+_total_models = 0
+for _yvar in _y_vars:
+    _other = [v for v in ALL_VARS if v != _yvar]
+    _all_combos = []
+    for k in range(1, len(_other) + 1):
+        if MAX_VARS_POR_MODELO is not None and k > MAX_VARS_POR_MODELO:
+            continue
+        _all_combos.extend(list(combinations(_other, k)))
+    
+    if MAX_COMBINACIONES is not None and len(_all_combos) > MAX_COMBINACIONES:
+        random.seed(SEMILLA)
+        _all_combos = random.sample(_all_combos, MAX_COMBINACIONES)
+    
+    print(f'  {COL_LABEL.get(_yvar, _yvar)[:40]:<40} ÔåÆ {len(_all_combos)} combinaciones')
+    
+    for _combo in _all_combos:
+        try:
+            _df_reg = pd.DataFrame({'y': df_safe[_yvar]})
+            
+            # Rezagos de Y
+            for lag in range(1, MAX_LAGS_DEP + 1):
+                _df_reg[f'{_yvar}_L{lag}'] = df_safe[_yvar].shift(lag)
+            
+            # Rezagos de X segun CCF
+            for _xvar in _combo:
+                _lags = bj_lags.get((_yvar, _xvar), {}).get('lags', [0, 1])
+                for lag in _lags:
+                    _df_reg[f'{_xvar}_L{lag}'] = df_safe[_xvar].shift(lag)
+            
+            _df_reg = _df_reg.dropna()
+            if len(_df_reg) < 20:
+                continue
+            
+            _y_vals = _df_reg['y']
+            _X_vals = _df_reg.drop(columns=['y'])
+            _X_vals = sm.add_constant(_X_vals)
+            
+            # Evitar rank deficiency
+            if np.linalg.matrix_rank(_X_vals) < _X_vals.shape[1]:
+                continue
+            
+            _model = sm.OLS(_y_vals, _X_vals).fit()
+            _resid = _model.resid
+            
+            # ÔöÇÔöÇ Diagnosticos ÔöÇÔöÇ
+            _dw = durbin_watson(_resid)
+            
+            # Ljung-Box
+            _lb_p = np.nan
+            if _has_ljungbox:
+                try:
+                    _lb_lags = min(10, len(_resid) // 5)
+                    _lb_res = acorr_ljungbox(_resid, lags=_lb_lags, return_df=True)
+                    if hasattr(_lb_res, 'columns'):
+                        if 'lb_pvalue' in _lb_res.columns:
+                            _lb_p = _lb_res['lb_pvalue'].iloc[-1]
+                        elif 'pvalue' in _lb_res.columns:
+                            _lb_p = _lb_res['pvalue'].iloc[-1]
+                    elif isinstance(_lb_res, tuple):
+                        _lb_p = _lb_res[1][-1]
+                except Exception:
+                    _lb_p = np.nan
+            
+            # Breusch-Godfrey
+            _bg_p = np.nan
+            if _has_bg:
+                try:
+                    _bg_lags = min(MAX_LAGS_VAR, len(_resid) // 5)
+                    _bg_res = acorr_breusch_godfrey(_model, nlags=_bg_lags)
+                    _bg_p = _bg_res[1]
+                except Exception:
+                    _bg_p = np.nan
+            
+            # Jarque-Bera
+            try:
+                _jb_res = jarque_bera(_resid)
+                _jb_p = _jb_res[1]
+            except Exception:
+                _jb_p = np.nan
+            
+            _is_white = (_lb_p >= 0.05) and (_bg_p >= 0.05)
+            
+            # Orden AR en residuos (si no es ruido blanco)
+            _resid_ar = None
+            if not _is_white:
+                try:
+                    _acf_resid = acf(_resid, nlags=MAX_AR_ORDER, fft=False)
+                    _sig_count = sum(1 for i in range(1, len(_acf_resid)) if abs(_acf_resid[i]) > 1.96/np.sqrt(len(_resid)))
+                    _resid_ar = _sig_count if _sig_count > 0 else None
+                except Exception:
+                    _resid_ar = None
+            
+            # Coeficientes y p-values (excluyendo constante)
+            _coefs = {}
+            _pvals = {}
+            for _col in _X_vals.columns:
+                if _col == 'const':
+                    continue
+                _coefs[_col] = _model.params[_col]
+                _pvals[_col] = _model.pvalues[_col]
+            
+            results_list.append({
+                'y_var': _yvar,
+                'x_vars': _combo,
+                'n_vars': len(_combo),
+                'R2_adj': _model.rsquared_adj,
+                'AIC': _model.aic,
+                'BIC': _model.bic,
+                'HQ': getattr(_model, 'hqic', np.nan),
+                'coefs': _coefs,
+                'pvalues': _pvals,
+                'n_obs': len(_df_reg),
+                'DW': _dw,
+                'LB_pvalue': _lb_p,
+                'BG_pvalue': _bg_p,
+                'JB_pvalue': _jb_p,
+                'resid_ruido_blanco': _is_white,
+                'resid_AR_order': _resid_ar,
+            })
+            _total_models += 1
+            
+        except Exception:
+            continue
+
+df_ardl_full = pd.DataFrame(results_list)
+
+print(f'
+Modelos estimados: {len(df_ardl_full)}')
+if not df_ardl_full.empty:
+    _n_white = df_ardl_full['resid_ruido_blanco'].sum()
+    print(f'Modelos con residuos de ruido blanco: {_n_white} ({_n_white/len(df_ardl_full)*100:.1f}%)')
+    
+    _df_white = df_ardl_full[df_ardl_full['resid_ruido_blanco'] == True]
+    if not _df_white.empty:
+        _r2_media = _df_white['R2_adj'].mean()
+        _bic_media_white = _df_white['BIC'].mean()
+        print(f'  -> R2_adj medio (ruido blanco): {_r2_media:.4f}')
+        print(f'  -> BIC medio (ruido blanco):    {_bic_media_white:.2f}')
+    
+    print('
+' + 'ÔòÉ'*70)
+    print('  RESUMEN DE DIAGNOSTICOS POR VARIABLE DEPENDIENTE')
+    print('ÔòÉ'*70)
+    _diag_summary = df_ardl_full.groupby('y_var').agg({
+        'R2_adj': 'mean',
+        'BIC': 'mean',
+        'resid_ruido_blanco': 'sum',
+        'n_vars': 'count',
+    }).rename(columns={'resid_ruido_blanco': 'n_ruido_blanco', 'n_vars': 'n_modelos'})
+    _diag_summary.index = [COL_LABEL.get(v, v)[:40] for v in _diag_summary.index]
+    print(_diag_summary.round(4).to_string())
+    print('ÔòÉ'*70)
+else:
+    print('ÔÜá´©Å  No se estimo ning├║n modelo.')
+
+
+================================================================================
+CELL 22 (code)
+================================================================================
+# ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+# 7.3  RANKING DE EXOGENEIDAD
+# ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+
+print('ÔòÉ'*70)
+print('7.3  RANKING DE EXOGENEIDAD')
+print('ÔòÉ'*70)
+
+if df_ardl_full.empty:
+    print('ÔÜá´©Å  df_ardl_full vacio. Ejecutar secci├│n 7.2 primero.')
+    ranking_exogeneidad = pd.Series(dtype=float)
+else:
+    # Solo modelos con residuos de ruido blanco Y BIC mejor que la media
+    df_rb = df_ardl_full[df_ardl_full['resid_ruido_blanco'] == True].copy()
+    _bic_media = df_rb['BIC'].mean() if not df_rb.empty else np.nan
+    df_valid = df_rb[df_rb['BIC'] < _bic_media].copy() if not df_rb.empty else df_rb.copy()
+    
+    if df_valid.empty:
+        print('ÔÜá´©Å  Ning├║n modelo cumple ambos filtros. Usando modelos con ruido blanco.')
+        df_valid = df_rb.copy()
+        if df_valid.empty:
+            print('ÔÜá´©Å  Ning├║n modelo tiene residuos de ruido blanco. Usando todos los modelos.')
+            df_valid = df_ardl_full.copy()
+    
+    n_vars_total = len(ALL_VARS)
+    scores = {}
+    
+    for _v in ALL_VARS:
+        # ÔöÇÔöÇ Como Y (explicada): promedio de -R┬▓_adj ÔöÇÔöÇ
+        mask_y = df_valid['y_var'] == _v
+        count_y = mask_y.sum()
+        sum_y = (-df_valid.loc[mask_y, 'R2_adj']).sum() if count_y > 0 else 0
+        avg_y = sum_y / count_y if count_y > 0 else 0
+        
+        # ÔöÇÔöÇ Como X (explicativa): p-value minimo por variable ÔöÇÔöÇ
+        mask_x = df_valid['x_vars'].apply(lambda xv: _v in xv if isinstance(xv, (list, tuple)) else False)
+        count_x = mask_x.sum()
+        
+        sum_x = 0
+        if count_x > 0:
+            for _, row in df_valid[mask_x].iterrows():
+                _pvals = row['pvalues']
+                # Buscar minimo p-value de esta variable entre sus rezagos
+                _var_pvals = []
+                for _key, _pval in _pvals.items():
+                    if _key.startswith(f'{_v}_L'):
+                        _var_pvals.append(_pval)
+                
+                if _var_pvals:
+                    _p = min(_var_pvals)
+                    if _p < 0.01:
+                        sum_x += 1
+                    elif _p > 0.05:
+                        sum_x += 0
+                    else:
+                        sum_x += (0.05 - _p) / 0.04
+        
+        avg_x = sum_x / count_x if count_x > 0 else 0
+        
+        score = avg_x + avg_y
+        scores[_v] = score * n_vars_total
+    
+    ranking_exogeneidad = pd.Series(scores).sort_values(ascending=False)
+    
+    print(f'
+Modelos validos (ruido blanco + BIC < media): {len(df_valid)} de {len(df_ardl_full)}')
+    print(f'Variables analizadas: {n_vars_total}')
+    print('
+' + 'ÔòÉ'*70)
+    print('  RANKING DE EXOGENEIDAD')
+    print('ÔòÉ'*70)
+    for i, (v, s) in enumerate(ranking_exogeneidad.items(), 1):
+        label = COL_LABEL.get(v, v)
+        print(f'  [{i:>2}]  {label:<55}  score={s:.4f}')
+    print('ÔòÉ'*70)
+    
+    # DataFrame del ranking
+    ranking_df = pd.DataFrame({
+        'variable': [COL_LABEL.get(v, v) for v in ranking_exogeneidad.index],
+        'score': ranking_exogeneidad.values,
+        'rank': range(1, len(ranking_exogeneidad) + 1),
+    })
+    display(ranking_df)
+    
+    # Gr├ífico de barras horizontales
+    fig, ax = plt.subplots(figsize=(10, max(4, len(ranking_exogeneidad) * 0.5)))
+    labels = [COL_LABEL.get(v, v)[:45] for v in ranking_exogeneidad.index]
+    colors = ['#2196F3' if v != Y_SAFE else '#d62728' for v in ranking_exogeneidad.index]
+    ax.barh(range(len(labels)), ranking_exogeneidad.values, color=colors)
+    ax.set_yticks(range(len(labels)))
+    ax.set_yticklabels(labels, fontsize=8)
+    ax.set_xlabel('Score de Exogeneidad')
+    ax.set_title(f'Ranking de Exogeneidad (mayor = m├ís ex├│gena, escala=[-{n_vars_total}, {n_vars_total}])')
+    ax.invert_yaxis()
+    plt.tight_layout()
+# ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+    #  CUADRO: PODER EXPLICATIVO DE CADA VARIABLE SOBRE LAS DEM├üS
+    # ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+    print('
+' + 'ÔòÉ'*70)
+    print('  CUADRO: PODER EXPLICATIVO POR PAR (Y ÔåÆ X)')
+    print('ÔòÉ'*70)
+    
+    _explanatory_rows = []
+    for _y in ALL_VARS:
+        _row = {'Variable Y': COL_LABEL.get(_y, _y)}
+        for _x in ALL_VARS:
+            if _x == _y:
+                continue
+            # Modelos donde Y es dependiente y X es explicativa
+            _mask = (df_valid['y_var'] == _y) & (df_valid['x_vars'].apply(lambda xv: _x in xv if isinstance(xv, (list, tuple)) else False))
+            _subset = df_valid[_mask]
+            
+            _min_pvals = []
+            for _, _rmodel in _subset.iterrows():
+                _pv = _rmodel['pvalues']
+                _x_pvals = [_pv[k] for k in _pv if k.startswith(f'{_x}_L')]
+                if _x_pvals:
+                    _min_pvals.append(min(_x_pvals))
+            
+            if _min_pvals:
+                _pct_sig = sum(1 for p in _min_pvals if p < 0.05) / len(_min_pvals) * 100
+                _avg_p = sum(_min_pvals) / len(_min_pvals)
+                _best_p = min(_min_pvals)
+            else:
+                _pct_sig = _avg_p = _best_p = np.nan
+            
+            _row[f'{COL_LABEL.get(_x, _x)}_%_sig'] = _pct_sig
+            _row[f'{COL_LABEL.get(_x, _x)}_avg_p'] = _avg_p
+            _row[f'{COL_LABEL.get(_x, _x)}_best_p'] = _best_p
+        
+        _explanatory_rows.append(_row)
+    
+    _df_explanatory = pd.DataFrame(_explanatory_rows)
+    display(_df_explanatory.round(4))
+    
+    # ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+    #  DOS RANKINGS JER├üRQUICOS SEPARADOS
+    # ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+    print('
+' + 'ÔòÉ'*70)
+    print('  RANKING 1 ÔÇö SOLO P-VALUES (como X)')
+    print('ÔòÉ'*70)
+    
+    _scores_p = {}
+    for _v in ALL_VARS:
+        _mask_x = df_valid['x_vars'].apply(lambda xv: _v in xv if isinstance(xv, (list, tuple)) else False)
+        _count_x = _mask_x.sum()
+        _sum_x = 0
+        if _count_x > 0:
+            for _, _row in df_valid[_mask_x].iterrows():
+                _pvals = _row['pvalues']
+                _var_pvals = [_pvals[k] for k in _pvals if k.startswith(f'{_v}_L')]
+                if _var_pvals:
+                    _p = min(_var_pvals)
+                    if _p < 0.01:
+                        _sum_x += 1
+                    elif _p > 0.05:
+                        _sum_x += 0
+                    else:
+                        _sum_x += (0.05 - _p) / 0.04
+        _avg_x = _sum_x / _count_x if _count_x > 0 else 0
+        _scores_p[_v] = _avg_x * n_vars_total
+    
+    _ranking_p = pd.Series(_scores_p).sort_values(ascending=False)
+    for i, (v, s) in enumerate(_ranking_p.items(), 1):
+        print(f'  [{i:>2}]  {COL_LABEL.get(v, v):<55}  score={s:.4f}')
+    
+    print('
+' + 'ÔòÉ'*70)
+    print('  RANKING 2 ÔÇö SOLO R┬▓ AJUSTADO (como Y)')
+    print('ÔòÉ'*70)
+    
+    _scores_r2 = {}
+    for _v in ALL_VARS:
+        _mask_y = df_valid['y_var'] == _v
+        _count_y = _mask_y.sum()
+        _sum_y = (-df_valid.loc[_mask_y, 'R2_adj']).sum() if _count_y > 0 else 0
+        _avg_y = _sum_y / _count_y if _count_y > 0 else 0
+        _scores_r2[_v] = _avg_y * n_vars_total
+    
+    _ranking_r2 = pd.Series(_scores_r2).sort_values(ascending=False)
+    for i, (v, s) in enumerate(_ranking_r2.items(), 1):
+        print(f'  [{i:>2}]  {COL_LABEL.get(v, v):<55}  score={s:.4f}')
+    print('ÔòÉ'*70)
+    plt.show()
+
+
+================================================================================
+CELL 25 (markdown)
+================================================================================
+## 8. Verificaci├│n VAR del Orden Jer├írquico
+
+### 8.1 Selecci├│n del orden del VAR
+
+> Evaluar criterios AIC/BIC/HQ para seleccionar el orden ├│ptimo.
+
+================================================================================
+CELL 26 (code)
+================================================================================
+# ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+# 8.1-8.6  Verificaci├│n VAR
+# ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+from statsmodels.tsa.api import VAR as _VAR
+
+print('ÔòÉ'*70)
+print('8.  VERIFICACI├ôN VAR DEL ORDEN JER├üRQUICO')
+print('ÔòÉ'*70)
+
+# TODO: Implementar secciones 8.1 a 8.6
+# Ver gu├¡a: docs/guia_02b_analisis_completo.md, Secciones 8.1-8.6
+
+ranking_var = pd.Series(dtype=float)
+print('Secci├│n 8 pendiente de implementaci├│n.')
+
+
