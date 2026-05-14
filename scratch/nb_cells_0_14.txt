@@ -1,0 +1,739 @@
+﻿================================================================================
+CELL 0 (markdown)
+================================================================================
+# ­ƒôè An├ílisis Iterativo de Modelos de Series de Tiempo
+## Riesgo Pa├¡s Argentino ÔÇö VECM ┬À VAR ┬À ARDL
+
+**Flujo de trabajo:**
+1. Leer `Variables Regresivas/analisis_series_*.csv` (generado desde el visualizador)
+2. Parsear el `CATALOG` de `visualizador_template.html` para obtener rutas y columnas de cada serie
+3. Cargar datos desde `data/Variables Finales/` con la misma l├│gica que el visualizador (resample = media, deflactores id├®nticos)
+4. Ejecutar pre-tests (ADF/KPSS, Granger, Johansen)
+5. Estimar ARDL ┬À VAR ┬À VECM sobre **todas las combinaciones posibles** de variables explicativas
+6. Visualizar coeficientes y criterios de informaci├│n
+
+---
+**Solo editar la Secci├│n 3 (CONFIGURACI├ôN).**
+
+================================================================================
+CELL 1 (markdown)
+================================================================================
+## 1. Instalaci├│n e Imports
+
+================================================================================
+CELL 2 (code)
+================================================================================
+import subprocess, sys, os, re
+
+def _install(pkg):
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', pkg, '-q'])
+
+for _pkg in ['statsmodels', 'scipy', 'scikit-learn', 'openpyxl', 'matplotlib', 'numpy', 'pandas', 'ipywidgets']:
+    try:
+        __import__(_pkg.replace('-', '_'))
+    except ImportError:
+        print(f'Instalando {_pkg}...')
+        _install(_pkg)
+
+%matplotlib inline
+
+import warnings
+import glob
+import random
+from itertools import combinations
+from pathlib import Path
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import ipywidgets as widgets
+from IPython.display import display
+
+warnings.filterwarnings('ignore')
+
+sys.path.insert(0, str(Path('..').resolve()))
+from src.utils import test_estacionariedad, test_causalidad_granger, resumen_estadistico
+
+print('M├│dulos cargados.')
+
+
+================================================================================
+CELL 3 (markdown)
+================================================================================
+## 2. Funciones Auxiliares
+
+================================================================================
+CELL 4 (code)
+================================================================================
+# ÔöÇÔöÇ Directorios base (igual que generar_visualizador.py) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+VARS_DIR = (Path('..') / 'data' / 'Variables Finales').resolve()
+RAW_DIR  = (Path('..') / 'data' / 'raw').resolve()
+
+# ÔöÇÔöÇ 1. Parsear CATALOG desde visualizador_template.html ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+def _parse_catalog():
+    for _cand in [Path('visualizador_template.html'),
+                  Path('notebooks') / 'visualizador_template.html']:
+        if _cand.exists():
+            html_path = _cand
+            break
+    else:
+        raise FileNotFoundError('No se encontr├│ visualizador_template.html')
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Acotar b├║squeda solo a la secci├│n CATALOG (evita falsos matches en JS posterior)
+    _start = content.find('const CATALOG = [')
+    _end   = content.find('\n];', _start)
+    catalog_txt = content[_start:_end + 3] if _start >= 0 and _end >= 0 else content
+
+    cat = {}
+    _PREF    = {'D': 0, 'W': 1, 'M': 2, 'Q': 3, 'A': 4}
+    _FREQ_RE = re.compile(r"freq\s*:\s*'([^']+)'")
+
+    # ÔöÇÔöÇ Paso 1: ├¡tems de fuente ├║nica (todos los campos en una sola l├¡nea) ÔöÇÔöÇÔöÇÔöÇ
+    _SINGLE = re.compile(
+        r"id\s*:\s*'([^']+)'.*?label\s*:\s*'([^']+)'.*?"
+        r"file\s*:\s*'([^']+)'.*?dateCol\s*:\s*'([^']+)'.*?valCol\s*:\s*'([^']+)'"
+    )
+    for line in catalog_txt.splitlines():
+        m = _SINGLE.search(line)
+        if not m:
+            continue
+        cid, label, file_, dc, vc = m.groups()
+        if label in cat:
+            continue
+        fm = _FREQ_RE.search(line)
+        freq = fm.group(1) if fm else 'D'
+        cat[label] = {'id': cid, 'file': file_, 'dateCol': dc, 'valCol': vc, 'freq': freq}
+
+    # ÔöÇÔöÇ Paso 2: ├¡tems multi-fuente (sources:[...] en varias l├¡neas) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    _MULTI = re.compile(
+        r"\{\s*id\s*:\s*'([^']+)'\s*,\s*label\s*:\s*'([^']+)'[^[]*?"
+        r"sources\s*:\s*\[(.*?)\]",
+        re.DOTALL
+    )
+    _SRC = re.compile(
+        r"\{\s*freq\s*:\s*'([^']+)'[^}]*?"
+        r"file\s*:\s*'([^']+)'[^}]*?"
+        r"dateCol\s*:\s*'([^']+)'[^}]*?"
+        r"valCol\s*:\s*'([^']+)'"
+    )
+    for m in _MULTI.finditer(catalog_txt):
+        cid, label, srcs_txt = m.groups()
+        if label in cat:
+            continue
+        srcs = [{'freq': sm.group(1), 'file': sm.group(2),
+                 'dateCol': sm.group(3), 'valCol': sm.group(4)}
+                for sm in _SRC.finditer(srcs_txt)]
+        if not srcs:
+            continue
+        best = sorted(srcs, key=lambda s: _PREF.get(s['freq'], 99))[0]
+        cat[label] = {
+            'id'     : cid,
+            'file'   : best['file'],
+            'dateCol': best['dateCol'],
+            'valCol' : best['valCol'],
+            'freq'   : best['freq'],
+            'sources': srcs,
+        }
+
+    return cat
+
+
+CATALOG_VIZ = _parse_catalog()
+print(f'Ô£à CATALOG parseado: {len(CATALOG_VIZ)} series')
+
+
+# ÔöÇÔöÇ 2. Detecci├│n autom├ítica de frecuencia ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+def detectar_frecuencia(df_csv):
+    _ORD = {'D': 0, 'W': 1, 'M': 2, 'Q': 3, 'A': 4}
+    finest = []
+    for _, row in df_csv.iterrows():
+        for col in ['Serie A', 'Serie B']:
+            nombre = str(row.get(col, '') or '').strip()
+            if not nombre or nombre in ('', 'ÔÇö', '-', 'nan'):
+                continue
+            if nombre not in CATALOG_VIZ:
+                continue
+            meta = CATALOG_VIZ[nombre]
+            if 'sources' in meta:
+                src_freqs = [s['freq'] for s in meta['sources']]
+                finest.append(min(src_freqs, key=lambda f: _ORD.get(f, 99)))
+            else:
+                finest.append(meta.get('freq', 'D'))
+    if not finest:
+        return 'M'
+    return max(finest, key=lambda f: _ORD.get(f, -1))
+
+
+# ÔöÇÔöÇ 3. Resampling (media por per├¡odo, igual que el visualizador JS) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+def _resample_mean(serie: pd.Series, to_freq: str) -> pd.Series:
+    _MAP = {'D': 'D', 'W': 'W', 'M': 'ME', 'Q': 'QE', 'A': 'YE'}
+    pf = _MAP.get(to_freq, to_freq)
+    try:
+        return serie.resample(pf).mean()
+    except ValueError:
+        _MAP_OLD = {'D': 'D', 'W': 'W', 'M': 'M', 'Q': 'Q', 'A': 'A'}
+        return serie.resample(_MAP_OLD.get(to_freq, to_freq)).mean()
+
+
+# ÔöÇÔöÇ 4. Carga gen├®rica ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+def _buscar_archivo(*rutas_relativas):
+    for ruta in rutas_relativas:
+        for base in [VARS_DIR, RAW_DIR]:
+            p = base / ruta
+            if p.exists():
+                return p
+    return None
+
+
+def _match_col(wanted: str, available_cols) -> str | None:
+    ws = wanted.strip()
+    if ws in available_cols:
+        return ws
+    if wanted in available_cols:
+        return wanted
+    return None
+
+
+def _leer_serie_csv(path: Path, col_fecha: str, col_valor: str) -> pd.Series:
+    df = pd.read_csv(path, low_memory=False, encoding='utf-8-sig')
+    df.columns = df.columns.str.strip()
+    dc = _match_col(col_fecha, df.columns)
+    vc = _match_col(col_valor, df.columns)
+    if dc is None:
+        raise KeyError(f'col_fecha "{col_fecha}" no encontrada en {path.name}. '
+                       f'Cols: {list(df.columns[:8])}')
+    if vc is None:
+        raise KeyError(f'col_valor "{col_valor}" no encontrada en {path.name}. '
+                       f'Cols: {list(df.columns[:8])}')
+    df['_f'] = pd.to_datetime(df[dc], errors='coerce')
+    df = df.dropna(subset=['_f']).set_index('_f').sort_index()
+    return pd.to_numeric(df[vc], errors='coerce').dropna()
+
+
+# ÔöÇÔöÇ 5. Deflactores ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+_cache_pbi = _cache_cer = _cache_tip = _cache_mep = None
+
+def _get_pbi():
+    global _cache_pbi
+    if _cache_pbi is not None: return _cache_pbi
+    p = _buscar_archivo('pbi_constante_2004.csv')
+    if p is None: print('  ÔÜá´©Å  pbi_constante_2004.csv no encontrado'); return None
+    _cache_pbi = _leer_serie_csv(p, 'fecha', 'pbi'); return _cache_pbi
+
+def _get_cer():
+    global _cache_cer
+    if _cache_cer is not None: return _cache_cer
+    p = _buscar_archivo('cer.csv', 'bcra/cer.csv')
+    if p is None: print('  ÔÜá´©Å  cer.csv no encontrado'); return None
+    _cache_cer = _leer_serie_csv(p, 'fecha', 'cer'); return _cache_cer
+
+def _get_tip():
+    global _cache_tip
+    if _cache_tip is not None: return _cache_tip
+    p = _buscar_archivo('tip_etf.csv', 'global/tip_etf.csv')
+    if p is None: print('  ÔÜá´©Å  tip_etf.csv no encontrado'); return None
+    _cache_tip = _leer_serie_csv(p, 'fecha', 'tip_close'); return _cache_tip
+
+def _get_mep():
+    global _cache_mep
+    if _cache_mep is not None: return _cache_mep
+    p = _buscar_archivo('brecha_cambiaria.csv')
+    if p is None: print('  ÔÜá´©Å  brecha_cambiaria.csv no encontrado'); return None
+    _cache_mep = _leer_serie_csv(p, 'fecha', 'mep'); return _cache_mep
+
+
+def _alinear_deflactor(raw: pd.Series, frecuencia: str,
+                        target_index: pd.DatetimeIndex) -> pd.Series | None:
+    """
+    Resamplea `raw` a `frecuencia`, luego alinea con `target_index`.
+    Maneja datos de baja frecuencia (ej. PBI trimestral) rellenando con ffill+bfill
+    para que no queden NaN en el rango de an├ílisis.
+    """
+    al = _resample_mean(raw, frecuencia)
+    # Para frecuencias m├ís bajas que la de la serie (ej. PBI trim ÔåÆ mensual),
+    # solo quedan datos en los per├¡odos exactos del deflactor.
+    # reindex+ffill propaga cada valor hasta el siguiente per├¡odo.
+    al = al.reindex(target_index, method='ffill').ffill().bfill()
+    if al.isna().all():
+        return None
+    return al
+
+
+def _aplicar_deflactor(serie: pd.Series, deflactor_name: str,
+                        frecuencia: str) -> pd.Series:
+    if not deflactor_name or str(deflactor_name).strip() in ('', 'ÔÇö', '-', 'nan'):
+        return serie
+    for d in str(deflactor_name).split(','):
+        d = d.strip().upper()
+        if not d or d in ('ÔÇö', '-'): continue
+
+        if d == 'PBI':
+            raw = _get_pbi()
+            if raw is None: continue
+            al = _alinear_deflactor(raw, frecuencia, serie.index)
+            if al is None:
+                print('  ÔÜá´©Å  PBI: sin superposici├│n de fechas con la serie'); continue
+            fp = al.iloc[0]
+            serie = serie * fp / al
+
+        elif d == 'CER':
+            raw = _get_cer()
+            if raw is None: continue
+            al = _alinear_deflactor(raw, frecuencia, serie.index)
+            if al is None:
+                print('  ÔÜá´©Å  CER: sin superposici├│n de fechas con la serie'); continue
+            lc = al.iloc[-1]
+            serie = serie / al * lc
+
+        elif d in ('TIP', 'IPC'):
+            raw = _get_tip()
+            if raw is None: continue
+            al = _alinear_deflactor(raw, frecuencia, serie.index)
+            if al is None:
+                print(f'  ÔÜá´©Å  {d}: sin superposici├│n de fechas con la serie'); continue
+            lt = al.iloc[-1]
+            serie = serie / al * lt
+
+        elif d == 'MEP':
+            raw = _get_mep()
+            if raw is None: continue
+            al = _alinear_deflactor(raw, frecuencia, serie.index)
+            if al is None:
+                print('  ÔÜá´©Å  MEP: sin superposici├│n de fechas con la serie'); continue
+            serie = serie / al
+
+        else:
+            print(f'    ÔÜá´©Å  Deflactor no reconocido: "{d}"')
+    return serie
+
+
+# ÔöÇÔöÇ 6. Carga de serie desde CATALOG ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+def _cargar_serie_catalog(label: str, frecuencia: str,
+                           fecha_inicio: str = None, fecha_fin: str = None):
+    """
+    Carga la serie `label` (nombre exacto del CATALOG) en la frecuencia indicada.
+    Devuelve pd.Series o None si no se encuentra / hay error.
+    """
+    if label not in CATALOG_VIZ:
+        print(f'  ÔÜá´©Å  "{label}" no encontrado en CATALOG ({len(CATALOG_VIZ)} series).')
+        return None
+
+    meta  = CATALOG_VIZ[label]
+    _PREF = {'D': 0, 'W': 1, 'M': 2, 'Q': 3, 'A': 4}
+
+    if 'sources' in meta:
+        srcs  = meta['sources']
+        exact = [s for s in srcs if s['freq'] == frecuencia]
+        src   = exact[0] if exact else sorted(srcs, key=lambda s: _PREF.get(s['freq'], 99))[0]
+        file_, dc, vc = src['file'], src['dateCol'], src['valCol']
+    else:
+        file_, dc, vc = meta['file'], meta['dateCol'], meta['valCol']
+
+    file_path = VARS_DIR / file_
+    if not file_path.exists():
+        file_path_raw = RAW_DIR / file_
+        if file_path_raw.exists():
+            file_path = file_path_raw
+        else:
+            print(f'  ÔÜá´©Å  Archivo no encontrado: {VARS_DIR / file_}')
+            return None
+
+    try:
+        if str(file_).endswith(('.xlsx', '.xls')):
+            sheet = 'Unificado' if 'fiscal' in str(file_).lower() else 0
+            df = pd.read_excel(file_path, sheet_name=sheet)
+        else:
+            df = pd.read_csv(file_path, low_memory=False, encoding='utf-8-sig')
+    except Exception as e:
+        print(f'  ÔÜá´©Å  Error leyendo {file_}: {e}')
+        return None
+
+    df.columns = df.columns.str.strip()
+    dc_match = _match_col(dc, df.columns)
+    vc_match = _match_col(vc, df.columns)
+
+    if dc_match is None:
+        print(f'  ÔÜá´©Å  dateCol "{dc}" no hallada en {file_}. Cols: {list(df.columns[:8])}')
+        return None
+    if vc_match is None:
+        print(f'  ÔÜá´©Å  valCol "{vc}" no hallada en {file_}. Cols: {list(df.columns[:8])}')
+        return None
+
+    df['_f'] = pd.to_datetime(df[dc_match], errors='coerce')
+    df = df.dropna(subset=['_f']).set_index('_f').sort_index()
+    serie = pd.to_numeric(df[vc_match], errors='coerce').dropna()
+    serie.name = label
+
+    if fecha_inicio: serie = serie[serie.index >= pd.Timestamp(fecha_inicio)]
+    if fecha_fin:    serie = serie[serie.index <= pd.Timestamp(fecha_fin)]
+
+    return _resample_mean(serie, frecuencia).dropna()
+
+
+# ÔöÇÔöÇ 7. Construcci├│n de variable desde fila CSV ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+def construir_variable(row: pd.Series, frecuencia: str,
+                        fecha_inicio: str, fecha_fin: str):
+    """
+    Interpreta una fila del CSV de an├ílisis y devuelve (serie, etiqueta).
+
+    Flujo:
+      1. Carga Serie A desde CATALOG (por su nombre original, SIN deflactor).
+      2. Aplica Deflactor A si corresponde.
+      3. Carga Serie B si corresponde y aplica Deflactor B.
+      4. Opera A y B seg├║n "Operaci├│n".
+      5. Aplica Log y/o Diferencia sobre el resultado final.
+    """
+    nombre_a  = str(row.get('Serie A',   '') or '').strip()
+    defl_a    = str(row.get('Deflactor A','') or '').strip()
+    nombre_b  = str(row.get('Serie B',   '') or '').strip()
+    defl_b    = str(row.get('Deflactor B','') or '').strip()
+    operacion = str(row.get('Operaci├│n', 'Solo A') or 'Solo A').strip()
+    log_flag  = str(row.get('Log', 'No') or 'No').strip().lower() not in ('no', '0', 'false', '')
+    n_diff    = int(float(str(row.get('Dif.', 0) or 0) or 0))
+
+    # Etiqueta legible: solo incluye deflactor y serie B si realmente se aplican
+    _b_activo  = operacion != 'Solo A' and nombre_b not in ('', 'ÔÇö', '-', 'nan')
+    _da_activo = defl_a not in ('', 'ÔÇö', '-', 'nan')
+    _db_activo = _b_activo and defl_b not in ('', 'ÔÇö', '-', 'nan')
+
+    etiqueta = nombre_a
+    if _da_activo:    etiqueta += f'/{defl_a}'
+    if _b_activo:     etiqueta += f' {operacion} {nombre_b}'
+    if _db_activo:    etiqueta += f'/{defl_b}'
+    if log_flag:      etiqueta  = f'log({etiqueta})'
+    if n_diff > 0:    etiqueta  = ('╬ö' * n_diff) + etiqueta
+
+    # 1. Cargar Serie A (siempre por nombre original, sin deflactor)
+    sa = _cargar_serie_catalog(nombre_a, frecuencia, fecha_inicio, fecha_fin)
+    if sa is None:
+        return None, etiqueta
+
+    # 2. Deflactar Serie A
+    sa = _aplicar_deflactor(sa, defl_a, frecuencia)
+    resultado = sa.copy()
+
+    # 3. Cargar y deflactar Serie B, luego operar con A
+    if _b_activo:
+        sb = _cargar_serie_catalog(nombre_b, frecuencia, fecha_inicio, fecha_fin)
+        if sb is not None:
+            sb    = _aplicar_deflactor(sb, defl_b, frecuencia)
+            sb_al = sb.reindex(sa.index, method='ffill')
+            # Normalizar el s├¡mbolo menos Unicode (U+2212) ÔåÆ guion ASCII
+            op = operacion.replace(' ', '').replace('ÔêÆ', '-')
+            if op == 'A-B':                      resultado = sa - sb_al
+            elif op in ('A/B', 'A├ÀB'):            resultado = sa / sb_al
+            elif op in ('(A-B)/B', '(A-B)/B'):    resultado = (sa - sb_al) / sb_al
+            elif op == 'A+B':                     resultado = sa + sb_al
+            elif op in ('A*B', 'A├ùB'):             resultado = sa * sb_al
+            elif op in ('SoloB', 'B'):             resultado = sb_al.copy()
+
+    # 4. Transformaciones finales sobre el resultado de la operaci├│n
+    if log_flag:
+        resultado = np.log(resultado.replace(0, np.nan))
+    for _ in range(n_diff):
+        resultado = resultado.diff()
+
+    resultado = resultado.dropna()
+    resultado.name = etiqueta
+    return resultado, etiqueta
+
+
+# ÔöÇÔöÇ 8. Validaci├│n r├ípida del CATALOG vs CSV ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+def _validar_catalog_vs_csv(df_csv):
+    print('\nÔöÇÔöÇ Validaci├│n CATALOG vs CSV ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ')
+    seen = set()
+    for _, row in df_csv.iterrows():
+        for col in ['Serie A', 'Serie B']:
+            nombre = str(row.get(col, '') or '').strip()
+            if not nombre or nombre in ('', 'ÔÇö', '-', 'nan') or nombre in seen:
+                continue
+            seen.add(nombre)
+            if nombre not in CATALOG_VIZ:
+                print(f'  ÔØî NO en CATALOG: "{nombre}"')
+                continue
+            meta      = CATALOG_VIZ[nombre]
+            file_name = meta.get('file', '?')
+            existe    = (VARS_DIR / file_name).exists() or (RAW_DIR / file_name).exists()
+            print(f'  {"Ô£à" if existe else "ÔÜá´©Å "} {nombre[:55]:<55} ÔåÆ {file_name}'
+                  f'{"" if existe else "  (┬íFALTA ARCHIVO!)"}')
+    print('ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ\n')
+
+
+print('Ô£à Funciones auxiliares listas.')
+print(f'   VARS_DIR: {VARS_DIR}')
+print(f'   RAW_DIR:  {RAW_DIR}')
+
+
+================================================================================
+CELL 5 (markdown)
+================================================================================
+## 3. ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ CONFIGURACI├ôN ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+> **Esta es la ├║nica celda que necesit├ís editar.**
+
+================================================================================
+CELL 6 (code)
+================================================================================
+# ÔöÇÔöÇ Archivo CSV ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+# El visualizador descarga el archivo a la carpeta del navegador.
+# Copiarlo a: notebooks/Variables Regresivas/
+# Dejar None para que tome autom├íticamente el m├ís reciente.
+# Para un archivo espec├¡fico usar solo el nombre: 'analisis_series_2026-05-06.csv'
+CSV_ANALISIS = None   # None = el m├ís reciente en notebooks/Variables Regresivas/
+
+# ÔöÇÔöÇ Variable dependiente ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+# Se elige en la Secci├│n 4.5, luego de cargar y mostrar todas las series.
+
+# ÔöÇÔöÇ Frecuencia ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+# 'auto' = detecta la frecuencia m├ís gruesa disponible entre todas las series
+# Alternativas expl├¡citas: 'D' 'W' 'M' 'Q' 'A'
+FRECUENCIA = 'auto'
+
+# ÔöÇÔöÇ Fechas ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+FECHA_INICIO = '2007-01-01'
+FECHA_FIN    = '2026-03-31'
+
+# ÔöÇÔöÇ Lags m├íximos ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+MAX_LAGS_DEP = 4   # rezagos Y en ARDL
+MAX_LAGS_IND = 4   # rezagos X en ARDL
+MAX_LAGS_VAR = 8   # selecci├│n de rezagos en VAR/VECM
+
+# ÔöÇÔöÇ Combinaciones ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+# None = TODAS las combinaciones posibles de TODOS los tama├▒os
+MAX_VARS_POR_MODELO = None   # None = sin l├¡mite (todas las variables)
+MAX_COMBINACIONES   = None   # None = sin l├¡mite (todas las combinaciones)
+SEMILLA             = 42
+
+# ÔöÇÔöÇ Criterios de informaci├│n ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+CRITERIOS_SEL = ['aic', 'bic', 'hqic']
+
+# ÔöÇÔöÇ Nivel de significancia ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+NIVEL_SIG = 0.05
+
+# Modelos a correr: ejecutar independientemente secciones 7 (ARDL), 8 (VAR), 9 (VECM)
+
+print('Ô£à Configuraci├│n guardada.')
+
+================================================================================
+CELL 7 (markdown)
+================================================================================
+## 4. Carga y Construcci├│n del Panel
+
+================================================================================
+CELL 8 (code)
+================================================================================
+random.seed(SEMILLA)
+np.random.seed(SEMILLA)
+
+# 1. Encontrar CSV ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+_csv_dir = Path('Variables Regresivas')
+if CSV_ANALISIS:
+    _csv_path = _csv_dir / CSV_ANALISIS if not Path(CSV_ANALISIS).is_absolute() else Path(CSV_ANALISIS)
+else:
+    _candidates = sorted(glob.glob(str(_csv_dir / 'analisis_series_*.csv')))
+    if not _candidates:
+        raise FileNotFoundError(f'No encontr├® analisis_series_*.csv en {_csv_dir.resolve()}')
+    _csv_path = Path(_candidates[-1])
+
+print(f'­ƒôü CSV: {_csv_path.name}')
+
+# 2. Leer CSV ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+df_csv = pd.read_csv(_csv_path)
+df_csv.columns = df_csv.columns.str.strip()
+for _c in ['Deflactor A', 'Deflactor B', 'Serie B', 'Operaci├│n', 'Log']:
+    if _c in df_csv.columns:
+        df_csv[_c] = df_csv[_c].fillna('ÔÇö').astype(str).str.strip()
+if 'Dif.' in df_csv.columns:
+    df_csv['Dif.'] = (pd.to_numeric(
+        df_csv['Dif.'].astype(str).str.extract(r'(\d+)')[0], errors='coerce'
+    ).fillna(0).astype(int))
+
+print(f'   {len(df_csv)} variables en el CSV')
+display(df_csv[['#','Serie A','Deflactor A','Serie B','Operaci├│n','Log','Dif.']].to_string())
+
+# 3. Validar que todas las series del CSV est├®n en el CATALOG ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+_validar_catalog_vs_csv(df_csv)
+
+# 4. Detectar frecuencia ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+if FRECUENCIA == 'auto':
+    FRECUENCIA_USADA = detectar_frecuencia(df_csv)
+    print(f'­ƒöì Frecuencia auto-detectada: {FRECUENCIA_USADA}')
+else:
+    FRECUENCIA_USADA = FRECUENCIA
+    print(f'­ƒôà Frecuencia configurada: {FRECUENCIA_USADA}')
+
+# 5. Construir todas las series (sin distinci├│n Y/X) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+print(f'\nÔÅ│ Cargando series ({FECHA_INICIO} ÔåÆ {FECHA_FIN})...')
+_series  = {}   # {etiqueta: pd.Series}
+_eti_map = {}   # {├¡ndice CSV (0-based): etiqueta}
+
+for _i, _row in df_csv.iterrows():
+    try:
+        _desde = str(_row.get('Desde', '') or '').strip()
+        _hasta = str(_row.get('Hasta', '') or '').strip()
+        _fi = _desde if _desde and _desde not in ('ÔÇö', '-', 'nan') else FECHA_INICIO
+        _ff = _hasta if _hasta and _hasta not in ('ÔÇö', '-', 'nan') else FECHA_FIN
+        _s, _eti = construir_variable(_row, FRECUENCIA_USADA, _fi, _ff)
+        if _s is not None and len(_s) >= 20:
+            _series[_eti] = _s
+            _eti_map[_i]  = _eti
+            print(f'  Ô£à [{_i+1}] {_eti[:75]}  ÔåÆ  {len(_s)} obs')
+        else:
+            print(f'  ÔØî [{_i+1}] {_row["Serie A"]}: no carg├│ o < 20 obs')
+    except Exception as _e:
+        print(f'  ÔØî [{_i+1}] {_row["Serie A"]}: {_e}')
+
+if not _series:
+    raise RuntimeError('No se carg├│ ninguna serie.')
+
+# 6. Panel unificado ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+df_panel = pd.concat(list(_series.values()), axis=1).dropna()
+print(f'\nÔ£à Panel: {df_panel.shape[0]} obs ├ù {df_panel.shape[1]} vars')
+print(f'   Per├¡odo: {df_panel.index.min().date()} ÔåÆ {df_panel.index.max().date()}')
+
+# 7. Lista numerada para selecci├│n de variable dependiente ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+print('\n' + 'ÔòÉ'*70)
+print('  Series disponibles ÔÇö eleg├¡ la variable dependiente en la Secci├│n 4.5')
+print('ÔòÉ'*70)
+_LISTA_SERIES = list(df_panel.columns)
+for _n, _col in enumerate(_LISTA_SERIES, 1):
+    print(f'  [{_n}]  {_col}')
+print('ÔòÉ'*70)
+
+================================================================================
+CELL 9 (markdown)
+================================================================================
+## 4.5 ÔöÇÔöÇÔöÇ Seleccionar variable dependiente ÔöÇÔöÇÔöÇ
+> Corr├® la celda de abajo: imprime la lista y selecciona autom├íticamente riesgo pa├¡s.  
+> Si quer├®s otra variable, cambi├í el n├║mero en `VARIABLE_DEPENDIENTE` y volv├® a correrla.
+
+================================================================================
+CELL 10 (code)
+================================================================================
+# ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+#  ELEG├ì LA VARIABLE DEPENDIENTE ÔÇö cambi├í solo el n├║mero de abajo
+#  y volv├® a correr esta celda
+# ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+
+# Auto-detecta riesgo pa├¡s; si no lo encuentra usa 1
+_KEYWORDS_DEP = ['embi', 'riesgo', 'spread', 'cds', 'country risk']
+_auto_idx = next(
+    (i + 1 for i, c in enumerate(_LISTA_SERIES)
+     if any(kw in c.lower() for kw in _KEYWORDS_DEP)),
+    1
+)
+
+VARIABLE_DEPENDIENTE = _auto_idx   # ÔåÉ CAMBI├ü ESTE N├ÜMERO SI QUER├ëS OTRA VARIABLE
+
+# ÔöÇÔöÇ Lista disponible ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+print('ÔòÉ' * 65)
+for _i, _c in enumerate(_LISTA_SERIES, 1):
+    marca = '  Ôùä seleccionada' if _i == VARIABLE_DEPENDIENTE else ''
+    print(f'  [{_i:>2}]  {_c}{marca}')
+print('ÔòÉ' * 65)
+
+# ÔöÇÔöÇ Aplicar selecci├│n ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+if not (1 <= VARIABLE_DEPENDIENTE <= len(_LISTA_SERIES)):
+    raise ValueError(f'VARIABLE_DEPENDIENTE={VARIABLE_DEPENDIENTE} fuera de rango (1ÔÇô{len(_LISTA_SERIES)})')
+
+ETI_DEP  = _LISTA_SERIES[VARIABLE_DEPENDIENTE - 1]
+ETI_EXPL = [c for c in _LISTA_SERIES if c != ETI_DEP]
+
+_all_cols = [ETI_DEP] + ETI_EXPL
+COL_SAFE  = {c: f'v{i:02d}' for i, c in enumerate(_all_cols)}
+COL_LABEL = {v: k for k, v in COL_SAFE.items()}
+df_safe   = df_panel[_all_cols].rename(columns=COL_SAFE)
+Y_SAFE    = COL_SAFE[ETI_DEP]
+X_SAFE    = [COL_SAFE[e] for e in ETI_EXPL]
+
+print(f'\nÔ£à Y = {ETI_DEP}')
+print(f'   {len(ETI_EXPL)} variables explicativas')
+
+
+================================================================================
+CELL 11 (markdown)
+================================================================================
+## 5. Estad├¡sticos Descriptivos
+
+================================================================================
+CELL 12 (code)
+================================================================================
+display(resumen_estadistico(df_panel).round(4))
+
+n_series = len(df_panel.columns)
+fig, axes = plt.subplots(n_series, 1, figsize=(12, 3 * n_series), sharex=True, squeeze=False)
+
+for i, col in enumerate(df_panel.columns):
+    color = '#d62728' if col == ETI_DEP else '#1f77b4'
+    axes[i][0].plot(df_panel.index, df_panel[col], color=color, linewidth=1.2)
+    axes[i][0].set_title(col, fontsize=9)
+
+fig.suptitle('Series del panel  (rojo = variable dependiente)', fontsize=11)
+plt.tight_layout()
+plt.show()
+
+
+================================================================================
+CELL 13 (markdown)
+================================================================================
+## 6. Tests de Estacionariedad
+
+================================================================================
+CELL 14 (code)
+================================================================================
+# ÔöÇÔöÇ Tests ADF + KPSS ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+print('ÔòÉ'*70)
+print('6.  TESTS DE ESTACIONARIEDAD (ADF + KPSS)')
+print('ÔòÉ'*70)
+_est_rows = []
+for _col in df_panel.columns:
+    _r = test_estacionariedad(df_panel[_col], _col)
+    _est_rows.append(_r)
+df_est = pd.DataFrame(_est_rows).set_index('Variable')
+display(df_est[['ADF_stat','ADF_pvalue','ADF_estacionaria',
+                'KPSS_stat','KPSS_pvalue','KPSS_estacionaria','Conclusi├│n']])
+
+# ÔöÇÔöÇ Identificar series no estacionarias ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+_non_stat_labels = set(
+    df_est.index[df_est['Conclusi├│n'].isin(['No Estacionaria', 'Conflicto'])]
+)
+
+# Diccionario safe_name -> label de las no estacionarias (excluyendo dep. variable)
+VARS_NO_ESTACIONARIAS = {
+    _s: COL_LABEL.get(_s, _s)
+    for _s in X_SAFE
+    if COL_LABEL.get(_s, _s) in _non_stat_labels
+}
+
+# Variables explicativas disponibles para estimaci├│n (solo estacionarias)
+X_SAFE_EST = [v for v in X_SAFE if v not in VARS_NO_ESTACIONARIAS]
+
+# ÔöÇÔöÇ Aviso al usuario ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+if VARS_NO_ESTACIONARIAS:
+    _dep_non_stat = ETI_DEP in _non_stat_labels
+    print('\n' + '='*70)
+    print('  ADVERTENCIA - VARIABLES NO ESTACIONARIAS DETECTADAS')
+    print('='*70)
+    if _dep_non_stat:
+        print(f'\n  La variable dependiente "{ETI_DEP}" no es estacionaria.')
+        print('  Considere transformarla (diferencias, log) antes de estimar.')
+    print(f'\n  Variables explicativas no estacionarias ({len(VARS_NO_ESTACIONARIAS)}):')
+    for _s, _l in VARS_NO_ESTACIONARIAS.items():
+        print(f'    - {_l}')
+    print()
+    print('  Estas variables seran DESCARTADAS automaticamente de las regresiones.')
+    print('  Para incluirlas, aplique una transformacion (delta, log, log-delta, etc.)')
+    print('  y vuelva a correr desde la Seccion 4 con los datos transformados.')
+    print('='*70)
+else:
+    print('\nTodas las variables son estacionarias. Puede proceder con las estimaciones.')
+
+print(f'\nVariables para estimacion: {len(X_SAFE_EST)} de {len(X_SAFE)} explicativas disponibles.')
+if VARS_NO_ESTACIONARIAS:
+    print(f'Descartadas: {", ".join(VARS_NO_ESTACIONARIAS.values())}')
+print('\nTests de estacionariedad completados.')
+
+
