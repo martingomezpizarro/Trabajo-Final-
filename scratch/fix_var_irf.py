@@ -1,0 +1,236 @@
+import json
+
+with open(r'c:\Users\Usuario\Desktop\MARTIN\ECONOMICS\TRABAJO FINAL\Trabajo\notebooks\02a_analisis_basico.ipynb', 'r', encoding='utf-8') as f:
+    nb = json.load(f)
+
+new_var_code = """# ── Preparación de combinaciones VAR ─────────────────────────────────────────
+from itertools import combinations, permutations
+import random
+import datetime
+from statsmodels.tsa.api import VAR as _VAR_est
+import numpy as np
+import pandas as pd
+from scipy.stats import norm
+
+_n_max_var  = len(X_SAFE_EST) if MAX_VARS_POR_MODELO is None else MAX_VARS_POR_MODELO
+_subsets_var = []
+for _r in range(1, _n_max_var + 1):
+    _subsets_var.extend(list(combinations(X_SAFE_EST, _r)))
+
+if MAX_COMBINACIONES is not None and len(_subsets_var) > MAX_COMBINACIONES:
+    random.seed(SEMILLA)
+    _subsets_var = random.sample(_subsets_var, MAX_COMBINACIONES)
+    print(f'VAR: muestreados {MAX_COMBINACIONES} de {len(_subsets_var)} subconjuntos base')
+
+# Generamos las permutaciones reales a estimar
+_perms_var = []
+for _subset in _subsets_var:
+    for _perm in permutations(_subset):
+        _perms_var.append(list(_perm))
+
+# Si queremos podemos limitar las permutaciones totales para evitar tiempos excesivos
+MAX_PERMUTACIONES = 1500
+if len(_perms_var) > MAX_PERMUTACIONES:
+    random.seed(SEMILLA)
+    _perms_var = random.sample(_perms_var, MAX_PERMUTACIONES)
+    print(f'VAR: muestreadas {MAX_PERMUTACIONES} permutaciones estructurales (para no explotar la RAM)')
+
+print(f'Permutaciones SVAR a estimar: {len(_perms_var)} por criterio')
+print(f'Criterios                   : {CRITERIOS_SEL}')
+
+_RESULTADOS_VAR = []
+_t0_var  = datetime.datetime.now()
+_err_var = 0
+_ok_var  = 0
+_PRINT_INT_VAR = max(1, len(_perms_var) // 5)
+
+HORIZONTE_IRF = 12
+
+for _criterio in CRITERIOS_SEL:
+    for _ci, _xv_perm in enumerate(_perms_var):
+        _tv_perm = list(_xv_perm) + [Y_SAFE]
+        _df = df_safe[_tv_perm].dropna()
+        _nobs = len(_df)
+        
+        # Límite dinámico de rezagos según grados de libertad
+        _k_vars = len(_tv_perm)
+        _max_p_dinamico = max(1, min(MAX_LAGS_VAR, (_nobs - 10) // _k_vars))
+        
+        if _nobs < 30 or _max_p_dinamico < 1:
+            continue
+            
+        try:
+            # Estimar VAR
+            _model = _VAR_est(_df)
+            _lag_sel = _model.select_order(maxlags=_max_p_dinamico)
+            _k_ar = max(1, _lag_sel.selected_orders.get(_criterio, 1))
+            _res = _model.fit(_k_ar)
+            
+            # Calcular IRF ortogonalizadas (Cholesky implícito)
+            _irf = _res.irf(periods=HORIZONTE_IRF)
+            _orth_irfs = _irf.orth_irfs     # [horizon, response, shock]
+            _orth_stderr = _irf.stderr(orth=True)
+            
+            # Índice de Y_SAFE (respuesta)
+            _y_idx = _k_vars - 1
+            
+            _row = {
+                'combo_id'  : f'{_ci}_{_criterio}_{"-".join(_xv_perm)}',
+                'criterio'  : _criterio,
+                'modelo'    : 'VAR',
+                'n_vars'    : len(_xv_perm),
+                'vars_safe' : '|'.join(_xv_perm),
+                'vars_label': '|'.join([COL_LABEL.get(v, v)[:15] for v in _xv_perm]),
+                'aic'       : float(_res.aic),
+                'bic'       : float(_res.bic),
+                'hq'        : float(_res.hqic),
+                'nobs'      : int(_res.nobs),
+                'k_ar'      : _k_ar,
+            }
+            
+            # Extraer impactos IRF para cada variable explicativa
+            for _x_idx, _x in enumerate(_xv_perm):
+                for _h in range(HORIZONTE_IRF + 1):
+                    _impacto = float(_orth_irfs[_h, _y_idx, _x_idx])
+                    _se      = float(_orth_stderr[_h, _y_idx, _x_idx])
+                    
+                    # p-valor asintótico Z
+                    if _se > 0:
+                        _z = abs(_impacto / _se)
+                        _pval = 2 * (1 - norm.cdf(_z))
+                    else:
+                        _pval = 1.0
+                        
+                    _row[f'irf_{_x}_h{_h}'] = _impacto
+                    _row[f'irfpval_{_x}_h{_h}'] = _pval
+                    
+                # Retrocompatibilidad con celdas de control: asignamos coeficiente contemporáneo
+                _row[f'coef_{_x}'] = _row[f'irf_{_x}_h0']
+                _row[f'pval_{_x}'] = _row[f'irfpval_{_x}_h0']
+                
+            # Calcular R2 reducido para Y_SAFE (como en el script viejo)
+            _y_resid = _res.resid.iloc[:, _y_idx]
+            _y_act   = _df[Y_SAFE].values[-len(_y_resid):]
+            _ss_res  = float(np.sum(_y_resid ** 2))
+            _ss_tot  = float(np.sum((_y_act - _y_act.mean()) ** 2))
+            _row['r2'] = float(1 - _ss_res / _ss_tot) if _ss_tot > 0 else np.nan
+            
+            _RESULTADOS_VAR.append(_row)
+            _ok_var += 1
+            
+        except Exception as e:
+            _err_var += 1
+
+        if (_ci + 1) % _PRINT_INT_VAR == 0 or _ci == len(_perms_var) - 1:
+            _el = (datetime.datetime.now() - _t0_var).seconds
+            print(f'  [{_criterio.upper()}] permutacion {_ci+1:>4}/{len(_perms_var)} | '
+                  f'ok={_ok_var}  err={_err_var}  | {_el}s')
+
+df_res_var = pd.DataFrame(_RESULTADOS_VAR)
+_tasa_v = f'{_ok_var/(_ok_var+_err_var)*100:.1f}%' if (_ok_var+_err_var) > 0 else 'n/a'
+print(f'\\n{"="*60}')
+print(f'SVAR (IRF) completado: {_ok_var} modelos estructurales | {_err_var} errores')
+print(f'{"="*60}')
+"""
+
+plot_code = """import matplotlib.pyplot as plt
+
+print('='*70)
+print('8.4  DISPERSIÓN DE IMPACTOS IRF ESTRUCTURALES')
+print('='*70)
+
+if not _RESULTADOS_VAR:
+    print("No hay resultados de VAR para graficar.")
+else:
+    _vars_unicas = set()
+    for _row in _RESULTADOS_VAR:
+        _xv = [v for v in _row['vars_safe'].split('|') if v]
+        _vars_unicas.update(_xv)
+
+    _vars_unicas = sorted(list(_vars_unicas))
+
+    _nc = min(3, len(_vars_unicas))
+    _nr = (len(_vars_unicas) + _nc - 1) // _nc
+    fig, axes = plt.subplots(_nr, _nc, figsize=(6 * _nc, 4 * _nr), squeeze=False)
+
+    for _idx, _var in enumerate(_vars_unicas):
+        ax = axes[_idx // _nc][_idx % _nc]
+        
+        _x_sig = []
+        _y_sig = []
+        _x_nosig = []
+        _y_nosig = []
+        
+        for _row in _RESULTADOS_VAR:
+            if _var in _row['vars_safe'].split('|'):
+                for _h in range(HORIZONTE_IRF + 1):
+                    _impacto = _row.get(f'irf_{_var}_h{_h}')
+                    _pval    = _row.get(f'irfpval_{_var}_h{_h}')
+                    
+                    if _impacto is not None and not np.isnan(_impacto):
+                        if _pval is not None and _pval < 0.05:
+                            _x_sig.append(_h)
+                            _y_sig.append(_impacto)
+                        else:
+                            _x_nosig.append(_h)
+                            _y_nosig.append(_impacto)
+                        
+        # Scatter para NO significativos (cruces tenues)
+        ax.scatter(_x_nosig, _y_nosig, marker='x', alpha=0.15, color='#BDBDBD', s=30, label='No sig.')
+        # Scatter para significativos (círculos oscuros)
+        ax.scatter(_x_sig, _y_sig, marker='o', alpha=0.4, color='#FF9800', s=40, edgecolors='none', label='Sig. (p<0.05)')
+        
+        ax.axhline(0, color='black', linewidth=1, linestyle='--')
+        ax.set_title(COL_LABEL.get(_var, _var)[:50], fontsize=10)
+        ax.set_xlabel('Horizonte del impacto (h)')
+        ax.set_ylabel('Impacto Estructural sobre EMBI')
+        
+        ax.set_xticks(range(HORIZONTE_IRF + 1))
+        
+        if _idx == 0:
+            ax.legend(fontsize=8)
+
+    for _idx in range(len(_vars_unicas), _nr * _nc):
+        axes[_idx // _nc][_idx % _nc].set_visible(False)
+
+    fig.suptitle('SVAR: Funciones de Impulso-Respuesta Estructural Ortogonalizada\\nRespuesta del EMBI ante shock de 1 SD', fontsize=14, y=1.03)
+    plt.tight_layout()
+    plt.show()
+"""
+
+new_cells = []
+for cell in nb.get('cells', []):
+    if cell.get('cell_type') == 'code':
+        source = "".join(cell.get('source', []))
+        if "# ── Preparación de combinaciones VAR ─────────────────────────────────────────" in source and "df_res_var = pd.DataFrame(_RESULTADOS_VAR)" in source:
+            cell['source'] = [line + '\n' for line in new_var_code.split('\n')[:-1]] + [new_var_code.split('\n')[-1]]
+            new_cells.append(cell)
+            continue
+            
+        # Actualizamos la sección 8.4 existente
+        if "8.4  DISPERSIÓN DE COEFICIENTES POR LAG" in source or "8.4  DISPERSIÓN DE IMPACTOS IRF ESTRUCTURALES" in source:
+            cell['source'] = [line + '\n' for line in plot_code.split('\n')[:-1]] + [plot_code.split('\n')[-1]]
+            new_cells.append(cell)
+            continue
+            
+    new_cells.append(cell)
+
+# Limpiar posibles duplicados
+final_cells = []
+seen_plot = False
+for cell in new_cells:
+    if cell.get('cell_type') == 'code':
+        source = "".join(cell.get('source', []))
+        if "8.4  DISPERSIÓN" in source:
+            if not seen_plot:
+                final_cells.append(cell)
+                seen_plot = True
+            continue
+    final_cells.append(cell)
+
+nb['cells'] = final_cells
+
+with open(r'c:\Users\Usuario\Desktop\MARTIN\ECONOMICS\TRABAJO FINAL\Trabajo\notebooks\02a_analisis_basico.ipynb', 'w', encoding='utf-8') as f:
+    json.dump(nb, f, indent=1)
+
+print("Notebook actualizado con IRF SVAR")

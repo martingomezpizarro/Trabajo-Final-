@@ -1,0 +1,307 @@
+=== CELL 18 ===
+def _hqic(llf, k, n):
+    return -2 * llf + 2 * k * np.log(np.log(max(n, 3)))
+
+
+def extraer_ardl(df_m, y_var, x_vars, max_lags_dep, max_lags_ind, criterio):
+    from statsmodels.tsa.ardl import ARDL as _ARDL_direct
+
+    # df_m contiene las series originales (no blanqueadas).
+    # Xd son las X originales; el prewhitening BJ solo determinó los lags,
+    # nunca debe reemplazar las series en la regresión ARDL.
+    data = df_m[[y_var] + x_vars].dropna()
+    y    = data[y_var]
+    Xd   = data[x_vars]          # X originales — NO residuos de prewhitening
+
+    _bj_lags_ok = '_BJ_PROPOSED_LAGS' in globals()
+    if _bj_lags_ok:
+        try:
+            _bj_lp  = globals()['_BJ_PROPOSED_LAGS']
+            _bj_ary = int(globals().get('_BJ_AR_Y', 1))
+            _order_dict = {x: max(_bj_lp.get(x, [0, 1])) for x in x_vars}
+            res = _ARDL_direct(y, lags=_bj_ary, exog=Xd,
+                               order=_order_dict, trend='c').fit()
+            print(f'[ARDL] camino BJ: AR(Y)={_bj_ary}, order={_order_dict}')
+        except Exception:
+            _bj_lags_ok = False
+
+    if not _bj_lags_ok:
+        from statsmodels.tsa.ardl import ardl_select_order
+        sel = ardl_select_order(y, max_lags_dep, Xd, max_lags_ind,
+                                ic=criterio, trend='c')
+        res = sel.model.fit()
+        print(f'[ARDL] camino ardl_select_order ({criterio}): order={sel.model.ardl_order}')
+
+    n   = res.nobs
+    k   = len(res.params)
+    aic = float(res.aic)
+    bic = float(res.bic)
+    hq  = float(getattr(res, 'hqic', _hqic(res.llf, k, n)))
+    r2  = float(getattr(res, 'rsquared', np.nan))
+
+    coefs = {}
+    for x in x_vars:
+        px = [p for p in res.params.index if p.startswith(f'{x}.L') or p == x]
+        if not px:
+            px = [p for p in res.params.index
+                  if p == x or (p.startswith('L') and p.split('.', 1)[-1] == x)]
+        if px:
+            _coef_sum = float(res.params[px].sum())
+            try:
+                _px_idx = [list(res.params.index).index(p) for p in px]
+                _R = np.zeros((len(_px_idx), len(res.params)))
+                for _i, _j in enumerate(_px_idx):
+                    _R[_i, _j] = 1.0
+                _pval_f = float(res.f_test(_R).pvalue)
+            except Exception:
+                _pval_f = float(res.pvalues[px].min())  # fallback
+            coefs[x] = {'coef': _coef_sum, 'pval': _pval_f}
+        else:
+            coefs[x] = {'coef': np.nan, 'pval': np.nan}
+
+    return {'aic': aic, 'bic': bic, 'hq': hq, 'r2': r2,
+            'coefs': coefs, 'nobs': int(n)}
+
+
+def extraer_var(df_m, y_var, x_vars, todas_vars, max_lags, criterio):
+    from statsmodels.tsa.api import VAR
+
+    data    = df_m[todas_vars].dropna()
+    model   = VAR(data)
+    lag_sel = model.select_order(maxlags=max_lags)
+    k_ar    = max(1, lag_sel.selected_orders.get(criterio, 1))
+    res     = model.fit(k_ar)
+
+    aic = float(res.aic)
+    bic = float(res.bic)
+    hq  = float(res.hqic)
+
+    # R² para la ecuación Y
+    _y_pos   = list(todas_vars).index(y_var)
+    _y_resid = res.resid[:, _y_pos]
+    _y_act   = data[y_var].values[-len(_y_resid):]
+    _ss_res  = float(np.sum(_y_resid ** 2))
+    _ss_tot  = float(np.sum((_y_act - _y_act.mean()) ** 2))
+    r2 = float(1 - _ss_res / _ss_tot) if _ss_tot > 0 else np.nan
+
+    params_df = res.params
+    pvals_df  = res.pvalues
+    k_endog   = len(todas_vars)
+    var_pos   = {v: i for i, v in enumerate(todas_vars)}
+
+    coefs = {}
+    if y_var in params_df.columns:
+        yp = params_df[y_var]
+        yv = pvals_df[y_var]
+        for x in x_vars:
+            xpos = var_pos.get(x)
+            if xpos is None:
+                coefs[x] = {'coef': np.nan, 'pval': np.nan}
+                continue
+            idx = [lag * k_endog + xpos for lag in range(k_ar)
+                   if lag * k_endog + xpos < len(yp)]
+            coefs[x] = ({'coef': float(yp.iloc[idx].sum()),
+                         'pval': float(yv.iloc[idx].min())}
+                        if idx else {'coef': np.nan, 'pval': np.nan})
+    else:
+        for x in x_vars:
+            coefs[x] = {'coef': np.nan, 'pval': np.nan}
+
+    return {'aic': aic, 'bic': bic, 'hq': hq, 'r2': r2,
+            'coefs': coefs, 'k_ar': k_ar, 'nobs': int(res.nobs)}
+
+
+def extraer_vecm(df_m, y_var, x_vars, todas_vars, k_ar_diff, det_order):
+    from statsmodels.tsa.vector_ar.vecm import VECM, coint_johansen
+    from scipy.stats import t as t_dist
+
+    data = df_m[todas_vars].dropna()
+    joh  = coint_johansen(data, det_order=det_order, k_ar_diff=k_ar_diff)
+    n_ci = int(sum(joh.lr1 > joh.cvt[:, 1]))
+    if n_ci == 0:
+        return None
+
+    res = VECM(data, k_ar_diff=k_ar_diff, coint_rank=n_ci,
+               deterministic='ci').fit()
+
+    aic = float(res.aic)
+    bic = float(res.bic)
+    hq  = float(getattr(res, 'hqic',
+                         _hqic(res.llf if hasattr(res, 'llf') else
+                               -res.bic * res.nobs / 2,
+                               len(todas_vars) * n_ci, res.nobs)))
+
+    # R² para la ecuación Y (en diferencias)
+    all_list = list(todas_vars)
+    y_idx    = all_list.index(y_var)
+    _y_resid_v = res.resid[:, y_idx]
+    _y_act_v   = data[y_var].diff().dropna().values[-len(_y_resid_v):]
+    _ss_res_v  = float(np.sum(_y_resid_v ** 2))
+    _ss_tot_v  = float(np.sum((_y_act_v - _y_act_v.mean()) ** 2))
+    r2 = float(1 - _ss_res_v / _ss_tot_v) if _ss_tot_v > 0 else np.nan
+
+    k_vars   = len(all_list)
+    gamma    = res.gamma
+    gamma_se = getattr(res, 'gamma_se', None)
+    n_short  = k_ar_diff - 1
+
+    coefs = {}
+    for x in x_vars:
+        if x not in all_list:
+            coefs[x] = {'coef': np.nan, 'pval': np.nan}
+            continue
+        xi   = all_list.index(x)
+        cols = [l * k_vars + xi for l in range(n_short)
+                if l * k_vars + xi < gamma.shape[1]]
+        if cols:
+            c  = float(gamma[y_idx, cols].sum())
+            se = (float(np.sqrt(np.sum(gamma_se[y_idx, cols] ** 2)))
+                  if gamma_se is not None else None)
+            pv = (float(t_dist.sf(abs(c / (se + 1e-12)),
+                                  df=max(1, res.nobs - k_vars)) * 2)
+                  if se is not None else np.nan)
+        else:
+            c = pv = np.nan
+        coefs[x] = {'coef': c, 'pval': pv}
+
+    return {'aic': aic, 'bic': bic, 'hq': hq, 'r2': r2,
+            'coefs': coefs, 'n_coint': n_ci, 'nobs': int(res.nobs)}
+
+
+print('Funciones de extracción listas (con R²).')
+
+=== CELL 21 ===
+# ── Preparación de combinaciones ARDL ────────────────────────────────────────
+_n_max_ardl  = len(X_SAFE_EST) if MAX_VARS_POR_MODELO is None else MAX_VARS_POR_MODELO
+_combos_ardl = []
+for _r in range(1, _n_max_ardl + 1):
+    _combos_ardl.extend(list(combinations(X_SAFE_EST, _r)))
+
+if MAX_COMBINACIONES is not None and len(_combos_ardl) > MAX_COMBINACIONES:
+    random.seed(SEMILLA)
+    _combos_ardl = random.sample(_combos_ardl, MAX_COMBINACIONES)
+    print(f'ARDL: muestreadas {MAX_COMBINACIONES} de {len(_combos_ardl)} combinaciones')
+
+print(f'Combinaciones ARDL : {len(_combos_ardl)}')
+print(f'Criterios          : {CRITERIOS_SEL}')
+print(f'Estimaciones esp.  : {len(_combos_ardl) * len(CRITERIOS_SEL)}')
+print()
+
+_RESULTADOS_ARDL = []
+_t0_ardl = datetime.now()
+_err_ardl = 0
+_ok_ardl  = 0
+_PRINT_INT_ARDL = max(1, len(_combos_ardl) // 5)
+
+for _criterio in CRITERIOS_SEL:
+    for _ci, _combo in enumerate(_combos_ardl):
+        _xv = list(_combo)
+        _tv = list(_xv) + [Y_SAFE]
+        _df = df_safe[_tv].dropna()
+        if len(_df) < 30:
+            continue
+        try:
+            _r = extraer_ardl(_df, Y_SAFE, _xv, MAX_LAGS_DEP, MAX_LAGS_IND, _criterio)
+            _row = {
+                'combo_id'  : f'{_ci}_{_criterio}',
+                'criterio'  : _criterio,
+                'modelo'    : 'ARDL',
+                'n_vars'    : len(_xv),
+                'vars_safe' : '|'.join(_xv),
+                'vars_label': '|'.join([COL_LABEL[v] for v in _xv]),
+                'aic'       : _r['aic'],
+                'bic'       : _r['bic'],
+                'hq'        : _r['hq'],
+                'r2'        : _r['r2'],
+                'nobs'      : _r['nobs'],
+            }
+            for _x in _xv:
+                _row[f'coef_{_x}'] = _r['coefs'][_x]['coef']
+                _row[f'pval_{_x}'] = _r['coefs'][_x]['pval']
+            _RESULTADOS_ARDL.append(_row)
+            _ok_ardl += 1
+        except Exception:
+            _err_ardl += 1
+
+        if (_ci + 1) % _PRINT_INT_ARDL == 0 or _ci == len(_combos_ardl) - 1:
+            _el = (datetime.now() - _t0_ardl).seconds
+            print(f'  [{_criterio.upper()}] combo {_ci+1:>3}/{len(_combos_ardl)} | '
+                  f'ok={_ok_ardl}  err={_err_ardl}  | {_el}s')
+
+df_res_ardl = pd.DataFrame(_RESULTADOS_ARDL)
+_tasa_a = f'{_ok_ardl/(_ok_ardl+_err_ardl)*100:.1f}%' if (_ok_ardl+_err_ardl) > 0 else 'n/a'
+print(f'\n{"="*60}')
+print(f'ARDL completado: {_ok_ardl} modelos | {_err_ardl} errores | tasa={_tasa_a}')
+print(f'{"="*60}')
+
+
+=== CELL 36 ===
+# ── Preparación de combinaciones VECM ────────────────────────────────────────
+_n_max_vecm  = len(X_SAFE_EST) if MAX_VARS_POR_MODELO is None else MAX_VARS_POR_MODELO
+_combos_vecm = []
+for _r in range(1, _n_max_vecm + 1):
+    _combos_vecm.extend(list(combinations(X_SAFE_EST, _r)))
+
+if MAX_COMBINACIONES is not None and len(_combos_vecm) > MAX_COMBINACIONES:
+    random.seed(SEMILLA)
+    _combos_vecm = random.sample(_combos_vecm, MAX_COMBINACIONES)
+    print(f'VECM: muestreadas {MAX_COMBINACIONES} de {len(_combos_vecm)} combinaciones')
+
+print(f'Combinaciones VECM : {len(_combos_vecm)}')
+print(f'Estimaciones max.  : {len(_combos_vecm)}  (solo con cointegracion)')
+print()
+
+_RESULTADOS_VECM = []
+_t0_vecm   = datetime.now()
+_err_vecm  = 0
+_ok_vecm   = 0
+_skip_vecm = 0
+_PRINT_INT_VECM = max(1, len(_combos_vecm) // 5)
+
+for _ci, _combo in enumerate(_combos_vecm):
+    _xv = list(_combo)
+    _tv = list(_xv) + [Y_SAFE]
+    _df = df_safe[_tv].dropna()
+    if len(_df) < 30:
+        _skip_vecm += 1
+        continue
+    try:
+        _r = extraer_vecm(_df, Y_SAFE, _xv, _tv, k_ar_diff=2, det_order=0)
+        if _r is not None:
+            _row = {
+                'combo_id'  : f'{_ci}_vecm',
+                'criterio'  : 'johansen',
+                'modelo'    : 'VECM',
+                'n_vars'    : len(_xv),
+                'vars_safe' : '|'.join(_xv),
+                'vars_label': '|'.join([COL_LABEL[v] for v in _xv]),
+                'aic'       : _r['aic'],
+                'bic'       : _r['bic'],
+                'hq'        : _r['hq'],
+                'r2'        : _r['r2'],
+                'nobs'      : _r['nobs'],
+                'n_coint'   : _r['n_coint'],
+            }
+            for _x in _xv:
+                _row[f'coef_{_x}'] = _r['coefs'][_x]['coef']
+                _row[f'pval_{_x}'] = _r['coefs'][_x]['pval']
+            _RESULTADOS_VECM.append(_row)
+            _ok_vecm += 1
+        else:
+            _skip_vecm += 1
+    except Exception:
+        _err_vecm += 1
+
+    if (_ci + 1) % _PRINT_INT_VECM == 0 or _ci == len(_combos_vecm) - 1:
+        _el = (datetime.now() - _t0_vecm).seconds
+        print(f'  [VECM] combo {_ci+1:>3}/{len(_combos_vecm)} | '
+              f'ok={_ok_vecm}  sin_coint={_skip_vecm}  err={_err_vecm}  | {_el}s')
+
+df_res_vecm = pd.DataFrame(_RESULTADOS_VECM)
+_tasa_vecm  = f'{_ok_vecm/(_ok_vecm+_err_vecm)*100:.1f}%' if (_ok_vecm+_err_vecm) > 0 else 'n/a'
+print(f'\n{"="*60}')
+print(f'VECM completado: {_ok_vecm} modelos | {_skip_vecm} sin coint. | {_err_vecm} errores')
+print(f'Tasa exito (excl. sin coint.): {_tasa_vecm}')
+print(f'{"="*60}')
+
+

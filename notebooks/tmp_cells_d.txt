@@ -1,0 +1,403 @@
+=== CELL 4 ===
+# ── Directorios base (igual que generar_visualizador.py) ─────────────────────
+VARS_DIR = (Path('..') / 'data' / 'Variables Finales').resolve()
+RAW_DIR  = (Path('..') / 'data' / 'raw').resolve()
+
+# ── 1. Parsear CATALOG desde visualizador_template.html ──────────────────────
+def _parse_catalog():
+    for _cand in [Path('visualizador_template.html'),
+                  Path('notebooks') / 'visualizador_template.html']:
+        if _cand.exists():
+            html_path = _cand
+            break
+    else:
+        raise FileNotFoundError('No se encontró visualizador_template.html')
+
+    with open(html_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Acotar búsqueda solo a la sección CATALOG (evita falsos matches en JS posterior)
+    _start = content.find('const CATALOG = [')
+    _end   = content.find('\n];', _start)
+    catalog_txt = content[_start:_end + 3] if _start >= 0 and _end >= 0 else content
+
+    cat = {}
+    _PREF    = {'D': 0, 'W': 1, 'M': 2, 'Q': 3, 'A': 4}
+    _FREQ_RE = re.compile(r"freq\s*:\s*'([^']+)'")
+
+    # ── Paso 1: ítems de fuente única (todos los campos en una sola línea) ────
+    _SINGLE = re.compile(
+        r"id\s*:\s*'([^']+)'.*?label\s*:\s*'([^']+)'.*?"
+        r"file\s*:\s*'([^']+)'.*?dateCol\s*:\s*'([^']+)'.*?valCol\s*:\s*'([^']+)'"
+    )
+    for line in catalog_txt.splitlines():
+        m = _SINGLE.search(line)
+        if not m:
+            continue
+        cid, label, file_, dc, vc = m.groups()
+        if label in cat:
+            continue
+        fm = _FREQ_RE.search(line)
+        freq = fm.group(1) if fm else 'D'
+        cat[label] = {'id': cid, 'file': file_, 'dateCol': dc, 'valCol': vc, 'freq': freq}
+
+    # ── Paso 2: ítems multi-fuente (sources:[...] en varias líneas) ───────────
+    _MULTI = re.compile(
+        r"\{\s*id\s*:\s*'([^']+)'\s*,\s*label\s*:\s*'([^']+)'[^[]*?"
+        r"sources\s*:\s*\[(.*?)\]",
+        re.DOTALL
+    )
+    _SRC = re.compile(
+        r"\{\s*freq\s*:\s*'([^']+)'[^}]*?"
+        r"file\s*:\s*'([^']+)'[^}]*?"
+        r"dateCol\s*:\s*'([^']+)'[^}]*?"
+        r"valCol\s*:\s*'([^']+)'"
+    )
+    for m in _MULTI.finditer(catalog_txt):
+        cid, label, srcs_txt = m.groups()
+        if label in cat:
+            continue
+        srcs = [{'freq': sm.group(1), 'file': sm.group(2),
+                 'dateCol': sm.group(3), 'valCol': sm.group(4)}
+                for sm in _SRC.finditer(srcs_txt)]
+        if not srcs:
+            continue
+        best = sorted(srcs, key=lambda s: _PREF.get(s['freq'], 99))[0]
+        cat[label] = {
+            'id'     : cid,
+            'file'   : best['file'],
+            'dateCol': best['dateCol'],
+            'valCol' : best['valCol'],
+            'freq'   : best['freq'],
+            'sources': srcs,
+        }
+
+    return cat
+
+
+CATALOG_VIZ = _parse_catalog()
+print(f'✅ CATALOG parseado: {len(CATALOG_VIZ)} series')
+
+
+# ── 2. Detección automática de frecuencia ─────────────────────────────────────
+def detectar_frecuencia(df_csv):
+    _ORD = {'D': 0, 'W': 1, 'M': 2, 'Q': 3, 'A': 4}
+    finest = []
+    for _, row in df_csv.iterrows():
+        for col in ['Serie A', 'Serie B']:
+            nombre = str(row.get(col, '') or '').strip()
+            if not nombre or nombre in ('', '—', '-', 'nan'):
+                continue
+            if nombre not in CATALOG_VIZ:
+                continue
+            meta = CATALOG_VIZ[nombre]
+            if 'sources' in meta:
+                src_freqs = [s['freq'] for s in meta['sources']]
+                finest.append(min(src_freqs, key=lambda f: _ORD.get(f, 99)))
+            else:
+                finest.append(meta.get('freq', 'D'))
+    if not finest:
+        return 'M'
+    return max(finest, key=lambda f: _ORD.get(f, -1))
+
+
+# ── 3. Resampling (media por período, igual que el visualizador JS) ───────────
+def _resample_mean(serie: pd.Series, to_freq: str) -> pd.Series:
+    _MAP = {'D': 'D', 'W': 'W', 'M': 'ME', 'Q': 'QE', 'A': 'YE'}
+    pf = _MAP.get(to_freq, to_freq)
+    try:
+        return serie.resample(pf).mean()
+    except ValueError:
+        _MAP_OLD = {'D': 'D', 'W': 'W', 'M': 'M', 'Q': 'Q', 'A': 'A'}
+        return serie.resample(_MAP_OLD.get(to_freq, to_freq)).mean()
+
+
+# ── 4. Carga genérica ─────────────────────────────────────────────────────────
+def _buscar_archivo(*rutas_relativas):
+    for ruta in rutas_relativas:
+        for base in [VARS_DIR, RAW_DIR]:
+            p = base / ruta
+            if p.exists():
+                return p
+    return None
+
+
+def _match_col(wanted: str, available_cols) -> str | None:
+    ws = wanted.strip()
+    if ws in available_cols:
+        return ws
+    if wanted in available_cols:
+        return wanted
+    return None
+
+
+def _leer_serie_csv(path: Path, col_fecha: str, col_valor: str) -> pd.Series:
+    df = pd.read_csv(path, low_memory=False, encoding='utf-8-sig')
+    df.columns = df.columns.str.strip()
+    dc = _match_col(col_fecha, df.columns)
+    vc = _match_col(col_valor, df.columns)
+    if dc is None:
+        raise KeyError(f'col_fecha "{col_fecha}" no encontrada en {path.name}. '
+                       f'Cols: {list(df.columns[:8])}')
+    if vc is None:
+        raise KeyError(f'col_valor "{col_valor}" no encontrada en {path.name}. '
+                       f'Cols: {list(df.columns[:8])}')
+    df['_f'] = pd.to_datetime(df[dc], errors='coerce')
+    df = df.dropna(subset=['_f']).set_index('_f').sort_index()
+    return pd.to_numeric(df[vc], errors='coerce').dropna()
+
+
+# ── 5. Deflactores ────────────────────────────────────────────────────────────
+_cache_pbi = _cache_cer = _cache_tip = _cache_mep = None
+
+def _get_pbi():
+    global _cache_pbi
+    if _cache_pbi is not None: return _cache_pbi
+    p = _buscar_archivo('pbi_constante_2004.csv')
+    if p is None: print('  ⚠️  pbi_constante_2004.csv no encontrado'); return None
+    _cache_pbi = _leer_serie_csv(p, 'fecha', 'pbi'); return _cache_pbi
+
+def _get_cer():
+    global _cache_cer
+    if _cache_cer is not None: return _cache_cer
+    p = _buscar_archivo('cer.csv', 'bcra/cer.csv')
+    if p is None: print('  ⚠️  cer.csv no encontrado'); return None
+    _cache_cer = _leer_serie_csv(p, 'fecha', 'cer'); return _cache_cer
+
+def _get_tip():
+    global _cache_tip
+    if _cache_tip is not None: return _cache_tip
+    p = _buscar_archivo('tip_etf.csv', 'global/tip_etf.csv')
+    if p is None: print('  ⚠️  tip_etf.csv no encontrado'); return None
+    _cache_tip = _leer_serie_csv(p, 'fecha', 'tip_close'); return _cache_tip
+
+def _get_mep():
+    global _cache_mep
+    if _cache_mep is not None: return _cache_mep
+    p = _buscar_archivo('brecha_cambiaria.csv')
+    if p is None: print('  ⚠️  brecha_cambiaria.csv no encontrado'); return None
+    _cache_mep = _leer_serie_csv(p, 'fecha', 'mep'); return _cache_mep
+
+
+def _alinear_deflactor(raw: pd.Series, frecuencia: str,
+                        target_index: pd.DatetimeIndex) -> pd.Series | None:
+    """
+    Resamplea `raw` a `frecuencia`, luego alinea con `target_index`.
+    Maneja datos de baja frecuencia (ej. PBI trimestral) rellenando con ffill+bfill
+    para que no queden NaN en el rango de análisis.
+    """
+    al = _resample_mean(raw, frecuencia)
+    # Para frecuencias más bajas que la de la serie (ej. PBI trim → mensual),
+    # solo quedan datos en los períodos exactos del deflactor.
+    # reindex+ffill propaga cada valor hasta el siguiente período.
+    al = al.reindex(target_index, method='ffill').ffill().bfill()
+    if al.isna().all():
+        return None
+    return al
+
+
+def _aplicar_deflactor(serie: pd.Series, deflactor_name: str,
+                        frecuencia: str) -> pd.Series:
+    if not deflactor_name or str(deflactor_name).strip() in ('', '—', '-', 'nan'):
+        return serie
+    for d in str(deflactor_name).split(','):
+        d = d.strip().upper()
+        if not d or d in ('—', '-'): continue
+
+        if d == 'PBI':
+            raw = _get_pbi()
+            if raw is None: continue
+            al = _alinear_deflactor(raw, frecuencia, serie.index)
+            if al is None:
+                print('  ⚠️  PBI: sin superposición de fechas con la serie'); continue
+            fp = al.iloc[0]
+            serie = serie * fp / al
+
+        elif d == 'CER':
+            raw = _get_cer()
+            if raw is None: continue
+            al = _alinear_deflactor(raw, frecuencia, serie.index)
+            if al is None:
+                print('  ⚠️  CER: sin superposición de fechas con la serie'); continue
+            lc = al.iloc[-1]
+            serie = serie / al * lc
+
+        elif d in ('TIP', 'IPC'):
+            raw = _get_tip()
+            if raw is None: continue
+            al = _alinear_deflactor(raw, frecuencia, serie.index)
+            if al is None:
+                print(f'  ⚠️  {d}: sin superposición de fechas con la serie'); continue
+            lt = al.iloc[-1]
+            serie = serie / al * lt
+
+        elif d == 'MEP':
+            raw = _get_mep()
+            if raw is None: continue
+            al = _alinear_deflactor(raw, frecuencia, serie.index)
+            if al is None:
+                print('  ⚠️  MEP: sin superposición de fechas con la serie'); continue
+            serie = serie / al
+
+        else:
+            print(f'    ⚠️  Deflactor no reconocido: "{d}"')
+    return serie
+
+
+# ── 6. Carga de serie desde CATALOG ──────────────────────────────────────────
+def _cargar_serie_catalog(label: str, frecuencia: str,
+                           fecha_inicio: str = None, fecha_fin: str = None):
+    """
+    Carga la serie `label` (nombre exacto del CATALOG) en la frecuencia indicada.
+    Devuelve pd.Series o None si no se encuentra / hay error.
+    """
+    if label not in CATALOG_VIZ:
+        print(f'  ⚠️  "{label}" no encontrado en CATALOG ({len(CATALOG_VIZ)} series).')
+        return None
+
+    meta  = CATALOG_VIZ[label]
+    _PREF = {'D': 0, 'W': 1, 'M': 2, 'Q': 3, 'A': 4}
+
+    if 'sources' in meta:
+        srcs  = meta['sources']
+        exact = [s for s in srcs if s['freq'] == frecuencia]
+        src   = exact[0] if exact else sorted(srcs, key=lambda s: _PREF.get(s['freq'], 99))[0]
+        file_, dc, vc = src['file'], src['dateCol'], src['valCol']
+    else:
+        file_, dc, vc = meta['file'], meta['dateCol'], meta['valCol']
+
+    file_path = VARS_DIR / file_
+    if not file_path.exists():
+        file_path_raw = RAW_DIR / file_
+        if file_path_raw.exists():
+            file_path = file_path_raw
+        else:
+            print(f'  ⚠️  Archivo no encontrado: {VARS_DIR / file_}')
+            return None
+
+    try:
+        if str(file_).endswith(('.xlsx', '.xls')):
+            sheet = 'Unificado' if 'fiscal' in str(file_).lower() else 0
+            df = pd.read_excel(file_path, sheet_name=sheet)
+        else:
+            df = pd.read_csv(file_path, low_memory=False, encoding='utf-8-sig')
+    except Exception as e:
+        print(f'  ⚠️  Error leyendo {file_}: {e}')
+        return None
+
+    df.columns = df.columns.str.strip()
+    dc_match = _match_col(dc, df.columns)
+    vc_match = _match_col(vc, df.columns)
+
+    if dc_match is None:
+        print(f'  ⚠️  dateCol "{dc}" no hallada en {file_}. Cols: {list(df.columns[:8])}')
+        return None
+    if vc_match is None:
+        print(f'  ⚠️  valCol "{vc}" no hallada en {file_}. Cols: {list(df.columns[:8])}')
+        return None
+
+    df['_f'] = pd.to_datetime(df[dc_match], errors='coerce')
+    df = df.dropna(subset=['_f']).set_index('_f').sort_index()
+    serie = pd.to_numeric(df[vc_match], errors='coerce').dropna()
+    serie.name = label
+
+    if fecha_inicio: serie = serie[serie.index >= pd.Timestamp(fecha_inicio)]
+    if fecha_fin:    serie = serie[serie.index <= pd.Timestamp(fecha_fin)]
+
+    return _resample_mean(serie, frecuencia).dropna()
+
+
+# ── 7. Construcción de variable desde fila CSV ────────────────────────────────
+def construir_variable(row: pd.Series, frecuencia: str,
+                        fecha_inicio: str, fecha_fin: str):
+    """
+    Interpreta una fila del CSV de análisis y devuelve (serie, etiqueta).
+
+    Flujo:
+      1. Carga Serie A desde CATALOG (por su nombre original, SIN deflactor).
+      2. Aplica Deflactor A si corresponde.
+      3. Carga Serie B si corresponde y aplica Deflactor B.
+      4. Opera A y B según "Operación".
+      5. Aplica Log y/o Diferencia sobre el resultado final.
+    """
+    nombre_a  = str(row.get('Serie A',   '') or '').strip()
+    defl_a    = str(row.get('Deflactor A','') or '').strip()
+    nombre_b  = str(row.get('Serie B',   '') or '').strip()
+    defl_b    = str(row.get('Deflactor B','') or '').strip()
+    operacion = str(row.get('Operación', 'Solo A') or 'Solo A').strip()
+    log_flag  = str(row.get('Log', 'No') or 'No').strip().lower() not in ('no', '0', 'false', '')
+    n_diff    = int(float(str(row.get('Dif.', 0) or 0) or 0))
+
+    # Etiqueta legible: solo incluye deflactor y serie B si realmente se aplican
+    _b_activo  = operacion != 'Solo A' and nombre_b not in ('', '—', '-', 'nan')
+    _da_activo = defl_a not in ('', '—', '-', 'nan')
+    _db_activo = _b_activo and defl_b not in ('', '—', '-', 'nan')
+
+    etiqueta = nombre_a
+    if _da_activo:    etiqueta += f'/{defl_a}'
+    if _b_activo:     etiqueta += f' {operacion} {nombre_b}'
+    if _db_activo:    etiqueta += f'/{defl_b}'
+    if log_flag:      etiqueta  = f'log({etiqueta})'
+    if n_diff > 0:    etiqueta  = ('Δ' * n_diff) + etiqueta
+
+    # 1. Cargar Serie A (siempre por nombre original, sin deflactor)
+    sa = _cargar_serie_catalog(nombre_a, frecuencia, fecha_inicio, fecha_fin)
+    if sa is None:
+        return None, etiqueta
+
+    # 2. Deflactar Serie A
+    sa = _aplicar_deflactor(sa, defl_a, frecuencia)
+    resultado = sa.copy()
+
+    # 3. Cargar y deflactar Serie B, luego operar con A
+    if _b_activo:
+        sb = _cargar_serie_catalog(nombre_b, frecuencia, fecha_inicio, fecha_fin)
+        if sb is not None:
+            sb    = _aplicar_deflactor(sb, defl_b, frecuencia)
+            sb_al = sb.reindex(sa.index, method='ffill')
+            # Normalizar el símbolo menos Unicode (U+2212) → guion ASCII
+            op = operacion.replace(' ', '').replace('−', '-')
+            if op == 'A-B':                      resultado = sa - sb_al
+            elif op in ('A/B', 'A÷B'):            resultado = sa / sb_al
+            elif op in ('(A-B)/B', '(A-B)/B'):    resultado = (sa - sb_al) / sb_al
+            elif op == 'A+B':                     resultado = sa + sb_al
+            elif op in ('A*B', 'A×B'):             resultado = sa * sb_al
+            elif op in ('SoloB', 'B'):             resultado = sb_al.copy()
+
+    # 4. Transformaciones finales sobre el resultado de la operación
+    if log_flag:
+        resultado = np.log(resultado.replace(0, np.nan))
+    for _ in range(n_diff):
+        resultado = resultado.diff()
+
+    resultado = resultado.dropna()
+    resultado.name = etiqueta
+    return resultado, etiqueta
+
+
+# ── 8. Validación rápida del CATALOG vs CSV ───────────────────────────────────
+def _validar_catalog_vs_csv(df_csv):
+    print('\n── Validación CATALOG vs CSV ────────────────────────────────────────')
+    seen = set()
+    for _, row in df_csv.iterrows():
+        for col in ['Serie A', 'Serie B']:
+            nombre = str(row.get(col, '') or '').strip()
+            if not nombre or nombre in ('', '—', '-', 'nan') or nombre in seen:
+                continue
+            seen.add(nombre)
+            if nombre not in CATALOG_VIZ:
+                print(f'  ❌ NO en CATALOG: "{nombre}"')
+                continue
+            meta      = CATALOG_VIZ[nombre]
+            file_name = meta.get('file', '?')
+            existe    = (VARS_DIR / file_name).exists() or (RAW_DIR / file_name).exists()
+            print(f'  {"✅" if existe else "⚠️ "} {nombre[:55]:<55} → {file_name}'
+                  f'{"" if existe else "  (¡FALTA ARCHIVO!)"}')
+    print('────────────────────────────────────────────────────────────────────\n')
+
+
+print('✅ Funciones auxiliares listas.')
+print(f'   VARS_DIR: {VARS_DIR}')
+print(f'   RAW_DIR:  {RAW_DIR}')
+
+

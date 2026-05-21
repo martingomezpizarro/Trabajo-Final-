@@ -1,0 +1,14 @@
+Cell 10 [OK] DUMMY_SAFE
+Cell 10 [OK] df_exog_dummy
+Cell 10 [OK] _DUMMY_LABEL_PREFIX
+Cell 14 [OK] and v not in DUMMY_SAFE
+Cell 18 [OK] df_dummy=None
+Cell 18 [OK] _exog_d = None
+Cell 18 [OK] _Xd_endo
+Cell 18 [OK] exog=_exog_d
+Cell 21 [OK] df_dummy=df_exog_dummy
+Cell 29 [OK] _exog_d
+Cell 29 [OK] exog=_exog_d
+Cell 29 [OK] LinAlgError
+Cell 29 [OK] list(_xv_perm) + [Y_SAFE]
+Cell 36 [OK] df_dummy=df_exog_dummy

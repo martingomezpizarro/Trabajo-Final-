@@ -1,0 +1,10 @@
+#,Serie A,Deflactor A,Serie B,Deflactor B,Operación,Desde,Hasta,Frecuencia,Log,Dif.,MM,Dummies,Test UR,Estadístico,p-valor,Resultado (5%)
+"1","Dummy_cepo","—","—","—","Solo A","—","—","Original","No","0","0","—","—","","","—"
+"2","Reservas Brutas BCRA","PBI","—","—","Solo A","—","—","Original","No","1","0","—","ADF","-33.6450","0.0010","Rechaza H0 (estacionario)"
+"3","Depósitos USD — Total","PBI","—","—","Solo A","—","—","Original","No","1","0","—","ADF","-53.3466","0.0010","Rechaza H0 (estacionario)"
+"4","ITCRM Multilateral","—","—","—","Solo A","—","—","Original","No","1","0","—","ADF","-46.2700","0.0010","Rechaza H0 (estacionario)"
+"5","Brecha Cambiaria MEP/Oficial","—","—","—","Solo A","—","—","Original","No","1","0","—","ADF","-27.8153","0.0010","Rechaza H0 (estacionario)"
+"6","Saldo Comercial","PBI","—","—","Solo A","—","—","Original","No","1","0","—","ADF","-11.6574","0.0010","Rechaza H0 (estacionario)"
+"7","VIX — CBOE Volatility Index","—","—","—","Solo A","—","—","Original","No","1","0","—","ADF","-41.0251","0.0010","Rechaza H0 (estacionario)"
+"8","Dummy_elecciones","—","—","—","Solo A","—","—","Original","No","0","0","—","ADF","-41.0251","0.0010","Rechaza H0 (estacionario)"
+"9","Riesgo País ARG (EMBI+)","—","—","—","Solo A","—","—","Original","No","1","0","—","ADF","-38.4496","0.0010","Rechaza H0 (estacionario)"

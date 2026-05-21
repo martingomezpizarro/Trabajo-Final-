@@ -1092,6 +1092,11 @@ const CATALOG = [
       { id:'ofr_adv', label:'  ↳ Otras Ec. Avanzadas',        file:'ofr_fsi.csv', dateCol:'Date', valCol:'Other advanced economies', unit:'Índice', freq:'D' },
       { id:'ofr_em',  label:'  ↳ Mercados Emergentes',        file:'ofr_fsi.csv', dateCol:'Date', valCol:'Emerging markets',         unit:'Índice', freq:'D' }
     ]}
+  ]},
+  { grp:'Variables Dummy Estructurales', clr:'#f59e0b', items:[
+    { id:'dummy_elec_var', label:'Dummy_elecciones', file:'dummy_elec.csv', dateCol:'fecha', valCol:'dummy_electoral', unit:'0/1', freq:'D' },
+    { id:'dummy_cepo_var', label:'Dummy_cepo',       file:'dummy_cepo.csv', dateCol:'fecha', valCol:'dummy_cepo',      unit:'0/1', freq:'D' },
+    { id:'dummy_gob_var',  label:'Dummy_gobierno',   file:'dummy_gob.csv',  dateCol:'fecha', valCol:'gobierno_id',    unit:'id',  freq:'D' }
   ]}
 ];
 

@@ -1,0 +1,204 @@
+=== CELL 6 ===
+# ── Archivo CSV ───────────────────────────────────────────────────────────────
+# El visualizador descarga el archivo a la carpeta del navegador.
+# Copiarlo a: notebooks/Variables Regresivas/
+# Dejar None para que tome automáticamente el más reciente.
+# Para un archivo específico usar solo el nombre: 'analisis_series_2026-05-06.csv'
+CSV_ANALISIS = None   # None = el más reciente en notebooks/Variables Regresivas/
+
+# ── Variable dependiente ──────────────────────────────────────────────────────
+# Se elige en la Sección 4.5, luego de cargar y mostrar todas las series.
+
+# ── Frecuencia ────────────────────────────────────────────────────────────────
+# 'auto' = detecta la frecuencia más gruesa disponible entre todas las series
+# Alternativas explícitas: 'D' 'W' 'M' 'Q' 'A'
+FRECUENCIA = 'auto'
+
+# ── Fechas ────────────────────────────────────────────────────────────────────
+FECHA_INICIO = '2007-01-01'
+FECHA_FIN    = '2026-03-31'
+
+# ── Lags máximos ──────────────────────────────────────────────────────────────
+# Se calculan automáticamente en la Sección 4.5 usando los grados de libertad
+MAX_LAGS_DEP = 4   # rezagos Y en ARDL
+MAX_LAGS_IND = 4   # rezagos X en ARDL
+MAX_LAGS_VAR = 8   # selección de rezagos en VAR/VECM
+
+# ── Combinaciones ─────────────────────────────────────────────────────────────
+# None = TODAS las combinaciones posibles de TODOS los tamaños
+MAX_VARS_POR_MODELO = None   # None = sin límite (todas las variables)
+MAX_COMBINACIONES   = None   # None = sin límite (todas las combinaciones)
+SEMILLA             = 42
+
+# ── Criterios de información ──────────────────────────────────────────────────
+CRITERIOS_SEL = ['aic', 'bic', 'hqic']
+
+# ── Nivel de significancia ────────────────────────────────────────────────────
+NIVEL_SIG = 0.05
+
+# Modelos a correr: ejecutar independientemente secciones 7 (ARDL), 8 (VAR), 9 (VECM)
+
+print('✅ Configuración guardada.')
+
+=== CELL 8 ===
+random.seed(SEMILLA)
+np.random.seed(SEMILLA)
+
+# 1. Encontrar CSV ─────────────────────────────────────────────────────────────
+_csv_dir = Path('Variables Regresivas')
+if CSV_ANALISIS:
+    _csv_path = _csv_dir / CSV_ANALISIS if not Path(CSV_ANALISIS).is_absolute() else Path(CSV_ANALISIS)
+else:
+    _candidates = sorted(glob.glob(str(_csv_dir / 'analisis_series_*.csv')))
+    if not _candidates:
+        raise FileNotFoundError(f'No encontré analisis_series_*.csv en {_csv_dir.resolve()}')
+    _csv_path = Path(_candidates[-1])
+
+print(f'📁 CSV: {_csv_path.name}')
+
+# 2. Leer CSV ──────────────────────────────────────────────────────────────────
+df_csv = pd.read_csv(_csv_path)
+df_csv.columns = df_csv.columns.str.strip()
+for _c in ['Deflactor A', 'Deflactor B', 'Serie B', 'Operación', 'Log']:
+    if _c in df_csv.columns:
+        df_csv[_c] = df_csv[_c].fillna('—').astype(str).str.strip()
+if 'Dif.' in df_csv.columns:
+    df_csv['Dif.'] = (pd.to_numeric(
+        df_csv['Dif.'].astype(str).str.extract(r'(\d+)')[0], errors='coerce'
+    ).fillna(0).astype(int))
+
+print(f'   {len(df_csv)} variables en el CSV')
+display(df_csv[['#','Serie A','Deflactor A','Serie B','Operación','Log','Dif.']].to_string())
+
+# 3. Validar que todas las series del CSV estén en el CATALOG ─────────────────
+_validar_catalog_vs_csv(df_csv)
+
+# 4. Detectar frecuencia ───────────────────────────────────────────────────────
+if FRECUENCIA == 'auto':
+    FRECUENCIA_USADA = detectar_frecuencia(df_csv)
+    print(f'🔍 Frecuencia auto-detectada: {FRECUENCIA_USADA}')
+else:
+    FRECUENCIA_USADA = FRECUENCIA
+    print(f'📅 Frecuencia configurada: {FRECUENCIA_USADA}')
+
+# 5. Construir todas las series (sin distinción Y/X) ───────────────────────────
+print(f'\n⏳ Cargando series ({FECHA_INICIO} → {FECHA_FIN})...')
+_series  = {}   # {etiqueta: pd.Series}
+_eti_map = {}   # {índice CSV (0-based): etiqueta}
+
+for _i, _row in df_csv.iterrows():
+    try:
+        _desde = str(_row.get('Desde', '') or '').strip()
+        _hasta = str(_row.get('Hasta', '') or '').strip()
+        _fi = _desde if _desde and _desde not in ('—', '-', 'nan') else FECHA_INICIO
+        _ff = _hasta if _hasta and _hasta not in ('—', '-', 'nan') else FECHA_FIN
+        # ── Filtro: frecuencia mínima mensual ──────────────────────────────────
+        _FREQ_ORD = {'D': 0, 'W': 1, 'M': 2, 'Q': 3, 'A': 4}
+        _MAX_FREQ = 2  # M = máxima frecuencia aceptada (menor granularidad)
+        _nombre_a = str(_row.get('Serie A', '') or '').strip()
+        _nombre_b = str(_row.get('Serie B', '') or '').strip()
+        _skip_freq = False
+        for _sname in [_nombre_a, _nombre_b]:
+            if not _sname or _sname in ('', '\u2014', '-', 'nan'):
+                continue
+            if _sname in CATALOG_VIZ:
+                _meta_f = CATALOG_VIZ[_sname]
+                _freq_native = _meta_f.get('freq', 'D')
+                if 'sources' in _meta_f:
+                    _freq_native = min(
+                        [s['freq'] for s in _meta_f['sources']],
+                        key=lambda f: _FREQ_ORD.get(f, 99)
+                    )
+                if _FREQ_ORD.get(_freq_native, 0) > _MAX_FREQ:
+                    print(f'  \u23ed\ufe0f [{_i+1}] {_sname}: freq={_freq_native} > mensual \u2192 descartada')
+                    _skip_freq = True
+                    break
+        if _skip_freq:
+            continue
+
+        _s, _eti = construir_variable(_row, FRECUENCIA_USADA, _fi, _ff)
+        if _s is not None and len(_s) >= 20:
+            _series[_eti] = _s
+            _eti_map[_i]  = _eti
+            print(f'  ✅ [{_i+1}] {_eti[:75]}  →  {len(_s)} obs')
+        else:
+            print(f'  ❌ [{_i+1}] {_row["Serie A"]}: no cargó o < 20 obs')
+    except Exception as _e:
+        print(f'  ❌ [{_i+1}] {_row["Serie A"]}: {_e}')
+
+if not _series:
+    raise RuntimeError('No se cargó ninguna serie.')
+
+# 6. Panel unificado ───────────────────────────────────────────────────────────
+df_panel = pd.concat(list(_series.values()), axis=1).dropna()
+print(f'\n✅ Panel: {df_panel.shape[0]} obs × {df_panel.shape[1]} vars')
+print(f'   Período: {df_panel.index.min().date()} → {df_panel.index.max().date()}')
+
+# 7. Lista numerada para selección de variable dependiente ────────────────────
+print('\n' + '═'*70)
+print('  Series disponibles — elegí la variable dependiente en la Sección 4.5')
+print('═'*70)
+_LISTA_SERIES = list(df_panel.columns)
+for _n, _col in enumerate(_LISTA_SERIES, 1):
+    print(f'  [{_n}]  {_col}')
+print('═'*70)
+
+=== CELL 10 ===
+# ══════════════════════════════════════════════════════════════════════════════
+#  ELEGÍ LA VARIABLE DEPENDIENTE — cambiá solo el número de abajo
+#  y volvé a correr esta celda
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Auto-detecta riesgo país; si no lo encuentra usa 1
+_KEYWORDS_DEP = ['embi', 'riesgo', 'spread', 'cds', 'country risk']
+_auto_idx = next(
+    (i + 1 for i, c in enumerate(_LISTA_SERIES)
+     if any(kw in c.lower() for kw in _KEYWORDS_DEP)),
+    1
+)
+
+VARIABLE_DEPENDIENTE = _auto_idx   # ← CAMBIÁ ESTE NÚMERO SI QUERÉS OTRA VARIABLE
+
+# ── Lista disponible ──────────────────────────────────────────────────────────
+print('═' * 65)
+for _i, _c in enumerate(_LISTA_SERIES, 1):
+    marca = '  ◄ seleccionada' if _i == VARIABLE_DEPENDIENTE else ''
+    print(f'  [{_i:>2}]  {_c}{marca}')
+print('═' * 65)
+
+# ── Aplicar selección ─────────────────────────────────────────────────────────
+if not (1 <= VARIABLE_DEPENDIENTE <= len(_LISTA_SERIES)):
+    raise ValueError(f'VARIABLE_DEPENDIENTE={VARIABLE_DEPENDIENTE} fuera de rango (1–{len(_LISTA_SERIES)})')
+
+ETI_DEP  = _LISTA_SERIES[VARIABLE_DEPENDIENTE - 1]
+ETI_EXPL = [c for c in _LISTA_SERIES if c != ETI_DEP]
+
+_all_cols = [ETI_DEP] + ETI_EXPL
+COL_SAFE  = {c: f'v{i:02d}' for i, c in enumerate(_all_cols)}
+COL_LABEL = {v: k for k, v in COL_SAFE.items()}
+df_safe   = df_panel[_all_cols].rename(columns=COL_SAFE)
+Y_SAFE    = COL_SAFE[ETI_DEP]
+X_SAFE    = [COL_SAFE[e] for e in ETI_EXPL]
+
+print(f'\n✅ Y = {ETI_DEP}')
+print(f'   {len(ETI_EXPL)} variables explicativas')
+
+# Calcular MAX_LAGS según grados de libertad ────────────────────────────────
+    # (Se usa el criterio estático de la Sección 3 en lugar del dinámico para evitar explosión de lags)
+_T_obs = df_safe.shape[0]                     # observaciones efectivas
+_K_vars = len(X_SAFE) + 1                     # total de variables (Y + X)
+_K_x = len(X_SAFE)                            # solo independientes
+
+MAX_LAGS_VAR = int((_T_obs - 1) / (_K_vars + 1))
+MAX_LAGS_DEP = int((_T_obs - 1) / (_K_x + 2))
+MAX_LAGS_IND = int((_T_obs - 1) / (_K_x + 2))
+MAX_LAGS_VAR = max(1, MAX_LAGS_VAR)
+MAX_LAGS_DEP = max(1, MAX_LAGS_DEP)
+MAX_LAGS_IND = max(1, MAX_LAGS_IND)
+
+print(f'\n📐 MAX_LAGS calculados (T={_T_obs}, K={_K_vars}):')
+print(f'   MAX_LAGS_DEP = {MAX_LAGS_DEP}  (fórmula: (T-1)/(K_X+2))')
+print(f'   MAX_LAGS_IND = {MAX_LAGS_IND}  (fórmula: (T-1)/(K_X+2))')
+print(f'   MAX_LAGS_VAR = {MAX_LAGS_VAR}  (fórmula: (T-1)/(K+1))')
+
+
