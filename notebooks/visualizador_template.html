@@ -179,6 +179,7 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
     <button class="mtab active" onclick="switchTab('explorer')">📊 Explorador</button>
     <button class="mtab" onclick="switchTab('simulator')">🔧 Simulador</button>
     <button class="mtab" onclick="switchTab('analysis')">📐 Análisis</button>
+    <button class="mtab" onclick="switchTab('basico')">📈 Análisis Básico</button>
   </div>
 
   <!-- EXPLORER -->
@@ -403,6 +404,16 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- ANÁLISIS BÁSICO (reporte de 02a_analisis_basico.py) -->
+  <div id="tab-basico" class="tab-content" style="flex-direction:column">
+    <div id="bb-bar" style="display:flex;gap:8px;padding:8px 12px;background:#1f2937;color:#fff;align-items:center;flex-wrap:wrap">
+      <button class="abtn" style="background:linear-gradient(135deg,#dc2626,#991b1b);padding:6px 14px;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600" onclick="ejecutarAnalisisBasico()">▶ Ejecutar Análisis Básico</button>
+      <span id="bb-status" style="font-size:11px;opacity:.85">Guardá análisis en la pestaña 📐 Análisis, marcá uno como Dep, y ejecutá.</span>
+      <button class="abtn" style="margin-left:auto;background:#374151;padding:4px 10px;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px" onclick="recargarReporte()">↻ Recargar reporte</button>
+    </div>
+    <iframe id="bb-iframe" src="about:blank" style="flex:1;width:100%;border:0;min-height:600px;background:#fafafa"></iframe>
   </div>
 </div>
 
@@ -2742,8 +2753,10 @@ function saveAnalysis() {
 
   const ur = parseURResult();
 
+  const isFirst = window.ANALYSES.length === 0;
   window.ANALYSES.push({
     id: window.ANALYSES.length + 1,
+    dep: isFirst, // primera análisis = dependiente por defecto
     s1: s1Label, defl1, s2: s2Label, defl2, op: opLabel,
     from, to, freq, log, diff, ma,
     ur_test: ur.test, ur_stat: ur.stat, ur_pval: ur.pval, ur_result: ur.result
@@ -2752,9 +2765,15 @@ function saveAnalysis() {
   renderSavedTable();
 }
 
+function setDependiente(idx) {
+  window.ANALYSES.forEach((a, i) => { a.dep = (i === idx); });
+  renderSavedTable();
+}
+
 function renderSavedTable() {
   const cols = [
     { k:'id', l:'#' },
+    { k:'dep', l:'Dep' },
     { k:'s1', l:'Serie A' },
     { k:'defl1', l:'Deflactor A' },
     { k:'s2', l:'Serie B' },
@@ -2782,12 +2801,15 @@ function renderSavedTable() {
   cols.forEach(c => html += '<th>' + c.l + '</th>');
   html += '</tr></thead><tbody>';
 
-  window.ANALYSES.forEach(a => {
+  window.ANALYSES.forEach((a, idx) => {
     html += '<tr>';
     cols.forEach(c => {
       let val = a[c.k];
       let cls = '';
-      if (c.k === 'ur_result') {
+      if (c.k === 'dep') {
+        const checked = a.dep ? ' checked' : '';
+        val = '<input type="radio" name="anl-dep" title="Variable dependiente"' + checked + ' onchange="setDependiente(' + idx + ')">';
+      } else if (c.k === 'ur_result') {
         if (val.includes('Rechaza')) cls = ' class="ur-reject"';
         else if (val.includes('No')) cls = ' class="ur-fail"';
       }
@@ -2801,13 +2823,14 @@ function renderSavedTable() {
 
 function downloadAnalysesCSV() {
   if (window.ANALYSES.length === 0) { alert('No hay análisis para exportar'); return; }
-  const cols = ['id','s1','defl1','s2','defl2','op','from','to','freq','log','diff','ma','ur_test','ur_stat','ur_pval','ur_result'];
-  const headers = ['#','Serie A','Deflactor A','Serie B','Deflactor B','Operación','Desde','Hasta','Frecuencia','Log','Dif.','MM','Test UR','Estadístico','p-valor','Resultado (5%)'];
+  const cols = ['id','dep','s1','defl1','s2','defl2','op','from','to','freq','log','diff','ma','ur_test','ur_stat','ur_pval','ur_result'];
+  const headers = ['#','Dependiente','Serie A','Deflactor A','Serie B','Deflactor B','Operación','Desde','Hasta','Frecuencia','Log','Dif.','MM','Test UR','Estadístico','p-valor','Resultado (5%)'];
 
   let csv = headers.join(',') + '\n';
   window.ANALYSES.forEach(a => {
     const row = cols.map(c => {
-      const v = a[c];
+      let v = a[c];
+      if (c === 'dep') v = a.dep ? 'Sí' : 'No';
       return '"' + String(v).replace(/"/g, '""') + '"';
     });
     csv += row.join(',') + '\n';
@@ -2830,6 +2853,70 @@ function clearAnalyses() {
   window.ANALYSES = [];
   renderSavedTable();
 }
+
+/* ── ANÁLISIS BÁSICO (iframe + ejecución remota vía server.py) ── */
+function recargarReporte() {
+  const iframe = document.getElementById('bb-iframe');
+  iframe.src = 'reporte.html?ts=' + Date.now();
+}
+
+function ejecutarAnalisisBasico() {
+  const status = document.getElementById('bb-status');
+  if (!window.ANALYSES || window.ANALYSES.length === 0) {
+    alert('Primero guardá al menos un análisis en la pestaña 📐 Análisis.');
+    return;
+  }
+  if (!window.ANALYSES.some(a => a.dep)) {
+    alert('Marcá una variable como Dependiente (radio "Dep") en la tabla de análisis guardados.');
+    return;
+  }
+  const cols = ['id','dep','s1','defl1','s2','defl2','op','from','to','freq','log','diff','ma'];
+  const headers = ['#','Dependiente','Serie A','Deflactor A','Serie B','Deflactor B','Operación','Desde','Hasta','Frecuencia','Log','Dif.','MM'];
+  let csv = headers.join(',') + '\n';
+  window.ANALYSES.forEach(a => {
+    const row = cols.map(c => {
+      let v = a[c];
+      if (c === 'dep') v = a.dep ? 'Sí' : 'No';
+      return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    });
+    csv += row.join(',') + '\n';
+  });
+
+  status.textContent = '⏳ Ejecutando análisis básico (puede tardar 1-3 min)…';
+  fetch('/api/save-and-run', {
+    method: 'POST',
+    headers: {'Content-Type': 'text/csv;charset=utf-8'},
+    body: csv
+  })
+  .then(r => r.json())
+  .then(j => {
+    if (j.ok) {
+      status.textContent = '✅ Análisis listo. Recargando reporte…';
+      setTimeout(recargarReporte, 500);
+    } else {
+      status.textContent = '❌ Error: ' + (j.error || 'ver consola del servidor');
+      console.error('Análisis básico falló:', j);
+    }
+  })
+  .catch(e => {
+    status.textContent = '❌ No se pudo contactar al servidor. Corré: python notebooks/server.py';
+    console.error(e);
+  });
+}
+
+/* Cargar reporte la primera vez que se entra al tab Análisis Básico */
+(function wrapSwitchTabForBasico() {
+  const origSwitch = window.switchTab;
+  window.switchTab = function(t) {
+    origSwitch(t);
+    if (t === 'basico') {
+      const iframe = document.getElementById('bb-iframe');
+      if (iframe && (iframe.src === 'about:blank' || iframe.src.endsWith('about:blank'))) {
+        iframe.src = 'reporte.html?ts=' + Date.now();
+      }
+    }
+  };
+})();
 
 /* ── MA LIVE UPDATE ── */
 document.getElementById('ma-win').addEventListener('change', render);

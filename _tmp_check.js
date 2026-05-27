@@ -1,8 +1,4 @@
-<!DOCTYPE html>
-<html lang="es"><head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Visualizador — TFG ARG</title>
-<script>/**
+/**
 * plotly.js v2.32.0
 * Copyright 2012-2024, Plotly, Inc.
 * All rights reserved.
@@ -2825,25 +2821,12 @@ async function saveAnalysis() {
 
   const ur = parseURResult();
 
-  // Capturar la serie EN NIVELES (sin diff ni MA) para enviar al runner.
-  // El control anl-diff/anl-ma sirve solo para testear ADF sobre la diff,
-  // pero al panel se persiste el nivel; el runner decide por modelo si
-  // diferencia (según `estac` por serie).
+  // Capturar la serie graficada (dates+values transformados) para enviar al runner
   let dates = [], values = [];
-  const diffEl = document.getElementById('anl-diff');
-  const maEl   = document.getElementById('anl-ma');
-  const origDiff = diffEl ? diffEl.value : '0';
-  const origMa   = maEl ? maEl.value : '0';
   try {
-    if (diffEl) diffEl.value = '0';
-    if (maEl)   maEl.value   = '0';
     const d = await anlGetSeries();
     if (d && d.dates && d.values) { dates = d.dates; values = d.values; }
   } catch (e) { console.warn('No pude capturar datos:', e); }
-  finally {
-    if (diffEl) diffEl.value = origDiff;
-    if (maEl)   maEl.value   = origMa;
-  }
 
   // Estacionariedad inferida del test UR (editable después)
   let estac = 'no';
@@ -3180,5 +3163,3 @@ populateAnlSelects();
 
 // Auto-load first item
 setTimeout(() => { clickItem('res_brutas'); }, 100);
-</script>
-</body></html>

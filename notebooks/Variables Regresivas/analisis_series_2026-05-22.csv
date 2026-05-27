@@ -1,0 +1,7 @@
+#,Serie A,Deflactor A,Serie B,Deflactor B,Operación,Desde,Hasta,Frecuencia,Log,Dif.,MM,Dummies,Test UR,Estadístico,p-valor,Resultado (5%)
+"1","ITCRM Multilateral","—","—","—","Solo A","—","—","Original","No","0","0","—","—","","","—"
+"2","Reservas Brutas BCRA","PBI","—","—","Solo A","—","—","Original","No","0","0","—","—","","","—"
+"3","Brecha Cambiaria MEP/Oficial","—","—","—","Solo A","—","—","Original","Sí","0","0","—","—","","","—"
+"4","VIX — CBOE Volatility Index","—","—","—","Solo A","—","—","Original","No","0","0","—","—","","","—"
+"5","Dummy_cepo","—","—","—","Solo A","—","—","Original","No","0","0","—","—","","","—"
+"6","Dummy_elecciones","—","—","—","Solo A","—","—","Original","No","0","0","—","—","","","—"
