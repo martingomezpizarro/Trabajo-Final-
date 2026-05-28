@@ -390,6 +390,7 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
       </div>
       <div id="anl-right">
         <div id="anl-chart"></div>
+        <div id="anl-chart-diff" style="display:none"></div>
         <div id="anl-acf"></div>
         <div id="anl-pacf"></div>
         <div id="anl-saved-section">
@@ -410,10 +411,72 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
   <div id="tab-basico" class="tab-content" style="flex-direction:column">
     <div id="bb-bar" style="display:flex;gap:8px;padding:8px 12px;background:#1f2937;color:#fff;align-items:center;flex-wrap:wrap">
       <button class="abtn" style="background:linear-gradient(135deg,#dc2626,#991b1b);padding:6px 14px;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600" onclick="ejecutarAnalisisBasico()">▶ Ejecutar Análisis Básico</button>
-      <span id="bb-status" style="font-size:11px;opacity:.85">Guardá análisis en la pestaña 📐 Análisis, marcá uno como Dep, y ejecutá.</span>
+      <span id="bb-status" style="font-size:11px;opacity:.85">Configurá variables, dep, frecuencia y lags, calculá preview, y ejecutá.</span>
       <button class="abtn" style="margin-left:auto;background:#374151;padding:4px 10px;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px" onclick="recargarReporte()">↻ Recargar reporte</button>
     </div>
-    <iframe id="bb-iframe" src="about:blank" style="flex:1;width:100%;border:0;min-height:600px;background:#fafafa"></iframe>
+    <div style="flex:1;display:flex;min-height:0;overflow:hidden">
+      <!-- Panel de configuración interactivo -->
+      <div id="bb-config" style="width:380px;min-width:340px;overflow:auto;padding:10px;background:#0f172a;color:#e5e7eb;border-right:1px solid #334155;font-size:11px">
+        <h4 style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;margin:4px 0 8px;border-bottom:1px solid #334155;padding-bottom:4px">📋 Variables guardadas</h4>
+        <div id="bb-vars-list" style="max-height:30vh;overflow:auto;border:1px solid #334155;border-radius:4px;padding:4px;background:#1e293b;margin-bottom:10px">
+          <em style="color:#94a3b8;font-size:10px">Guardá análisis en la pestaña 📐 Análisis</em>
+        </div>
+
+        <h4 style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;margin:10px 0 6px;border-bottom:1px solid #334155;padding-bottom:4px">⚙️ Configuración</h4>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            <span>Frecuencia</span>
+            <select id="bb-freq" style="width:160px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+              <option value="auto">Auto (del CSV)</option>
+              <option value="D">Diaria</option>
+              <option value="W">Semanal</option>
+              <option value="M" selected>Mensual</option>
+              <option value="Q">Trimestral</option>
+            </select>
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            <span>Modelos</span>
+            <span style="display:flex;gap:6px">
+              <label><input type="checkbox" id="bb-m-ardl" checked onchange="actualizarPreviewBasico()"> ARDL</label>
+              <label><input type="checkbox" id="bb-m-var" checked onchange="actualizarPreviewBasico()"> VAR</label>
+              <label><input type="checkbox" id="bb-m-vecm" checked onchange="actualizarPreviewBasico()"> VECM</label>
+            </span>
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            <span>Max lags ARDL (dep)</span>
+            <input type="number" id="bb-lag-ardl-dep" value="3" min="1" max="12" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            <span>Max lags ARDL (ind)</span>
+            <input type="number" id="bb-lag-ardl-ind" value="3" min="1" max="12" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            <span>Max lags VAR</span>
+            <input type="number" id="bb-lag-var" value="3" min="1" max="12" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            <span>Max lags VECM (k_ar_diff)</span>
+            <input type="number" id="bb-lag-vecm" value="3" min="1" max="12" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center" title="Cota superior al número de variables por modelo. Vacío = sin tope.">
+            <span>Max vars / modelo</span>
+            <input type="number" id="bb-maxvars" value="" min="1" max="20" placeholder="todas" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+          </label>
+        </div>
+
+        <h4 style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;margin:14px 0 6px;border-bottom:1px solid #334155;padding-bottom:4px">🔢 Preview de pruebas</h4>
+        <div id="bb-preview" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:8px;font-family:'Consolas',monospace;font-size:11px;line-height:1.6">
+          <em style="color:#94a3b8">Configurá las variables y modelos para ver el conteo.</em>
+        </div>
+
+        <div style="margin-top:8px;font-size:10px;color:#94a3b8;line-height:1.4;background:#1e293b;border-left:3px solid #f59e0b;padding:6px 8px;border-radius:3px">
+          <b>⚠️ Sobre VAR y orden:</b> el VAR itera por <b>permutaciones</b> porque el orden importa para identificación Cholesky (IRF ortogonalizado). Para la <b>estimación</b> del VAR el orden no afecta los coeficientes — son equivalentes. ARDL y VECM usan <b>combinaciones</b>.
+        </div>
+      </div>
+
+      <!-- iframe del reporte (a la derecha) -->
+      <iframe id="bb-iframe" src="about:blank" style="flex:1;width:100%;border:0;min-height:600px;background:#fafafa"></iframe>
+    </div>
   </div>
 </div>
 
@@ -1063,9 +1126,17 @@ const CATALOG = [
     ]}
   ]},
   { grp:'Variables Dummy Estructurales', clr:'#f59e0b', items:[
-    { id:'dummy_elec_var', label:'Dummy_elecciones', file:'dummy_elec.csv', dateCol:'fecha', valCol:'dummy_electoral', unit:'0/1', freq:'D' },
-    { id:'dummy_cepo_var', label:'Dummy_cepo',       file:'dummy_cepo.csv', dateCol:'fecha', valCol:'dummy_cepo',      unit:'0/1', freq:'D' },
-    { id:'dummy_gob_var',  label:'Dummy_gobierno',   file:'dummy_gob.csv',  dateCol:'fecha', valCol:'gobierno_id',    unit:'id',  freq:'D' }
+    { id:'dummy_elec_var',         label:'Dummy_elecciones',          file:'dummy_elec.csv', dateCol:'fecha', valCol:'dummy_electoral',       unit:'0/1', freq:'D' },
+    { id:'dummy_cepo_var',         label:'Dummy_cepo',                file:'dummy_cepo.csv', dateCol:'fecha', valCol:'dummy_cepo',            unit:'0/1', freq:'D' },
+    { id:'dum_gob_menem',          label:'Dummy_Menem',               file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_menem',             unit:'0/1', freq:'D' },
+    { id:'dum_gob_de_la_rua',      label:'Dummy_De_la_Rua',           file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_de_la_rua',         unit:'0/1', freq:'D' },
+    { id:'dum_gob_transicion',     label:'Dummy_Transicion_2001',     file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_transicion_2001',   unit:'0/1', freq:'D' },
+    { id:'dum_gob_duhalde',        label:'Dummy_Duhalde',             file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_duhalde',           unit:'0/1', freq:'D' },
+    { id:'dum_gob_nestor',         label:'Dummy_Nestor_Kirchner',     file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_nestor_kirchner',   unit:'0/1', freq:'D' },
+    { id:'dum_gob_cristina',       label:'Dummy_Cristina_Kirchner',   file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_cristina_kirchner', unit:'0/1', freq:'D' },
+    { id:'dum_gob_macri',          label:'Dummy_Macri',               file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_macri',             unit:'0/1', freq:'D' },
+    { id:'dum_gob_alberto',        label:'Dummy_Alberto_Fernandez',   file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_alberto_fernandez', unit:'0/1', freq:'D' },
+    { id:'dum_gob_milei',          label:'Dummy_Milei',               file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_milei',             unit:'0/1', freq:'D' }
   ]}
 ];
 
@@ -2299,32 +2370,44 @@ async function anlGetSeries() {
     }
   }
 
-  // apply log/diff
+  // apply log
   if (document.getElementById('anl-log').checked) vals = vals.map(x => x > 0 ? Math.log(x) : NaN);
+
+  // Serie en niveles (post-log) y serie diferenciada N veces
   const nd = parseInt(document.getElementById('anl-diff').value)||0;
+  let valsLevels = vals.slice();
+  let valsDiff = vals.slice();
   for (let d = 0; d < nd; d++) {
-    const nv = new Array(vals.length).fill(NaN);
-    for(let i=1;i<vals.length;i++) nv[i] = vals[i]-vals[i-1];
-    vals = nv;
+    const nv = new Array(valsDiff.length).fill(NaN);
+    for(let i=1;i<valsDiff.length;i++) nv[i] = valsDiff[i]-valsDiff[i-1];
+    valsDiff = nv;
   }
+
   const ma = parseInt(document.getElementById('anl-ma').value)||0;
-  if (ma >= 2) vals = movingAvg(vals, ma);
+  if (ma >= 2) {
+    valsLevels = movingAvg(valsLevels, ma);
+    valsDiff   = movingAvg(valsDiff, ma);
+  }
 
   // date filtering
-  const fd = [], fv = [];
+  const fd = [], fvL = [], fvD = [];
   for (let i = 0; i < dates.length; i++) {
     if (fFrom && dates[i] < fFrom) continue;
     if (fTo && dates[i] > fTo) continue;
-    fd.push(dates[i]); fv.push(vals[i]);
+    fd.push(dates[i]);
+    fvL.push(valsLevels[i]);
+    fvD.push(valsDiff[i]);
   }
-  return { dates: fd, values: fv };
+  // Compat: la serie "values" devuelta es la diferenciada (lo que se grafica/testea por defecto si diff>0)
+  return { dates: fd, values: fvD, valuesLevels: fvL, valuesDiff: fvD, nd };
 }
 
 async function anlUpdate() {
   const data = await anlGetSeries();
   if (!data) return;
-  const { dates, values } = data;
-  let clean = values.map(x => isNaN(x)||x===null?null:x);
+  const { dates, valuesLevels, valuesDiff, nd } = data;
+  const cleanLev  = valuesLevels.map(x => isNaN(x)||x===null?null:x);
+  const cleanDiff = valuesDiff.map(x => isNaN(x)||x===null?null:x);
   const lags = parseInt(document.getElementById('anl-lags').value)||40;
 
   const s1Label = IDX[document.getElementById('anl-s1').value]?.label || '';
@@ -2332,9 +2415,25 @@ async function anlUpdate() {
   const op  = document.getElementById('anl-op').value;
   const title = s2 && op!=='A' ? `${s1Label} ${op} ${IDX[s2]?.label}` : s1Label;
 
-  Plotly.react('anl-chart', [{ x:dates, y:clean, mode:'lines', line:{color:'#7c3aed',width:1.5},
+  // Gráfico 1: niveles
+  Plotly.react('anl-chart', [{ x:dates, y:cleanLev, mode:'lines', line:{color:'#7c3aed',width:1.5},
     hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.4g}</b><extra></extra>' }],
-    Object.assign(mkLayout(title, '', []),{ height:undefined }), CONF);
+    Object.assign(mkLayout(title + (nd>0 ? ' — Niveles' : ''), '', []),{ height:undefined }), CONF);
+
+  // Gráfico 2: serie diferenciada (visible solo si diff > 0)
+  const diffDiv = document.getElementById('anl-chart-diff');
+  if (nd > 0) {
+    diffDiv.style.display = 'block';
+    Plotly.react('anl-chart-diff', [{ x:dates, y:cleanDiff, mode:'lines', line:{color:'#10b981',width:1.5},
+      hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.4g}</b><extra></extra>' }],
+      Object.assign(mkLayout(title + ` — ${nd}ª Diferencia`, '', []),{ height:undefined }), CONF);
+  } else {
+    diffDiv.style.display = 'none';
+  }
+
+  // El resto (ACF/PACF/residuos) usa la serie diferenciada si nd>0, niveles si nd=0
+  const values = nd > 0 ? valuesDiff : valuesLevels;
+  let clean = values.map(x => isNaN(x)||x===null?null:x);
 
   // Error Analysis / GARCH
   const residMode = document.getElementById('anl-resid').value;
@@ -2443,37 +2542,35 @@ function computePACF(vals, maxLag) {
 async function runUnitRootTest() {
   const data = await anlGetSeries();
   if (!data) return;
-  const { values } = data;
-  const clean = values.filter(x => x !== null && !isNaN(x));
-  if (clean.length < 20) { document.getElementById('adf-box').textContent = 'Datos insuficientes (< 20 obs.)'; return; }
+  const { valuesLevels, valuesDiff, nd } = data;
 
   const testType = document.getElementById('anl-ur-test').value;
   const trend = document.getElementById('anl-ur-trend').value;
-  const lags = 4; // default
-  
-  let result;
-  let testName = '';
-  if (testType === 'adf') {
-    result = adfTest(clean, lags, trend);
-    testName = `ADF Test (${lags} lags)`;
-  } else {
-    result = ppTest(clean, trend);
-    testName = `Phillips-Perron Test`;
-  }
-  
+  const lags = 4;
   const termName = { nc:'Sin Constante', c:'Con Constante', ct:'Constante y Tendencia' }[trend];
+  const testLabel = testType === 'adf' ? `ADF Test (${lags} lags)` : 'Phillips-Perron Test';
+  const runTest = (y) => testType === 'pp' ? ppTest(y, trend) : adfTest(y, lags, trend);
 
-  const box = document.getElementById('adf-box');
-  box.innerHTML = `<b style="color:#a78bfa">${testName} — ${termName}</b>\n` +
-    `Estadístico t: <b style="color:#${result.stat < result.cv05 ? '10b981':'ef4444'}">${result.stat.toFixed(4)}</b>\n` +
-    `Valor crítico 1%: <b>${result.cv01.toFixed(4)}</b>\n` +
-    `Valor crítico 5%: <b>${result.cv05.toFixed(4)}</b>\n` +
-    `Valor crítico 10%: <b>${result.cv10.toFixed(4)}</b>\n` +
-    `p-valor ≈: <b>${result.pval.toFixed(4)}</b>\n` +
-    `N obs.: ${clean.length}\n\n` +
-    `<b style="color:${result.stat < result.cv05 ? '#10b981':'#fbbf24'}">` +
-    (result.stat < result.cv05 ? '✓ Rechaza raíz unitaria al 5% (estacionaria)' : '✗ No rechaza raíz unitaria al 5% (no estacionaria)') +
-    `</b>`;
+  const renderResult = (titulo, serie) => {
+    const clean = serie.filter(x => x !== null && !isNaN(x));
+    if (clean.length < 20) return `<b style="color:#a78bfa">${titulo}</b>\nDatos insuficientes (< 20 obs).\n`;
+    const r = runTest(clean);
+    const ok = r.stat < r.cv05;
+    return `<b style="color:#a78bfa">${titulo}</b>\n` +
+      `Estadístico t: <b style="color:#${ok ? '10b981':'ef4444'}">${r.stat.toFixed(4)}</b>\n` +
+      `VC 1%/5%/10%: <b>${r.cv01.toFixed(2)} / ${r.cv05.toFixed(2)} / ${r.cv10.toFixed(2)}</b>\n` +
+      `p-valor ≈: <b>${r.pval.toFixed(4)}</b>  · N obs: ${clean.length}\n` +
+      `<b style="color:${ok ? '#10b981':'#fbbf24'}">${ok ? '✓ Rechaza H0 (estacionaria)' : '✗ No rechaza H0 (no estacionaria)'}</b>\n`;
+  };
+
+  let html = '<b style="color:#a78bfa">' + testLabel + ' — ' + termName + '</b>\n\n';
+  html += renderResult('🔹 Niveles', valuesLevels);
+  if (nd > 0) {
+    html += '\n' + renderResult(`🔸 ${nd}ª Diferencia`, valuesDiff);
+  } else {
+    html += '\n<i style="color:#94a3b8">(Subí "Diferencias" a 1 o más para testear también la serie diferenciada)</i>';
+  }
+  document.getElementById('adf-box').innerHTML = html;
 }
 
 function getURCriticalValues(trend) {
@@ -2732,7 +2829,41 @@ function parseURResult() {
   return { test, stat, pval, result: res };
 }
 
-function saveAnalysis() {
+/* Convierte un label legible a un id "safe" en snake_case ASCII */
+function toSafeId(label) {
+  const map = {'á':'a','é':'e','í':'i','ó':'o','ú':'u','ñ':'n','Á':'A','É':'E','Í':'I','Ó':'O','Ú':'U','Ñ':'N','ü':'u','Ü':'U'};
+  let s = String(label||'').split('').map(c => map[c]||c).join('');
+  s = s.normalize('NFKD').replace(/[̀-ͯ]/g, '');
+  s = s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return s || 'serie';
+}
+
+/* Detecta orden de integración a partir de la serie en NIVELES.
+   Estrategia: testea en niveles → si rechaza, I(0).
+   Si no, testea en 1ª diferencia → si rechaza, I(1).
+   Si no, I(2)+ (descarta para ARDL/VAR/VECM). */
+function detectarOrdenIntegracion(valuesLevels) {
+  const cleanL = valuesLevels.filter(x => x !== null && !isNaN(x));
+  if (cleanL.length < 25) return { orden: 2, estacionariedad: 'no', motivo: 'pocos_datos' };
+  const trend = document.getElementById('anl-ur-trend').value || 'c';
+  const testType = document.getElementById('anl-ur-test').value || 'adf';
+  const runTest = (y) => testType === 'pp' ? ppTest(y, trend) : adfTest(y, 4, trend);
+
+  const r0 = runTest(cleanL);
+  if (!isNaN(r0.stat) && r0.stat < r0.cv05) {
+    return { orden: 0, estacionariedad: 'niveles', stat0: r0.stat, pval0: r0.pval };
+  }
+
+  const d1 = cleanL.slice(1).map((v,i) => v - cleanL[i]);
+  const r1 = runTest(d1);
+  if (!isNaN(r1.stat) && r1.stat < r1.cv05) {
+    return { orden: 1, estacionariedad: 'diff', stat0: r0.stat, pval0: r0.pval, stat1: r1.stat, pval1: r1.pval };
+  }
+
+  return { orden: 2, estacionariedad: 'no', stat0: r0.stat, pval0: r0.pval, stat1: r1.stat, pval1: r1.pval };
+}
+
+async function saveAnalysis() {
   const s1 = document.getElementById('anl-s1').value;
   if (!s1) { alert('Seleccioná una Serie A primero'); return; }
 
@@ -2748,26 +2879,64 @@ function saveAnalysis() {
   const to = document.getElementById('anl-to').value || '—';
   const freq = document.getElementById('anl-freq').value || 'Original';
   const log = document.getElementById('anl-log').checked ? 'Sí' : 'No';
-  const diff = document.getElementById('anl-diff').value || '0';
+  const diffUI = document.getElementById('anl-diff').value || '0';
+  // Forzamos diff=0 en el CSV porque los valores guardados son NIVELES.
+  // La diferenciación efectiva la decide 02a a partir del orden detectado.
+  const diff = '0';
   const ma = document.getElementById('anl-ma').value || '0';
 
+  // Obtener la serie. Guardamos NIVELES (post-log/MA pero antes del diff)
+  // para que el runner aplique su propio diff según el orden detectado.
+  const data = await anlGetSeries();
+  if (!data || !data.valuesLevels || data.valuesLevels.length === 0) {
+    alert('No se pudo obtener la serie. Asegurate que esté cargada en el panel de la izquierda.');
+    return;
+  }
+
+  // Auto-detectar orden de integración sobre la serie en NIVELES (no la diferenciada)
+  const ord = detectarOrdenIntegracion(data.valuesLevels);
+
+  // Etiqueta humana (los datos guardados son los NIVELES, no se anota el diff acá
+  // porque el runner aplicará la diferencia según el orden detectado)
+  let labelHum = s1Label;
+  if (op !== 'A' && s2Label !== '—') labelHum = `${s1Label} ${op} ${s2Label}`;
+  if (log === 'Sí') labelHum = 'log(' + labelHum + ')';
+  const safe = toSafeId(labelHum) + '_' + (window.ANALYSES.length + 1);
+
+  // Texto del test (el último que el usuario apretó, si hay; si no, el del detector)
   const ur = parseURResult();
+  const urText = ur.test !== '—' ? ur.test : (document.getElementById('anl-ur-test').value || 'adf').toUpperCase();
+  const urStat = ur.stat || (ord.stat0 != null ? ord.stat0.toFixed(4) : '');
+  const urPval = ur.pval || (ord.pval0 != null ? ord.pval0.toFixed(4) : '');
+  const urResult = ord.orden === 0
+    ? 'I(0) — estacionaria en niveles'
+    : (ord.orden === 1
+        ? 'I(1) — estacionaria en 1ª diferencia'
+        : 'I(2)+ — no estacionaria hasta 1ª diff');
 
   const isFirst = window.ANALYSES.length === 0;
   window.ANALYSES.push({
     id: window.ANALYSES.length + 1,
-    dep: isFirst, // primera análisis = dependiente por defecto
+    dep: isFirst,
     s1: s1Label, defl1, s2: s2Label, defl2, op: opLabel,
     from, to, freq, log, diff, ma,
-    ur_test: ur.test, ur_stat: ur.stat, ur_pval: ur.pval, ur_result: ur.result
+    ur_test: urText, ur_stat: urStat, ur_pval: urPval, ur_result: urResult,
+    orden: ord.orden,
+    estacionariedad: ord.estacionariedad,
+    safe, label: labelHum,
+    dates: data.dates, values: data.valuesLevels,
   });
 
   renderSavedTable();
+  if (typeof renderBasicoVarsList === 'function') renderBasicoVarsList();
+  if (typeof actualizarPreviewBasico === 'function') actualizarPreviewBasico();
 }
 
 function setDependiente(idx) {
   window.ANALYSES.forEach((a, i) => { a.dep = (i === idx); });
   renderSavedTable();
+  if (typeof renderBasicoVarsList === 'function') renderBasicoVarsList();
+  if (typeof actualizarPreviewBasico === 'function') actualizarPreviewBasico();
 }
 
 function renderSavedTable() {
@@ -2788,7 +2957,7 @@ function renderSavedTable() {
     { k:'ur_test', l:'Test UR' },
     { k:'ur_stat', l:'Estadístico' },
     { k:'ur_pval', l:'p-valor' },
-    { k:'ur_result', l:'Resultado (5%)' }
+    { k:'ur_result', l:'Orden I()' }
   ];
 
   const table = document.getElementById('anl-saved-table');
@@ -2810,8 +2979,10 @@ function renderSavedTable() {
         const checked = a.dep ? ' checked' : '';
         val = '<input type="radio" name="anl-dep" title="Variable dependiente"' + checked + ' onchange="setDependiente(' + idx + ')">';
       } else if (c.k === 'ur_result') {
-        if (val.includes('Rechaza')) cls = ' class="ur-reject"';
-        else if (val.includes('No')) cls = ' class="ur-fail"';
+        const ord = a.orden;
+        if (ord === 0) cls = ' class="ur-reject"';
+        else if (ord === 1) cls = ' class="ur-reject"';
+        else cls = ' class="ur-fail"';
       }
       html += '<td' + cls + '>' + val + '</td>';
     });
@@ -2854,10 +3025,159 @@ function clearAnalyses() {
   renderSavedTable();
 }
 
-/* ── ANÁLISIS BÁSICO (iframe + ejecución remota vía server.py) ── */
+/* ── ANÁLISIS BÁSICO (panel interactivo + iframe + ejecución remota) ── */
 function recargarReporte() {
   const iframe = document.getElementById('bb-iframe');
   iframe.src = 'reporte.html?ts=' + Date.now();
+}
+
+/* Renderiza la lista de variables guardadas dentro del panel Básico,
+   con radio "Dep" que actualiza window.ANALYSES y orden coloreado. */
+function renderBasicoVarsList() {
+  const cont = document.getElementById('bb-vars-list');
+  if (!cont) return;
+  const A = window.ANALYSES || [];
+  if (A.length === 0) {
+    cont.innerHTML = '<em style="color:#94a3b8;font-size:10px">Guardá análisis en la pestaña 📐 Análisis</em>';
+    return;
+  }
+  let h = '<table style="width:100%;border-collapse:collapse;font-size:10.5px">';
+  h += '<thead><tr style="background:#0f172a;color:#a78bfa">' +
+       '<th style="padding:3px 4px;text-align:left">Dep</th>' +
+       '<th style="padding:3px 4px;text-align:left">#</th>' +
+       '<th style="padding:3px 4px;text-align:left">Variable</th>' +
+       '<th style="padding:3px 4px;text-align:center">Orden</th>' +
+       '</tr></thead><tbody>';
+  A.forEach((a, i) => {
+    const ordTxt = a.orden === 0 ? 'I(0)' : (a.orden === 1 ? 'I(1)' : 'I(2)+');
+    const ordCol = a.orden === 0 ? '#10b981' : (a.orden === 1 ? '#3b82f6' : '#ef4444');
+    const checked = a.dep ? ' checked' : '';
+    const dispLabel = (a.label || a.s1 || '—');
+    h += '<tr style="border-top:1px solid #334155">' +
+         `<td style="padding:3px 4px"><input type="radio" name="bb-dep" ${checked} onchange="setDependienteBasico(${i})"></td>` +
+         `<td style="padding:3px 4px">${a.id}</td>` +
+         `<td style="padding:3px 4px" title="${dispLabel}">${dispLabel.length > 36 ? dispLabel.slice(0,33) + '…' : dispLabel}</td>` +
+         `<td style="padding:3px 4px;text-align:center;color:${ordCol};font-weight:600">${ordTxt}</td>` +
+         '</tr>';
+  });
+  h += '</tbody></table>';
+  cont.innerHTML = h;
+}
+
+function setDependienteBasico(idx) {
+  (window.ANALYSES || []).forEach((a, i) => { a.dep = (i === idx); });
+  renderBasicoVarsList();
+  renderSavedTable();
+  actualizarPreviewBasico();
+}
+
+/* Recalcula combinatoria sobre el estado actual (mismas reglas que el runner). */
+function calcularPreviewBasico() {
+  const A = window.ANALYSES || [];
+  if (A.length === 0) return null;
+  const dep = A.find(a => a.dep);
+  if (!dep) return { error: 'Marcá una variable como Dependiente.' };
+
+  // Modelos
+  const modelos = [];
+  if (document.getElementById('bb-m-ardl').checked) modelos.push('ARDL');
+  if (document.getElementById('bb-m-var').checked)  modelos.push('VAR');
+  if (document.getElementById('bb-m-vecm').checked) modelos.push('VECM');
+
+  // Vars elegibles (excluyendo la dep): orden <= 1 para ARDL/VAR; orden == 1 para VECM
+  const X = A.filter(a => !a.dep);
+  const X_est = X.filter(a => (a.orden ?? 2) <= 1).length;
+  const X_i1  = X.filter(a => (a.orden ?? 2) === 1).length;
+  const y_ord = dep.orden ?? 0;
+
+  const maxVarsRaw = document.getElementById('bb-maxvars').value;
+  const maxVars = maxVarsRaw ? Math.max(1, parseInt(maxVarsRaw)) : null;
+
+  const lagArdlDep = parseInt(document.getElementById('bb-lag-ardl-dep').value) || 3;
+  const lagArdlInd = parseInt(document.getElementById('bb-lag-ardl-ind').value) || 3;
+  const lagVar     = parseInt(document.getElementById('bb-lag-var').value)      || 3;
+  const lagVecm    = parseInt(document.getElementById('bb-lag-vecm').value)     || 3;
+
+  // Criterios ARDL: el script usa AIC+BIC por defecto (2). El optimizador interno
+  // (ardl_select_order) enumera (Pmax+1) lags de dep × (Qmax+1) lags por cada X
+  // y se queda con el mejor según criterio. Cada criterio hace su propia búsqueda.
+  const N_CRIT_ARDL = 2;
+  const P1 = lagArdlDep + 1;     // 0..Pmax → Pmax+1 valores
+  const Q1 = lagArdlInd + 1;     // 0..Qmax → Qmax+1 valores
+
+  const _comb = (n, r) => {
+    if (r < 0 || r > n) return 0;
+    r = Math.min(r, n - r);
+    let c = 1;
+    for (let i = 0; i < r; i++) c = c * (n - i) / (i + 1);
+    return Math.round(c);
+  };
+  const _fact = (n) => { let f = 1; for (let i = 2; i <= n; i++) f *= i; return f; };
+
+  let n_combos_est = 0, n_perms_var = 0, n_combos_i1 = 0;
+  // ARDL internal fits = sum_r C(n,r) * P1 * Q1^r  (× N_CRIT)
+  let n_ardl_fits = 0;
+  const cap_est = maxVars == null ? X_est : Math.min(maxVars, X_est);
+  const cap_i1  = maxVars == null ? X_i1  : Math.min(maxVars, X_i1);
+  for (let r = 1; r <= cap_est; r++) {
+    const c = _comb(X_est, r);
+    n_combos_est += c;
+    n_perms_var  += c * _fact(r);
+    n_ardl_fits  += c * P1 * Math.pow(Q1, r);
+  }
+  for (let r = 1; r <= cap_i1; r++) {
+    n_combos_i1 += _comb(X_i1, r);
+  }
+
+  const n_ardl = modelos.includes('ARDL') ? Math.round(n_ardl_fits * N_CRIT_ARDL) : 0;
+  const n_var  = modelos.includes('VAR')  ? n_perms_var * lagVar : 0;
+  const n_vecm = (modelos.includes('VECM') && y_ord === 1 && X_i1 > 0) ? n_combos_i1 * lagVecm : 0;
+
+  return {
+    dep: dep.label || dep.s1, y_orden: y_ord,
+    n_vars_total: X.length, n_vars_est: X_est, n_vars_i1: X_i1,
+    n_combos_est, n_perms_var, n_combos_i1,
+    lagArdlDep, lagArdlInd, lagVar, lagVecm,
+    n_ardl_fits: Math.round(n_ardl_fits),
+    n_ardl, n_var, n_vecm, n_total: n_ardl + n_var + n_vecm,
+    modelos,
+  };
+}
+
+function actualizarPreviewBasico() {
+  const box = document.getElementById('bb-preview');
+  if (!box) return;
+  const p = calcularPreviewBasico();
+  if (!p) {
+    box.innerHTML = '<em style="color:#94a3b8">Sin variables guardadas.</em>';
+    return;
+  }
+  if (p.error) {
+    box.innerHTML = '<span style="color:#fbbf24">⚠️ ' + p.error + '</span>';
+    return;
+  }
+  const fmt = (n) => n.toLocaleString();
+  const depTxt = (p.dep || '').toString();
+  const depShort = depTxt.length > 30 ? depTxt.slice(0, 27) + '…' : depTxt;
+  let h = '';
+  h += `<div><b style="color:#a78bfa">Dep:</b> ${depShort} <span style="color:#94a3b8">[I(${p.y_orden})]</span></div>`;
+  h += `<div><b style="color:#a78bfa">X:</b> ${p.n_vars_total} total · ${p.n_vars_est} I(0|1) · ${p.n_vars_i1} I(1)</div>`;
+  h += '<div style="border-top:1px solid #334155;margin:4px 0"></div>';
+  h += `<div>ARDL: <b>${fmt(p.n_ardl)}</b></div>`;
+  h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_est)} subsets de X · enumera ${p.lagArdlDep+1} lags dep (0..${p.lagArdlDep}) × ${p.lagArdlInd+1} lags por cada X (0..${p.lagArdlInd}) · ×2 criterios (AIC, BIC)</div>`;
+  h += `<div>VAR:&nbsp; <b>${fmt(p.n_var)}</b></div>`;
+  h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_est)} subsets · ${fmt(p.n_perms_var)} ordenamientos Cholesky totales (Y siempre al final) · k∈{1..${p.lagVar}}</div>`;
+  if (p.y_orden !== 1) {
+    h += `<div>VECM: <span style="color:#94a3b8">no aplica (Y no I(1))</span></div>`;
+  } else if (p.n_vars_i1 === 0) {
+    h += `<div>VECM: <span style="color:#94a3b8">no aplica (ningún X I(1))</span></div>`;
+  } else {
+    h += `<div>VECM: <b>${fmt(p.n_vecm)}</b></div>`;
+    h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_i1)} subsets de X I(1) · k_ar_diff∈{1..${p.lagVecm}}</div>`;
+  }
+  h += '<div style="border-top:1px solid #334155;margin:4px 0"></div>';
+  h += `<div style="color:#10b981"><b>Total: ${fmt(p.n_total)} estimaciones</b></div>`;
+  box.innerHTML = h;
 }
 
 function ejecutarAnalisisBasico() {
@@ -2870,8 +3190,8 @@ function ejecutarAnalisisBasico() {
     alert('Marcá una variable como Dependiente (radio "Dep") en la tabla de análisis guardados.');
     return;
   }
-  const cols = ['id','dep','s1','defl1','s2','defl2','op','from','to','freq','log','diff','ma'];
-  const headers = ['#','Dependiente','Serie A','Deflactor A','Serie B','Deflactor B','Operación','Desde','Hasta','Frecuencia','Log','Dif.','MM'];
+  const cols = ['id','dep','s1','defl1','s2','defl2','op','from','to','freq','log','diff','ma','orden','estacionariedad','safe','label'];
+  const headers = ['#','Dependiente','Serie A','Deflactor A','Serie B','Deflactor B','Operación','Desde','Hasta','Frecuencia','Log','Dif.','MM','Orden_I','Estacionariedad','Safe','Label'];
   let csv = headers.join(',') + '\n';
   window.ANALYSES.forEach(a => {
     const row = cols.map(c => {
@@ -2882,8 +3202,29 @@ function ejecutarAnalisisBasico() {
     csv += row.join(',') + '\n';
   });
 
+  // Recoger config del panel Básico para pasarla a 02a vía query string
+  const qs = new URLSearchParams();
+  const freqEl = document.getElementById('bb-freq');
+  if (freqEl && freqEl.value && freqEl.value !== 'auto') qs.set('freq', freqEl.value);
+  const lagPairs = [
+    ['lag_ardl_dep', 'bb-lag-ardl-dep'],
+    ['lag_ardl_ind', 'bb-lag-ardl-ind'],
+    ['lag_var',      'bb-lag-var'],
+    ['lag_vecm',     'bb-lag-vecm'],
+    ['max_vars',     'bb-maxvars'],
+  ];
+  lagPairs.forEach(([k, id]) => {
+    const el = document.getElementById(id);
+    if (el && el.value) qs.set(k, el.value);
+  });
+  const modelos = [];
+  if (document.getElementById('bb-m-ardl')?.checked) modelos.push('ARDL');
+  if (document.getElementById('bb-m-var')?.checked)  modelos.push('VAR');
+  if (document.getElementById('bb-m-vecm')?.checked) modelos.push('VECM');
+  if (modelos.length) qs.set('modelos', modelos.join(','));
+
   status.textContent = '⏳ Ejecutando análisis básico (puede tardar 1-3 min)…';
-  fetch('/api/save-and-run', {
+  fetch('/api/save-and-run?' + qs.toString(), {
     method: 'POST',
     headers: {'Content-Type': 'text/csv;charset=utf-8'},
     body: csv
@@ -2904,7 +3245,8 @@ function ejecutarAnalisisBasico() {
   });
 }
 
-/* Cargar reporte la primera vez que se entra al tab Análisis Básico */
+/* Cargar reporte la primera vez que se entra al tab Análisis Básico
+   y refrescar la lista de variables + preview cada vez */
 (function wrapSwitchTabForBasico() {
   const origSwitch = window.switchTab;
   window.switchTab = function(t) {
@@ -2914,6 +3256,8 @@ function ejecutarAnalisisBasico() {
       if (iframe && (iframe.src === 'about:blank' || iframe.src.endsWith('about:blank'))) {
         iframe.src = 'reporte.html?ts=' + Date.now();
       }
+      renderBasicoVarsList();
+      actualizarPreviewBasico();
     }
   };
 })();

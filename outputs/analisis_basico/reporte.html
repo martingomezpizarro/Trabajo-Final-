@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="utf-8">
-<title>Análisis Básico — Riesgo País ARG | ITCRM Multilateral</title>
+<title>Análisis Básico — Riesgo País ARG | Reservas Brutas BCRA</title>
 <style>
  body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:0;color:#222;background:#fafafa}
  header{background:#1f2937;color:#fff;padding:20px 32px;position:sticky;top:0;z-index:10}
@@ -33,20 +33,20 @@
     <button onclick="runAll()" style="float:right;padding:6px 12px;background:#dc2626;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:12px">🔄 Re-correr TODO</button>
   </h1>
   <div style="font-size:13px;opacity:.85">
-    Y = <b>ITCRM Multilateral</b> · Frecuencia: D (cap 3 lags) · Generado: 2026-05-25 22:00
+    Y = <b>Reservas Brutas BCRA</b> · Frecuencia: M (cap 3 lags) · Generado: 2026-05-27 19:48
   </div>
-  <nav><a href="#sec3">§ 3</a><a href="#sec5">§ 5</a><a href="#sec6">§ 6</a><a href="#sec7">§ 7</a><a href="#sec8">§ 8</a><a href="#sec9">§ 9</a><a href="#sec10">§ 10</a><a href="#sec11">§ 11</a></nav>
+  <nav><a href="#sec3">§ 3</a><a href="#sec5">§ 5</a><a href="#sec6">§ 6</a><a href="#sec8">§ 8</a><a href="#sec9">§ 9</a><a href="#sec10">§ 10</a></nav>
 </header>
 <main>
   
     <section id="sec3">
       <h2>3-4. Configuración y panel <button id="btn-sec3" onclick="runSection('3')" style="float:right;padding:4px 10px;background:#1f2937;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px">🔁 Re-ejecutar</button></h2>
       <ul>
-        <li>Variable dependiente: <b>ITCRM Multilateral</b></li>
-        <li>Frecuencia detectada: <b>D</b> (cap de lags = 3)</li>
-        <li>Observaciones: <b>3158</b></li>
-        <li>Variables explicativas: <b>5</b></li>
-        <li>Período: 2010-02-22 → 2026-03-31</li>
+        <li>Variable dependiente: <b>Reservas Brutas BCRA</b></li>
+        <li>Frecuencia detectada: <b>M</b> (cap de lags = 3)</li>
+        <li>Observaciones: <b>194</b></li>
+        <li>Variables explicativas: <b>2</b></li>
+        <li>Período: 2010-02-28 → 2026-03-31</li>
         <li>Nivel de significancia: α = 0.05</li>
       </ul>
     </section>
@@ -67,103 +67,29 @@
   </thead>
   <tbody>
     <tr>
+      <td>Reservas Brutas BCRA</td>
+      <td>NO</td>
+      <td>SI</td>
+      <td>I(1)</td>
+    </tr>
+    <tr>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>NO</td>
+      <td>SI</td>
+      <td>I(1)</td>
+    </tr>
+    <tr>
       <td>ITCRM Multilateral</td>
       <td>NO</td>
       <td>SI</td>
       <td>I(1)</td>
     </tr>
-    <tr>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>NO</td>
-      <td>SI</td>
-      <td>I(1)</td>
-    </tr>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>NO</td>
-      <td>SI</td>
-      <td>I(1)</td>
-    </tr>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>NO</td>
-      <td>SI</td>
-      <td>I(1)</td>
-    </tr>
-    <tr>
-      <td>Dummy_cepo</td>
-      <td>NO</td>
-      <td>SI</td>
-      <td>I(1)</td>
-    </tr>
-    <tr>
-      <td>Dummy_elecciones</td>
-      <td>SI</td>
-      <td>SI</td>
-      <td>I(0)</td>
-    </tr>
   </tbody>
 </table>
         </section>
-    <section id="sec7">
-      <h2>7. Modelos ARDL <button id="btn-sec7" onclick="runSection('7')" style="float:right;padding:4px 10px;background:#1f2937;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px">🔁 Re-ejecutar</button></h2>
-      <p>Total estimados: <b>4</b> | Con ruido blanco (LB): <b>4</b></p>
-      <figure><img src="sec07_ccf_bj.png" alt="sec07_ccf_bj"><figcaption>CCF Box-Jenkins (X blanqueada vs Y filtrada)</figcaption></figure>
-      <h4>Top 10 ARDL por AIC</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>ARDL</td>
-      <td>Reservas Brutas BCRA/PBI|VIX — CBOE Volatility Index</td>
-      <td>13212.9901</td>
-      <td>13261.4440</td>
-      <td>13230.3742</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>ARDL</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>13214.1617</td>
-      <td>13250.5022</td>
-      <td>13227.1998</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>ARDL</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>13214.1617</td>
-      <td>13250.5022</td>
-      <td>13227.1998</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>ARDL</td>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>13223.1375</td>
-      <td>13259.4780</td>
-      <td>13236.1756</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-  </tbody>
-</table>
-    </section>
     <section id="sec8">
       <h2>8. Modelos VAR (Cholesky) <button id="btn-sec8" onclick="runSection('8')" style="float:right;padding:4px 10px;background:#1f2937;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px">🔁 Re-ejecutar</button></h2>
-      <p>Total estimados: <b>45</b> | Con ruido blanco (LB en Y): <b>30</b></p>
+      <p>Total estimados: <b>12</b> | Con ruido blanco (LB en Y): <b>1</b></p>
       <h4>Top 10 VAR por AIC</h4><table class="dataframe tbl">
   <thead>
     <tr style="text-align: left;">
@@ -182,131 +108,131 @@
   <tbody>
     <tr>
       <td>VAR</td>
-      <td>log(Brecha Camb</td>
-      <td>3</td>
-      <td>-0.0684</td>
-      <td>-0.0338</td>
-      <td>-0.0560</td>
-      <td>0.0129</td>
-      <td>0.6408</td>
-      <td>True</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb</td>
+      <td>Brecha Cambiari</td>
       <td>2</td>
-      <td>-0.0435</td>
-      <td>-0.0166</td>
-      <td>-0.0338</td>
-      <td>0.0126</td>
-      <td>0.6174</td>
-      <td>True</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb</td>
-      <td>1</td>
-      <td>0.0687</td>
-      <td>0.0879</td>
-      <td>0.0756</td>
-      <td>0.0026</td>
-      <td>0.0000</td>
+      <td>10.8077</td>
+      <td>10.9779</td>
+      <td>10.8766</td>
+      <td>0.1529</td>
+      <td>0.0017</td>
       <td>False</td>
-      <td>3156</td>
+      <td>191</td>
     </tr>
     <tr>
       <td>VAR</td>
-      <td>log(Brecha Camb|VIX — CBOE Vola</td>
+      <td>Brecha Cambiari</td>
       <td>3</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>0.6465</td>
-      <td>True</td>
-      <td>3154</td>
+      <td>10.8294</td>
+      <td>11.0687</td>
+      <td>10.9263</td>
+      <td>0.1776</td>
+      <td>0.0365</td>
+      <td>False</td>
+      <td>190</td>
     </tr>
     <tr>
       <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb</td>
+      <td>Brecha Cambiari</td>
+      <td>1</td>
+      <td>10.8355</td>
+      <td>10.9373</td>
+      <td>10.8767</td>
+      <td>0.1437</td>
+      <td>0.0013</td>
+      <td>False</td>
+      <td>192</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|ITCRM Multilate</td>
+      <td>2</td>
+      <td>13.7415</td>
+      <td>14.0990</td>
+      <td>13.8863</td>
+      <td>0.1584</td>
+      <td>0.0005</td>
+      <td>False</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate|Brecha Cambiari</td>
+      <td>2</td>
+      <td>13.7415</td>
+      <td>14.0990</td>
+      <td>13.8863</td>
+      <td>0.1584</td>
+      <td>0.0005</td>
+      <td>False</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|ITCRM Multilate</td>
       <td>3</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>0.6465</td>
-      <td>True</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb</td>
-      <td>2</td>
-      <td>1.2983</td>
-      <td>1.3501</td>
-      <td>1.3169</td>
-      <td>0.0141</td>
-      <td>0.6195</td>
-      <td>True</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|VIX — CBOE Vola</td>
-      <td>2</td>
-      <td>1.2983</td>
-      <td>1.3501</td>
-      <td>1.3169</td>
-      <td>0.0141</td>
-      <td>0.6195</td>
-      <td>True</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|VIX — CBOE Vola</td>
-      <td>1</td>
-      <td>1.4089</td>
-      <td>1.4435</td>
-      <td>1.4213</td>
-      <td>0.0042</td>
-      <td>0.0000</td>
+      <td>13.7928</td>
+      <td>14.3055</td>
+      <td>14.0004</td>
+      <td>0.1906</td>
+      <td>0.0184</td>
       <td>False</td>
-      <td>3156</td>
+      <td>190</td>
     </tr>
     <tr>
       <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb</td>
-      <td>1</td>
-      <td>1.4089</td>
-      <td>1.4435</td>
-      <td>1.4213</td>
-      <td>0.0042</td>
-      <td>0.0000</td>
+      <td>ITCRM Multilate|Brecha Cambiari</td>
+      <td>3</td>
+      <td>13.7928</td>
+      <td>14.3055</td>
+      <td>14.0004</td>
+      <td>0.1906</td>
+      <td>0.0184</td>
       <td>False</td>
-      <td>3156</td>
+      <td>190</td>
     </tr>
     <tr>
       <td>VAR</td>
-      <td>VIX — CBOE Vola</td>
+      <td>Brecha Cambiari|ITCRM Multilate</td>
+      <td>1</td>
+      <td>13.8176</td>
+      <td>14.0212</td>
+      <td>13.9001</td>
+      <td>0.1478</td>
+      <td>0.0006</td>
+      <td>False</td>
+      <td>192</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate|Brecha Cambiari</td>
+      <td>1</td>
+      <td>13.8176</td>
+      <td>14.0212</td>
+      <td>13.9001</td>
+      <td>0.1478</td>
+      <td>0.0006</td>
+      <td>False</td>
+      <td>192</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate</td>
       <td>2</td>
-      <td>2.6932</td>
-      <td>2.7201</td>
-      <td>2.7029</td>
-      <td>0.0138</td>
-      <td>0.6360</td>
-      <td>True</td>
-      <td>3155</td>
+      <td>18.6576</td>
+      <td>18.8279</td>
+      <td>18.7265</td>
+      <td>0.1130</td>
+      <td>0.0079</td>
+      <td>False</td>
+      <td>191</td>
     </tr>
   </tbody>
 </table>
     </section>
     <section id="sec9">
       <h2>9. Modelos VECM <button id="btn-sec9" onclick="runSection('9')" style="float:right;padding:4px 10px;background:#1f2937;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px">🔁 Re-ejecutar</button></h2>
-      <p>Total estimados: <b>21</b> | Con ruido blanco (LB en Y): <b>14</b> |
-         α significativo: <b>18/21</b></p>
+      <p>Total estimados: <b>3</b> | Con ruido blanco (LB en Y): <b>1</b> |
+         α significativo: <b>0/3</b></p>
       <h4>Top 10 VECM por AIC</h4><table class="dataframe tbl">
   <thead>
     <tr style="text-align: left;">
@@ -328,2127 +254,351 @@
   <tbody>
     <tr>
       <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
+      <td>ITCRM Multilateral</td>
       <td>3</td>
       <td>1</td>
-      <td>-0.1052</td>
-      <td>-0.0706</td>
-      <td>-0.0928</td>
-      <td>0.0175</td>
-      <td>0.1680</td>
-      <td>0.0001</td>
-      <td>0.7553</td>
+      <td>18.6171</td>
+      <td>18.9247</td>
+      <td>18.7417</td>
+      <td>0.1494</td>
+      <td>21.8894</td>
+      <td>0.0693</td>
+      <td>0.2665</td>
       <td>True</td>
-      <td>3154</td>
+      <td>190</td>
     </tr>
     <tr>
       <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
+      <td>ITCRM Multilateral</td>
       <td>2</td>
       <td>1</td>
-      <td>-0.0866</td>
-      <td>-0.0597</td>
-      <td>-0.0769</td>
-      <td>0.0165</td>
-      <td>0.1539</td>
-      <td>0.0004</td>
-      <td>0.7079</td>
-      <td>True</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>1</td>
-      <td>1</td>
-      <td>0.0007</td>
-      <td>0.0198</td>
-      <td>0.0075</td>
-      <td>0.0052</td>
-      <td>0.1270</td>
-      <td>0.0032</td>
-      <td>0.0000</td>
+      <td>18.6260</td>
+      <td>18.8644</td>
+      <td>18.7226</td>
+      <td>0.1176</td>
+      <td>12.2267</td>
+      <td>0.3186</td>
+      <td>0.0136</td>
       <td>False</td>
-      <td>3156</td>
+      <td>191</td>
     </tr>
     <tr>
       <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
-      <td>3</td>
-      <td>2</td>
-      <td>1.2207</td>
-      <td>1.3014</td>
-      <td>1.2496</td>
-      <td>0.0193</td>
-      <td>0.1767</td>
-      <td>0.0001</td>
-      <td>0.7585</td>
-      <td>True</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
-      <td>2</td>
-      <td>2</td>
-      <td>1.2355</td>
-      <td>1.2988</td>
-      <td>1.2582</td>
-      <td>0.0182</td>
-      <td>0.1629</td>
-      <td>0.0004</td>
-      <td>0.7098</td>
-      <td>True</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
+      <td>ITCRM Multilateral</td>
       <td>1</td>
-      <td>2</td>
-      <td>1.3203</td>
-      <td>1.3663</td>
-      <td>1.3368</td>
-      <td>0.0071</td>
-      <td>0.1324</td>
-      <td>0.0035</td>
-      <td>0.0000</td>
+      <td>1</td>
+      <td>18.6591</td>
+      <td>18.8287</td>
+      <td>18.7278</td>
+      <td>0.1088</td>
+      <td>15.8855</td>
+      <td>0.1824</td>
+      <td>0.0161</td>
       <td>False</td>
-      <td>3156</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>2</td>
-      <td>1</td>
-      <td>2.6749</td>
-      <td>2.7018</td>
-      <td>2.6846</td>
-      <td>0.0139</td>
-      <td>0.0037</td>
-      <td>0.4778</td>
-      <td>0.6417</td>
-      <td>True</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>3</td>
-      <td>1</td>
-      <td>2.6776</td>
-      <td>2.7122</td>
-      <td>2.6900</td>
-      <td>0.0141</td>
-      <td>0.0045</td>
-      <td>0.3915</td>
-      <td>0.6582</td>
-      <td>True</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>1</td>
-      <td>1</td>
-      <td>2.6847</td>
-      <td>2.7039</td>
-      <td>2.6916</td>
-      <td>0.0044</td>
-      <td>0.0048</td>
-      <td>0.3601</td>
-      <td>0.0000</td>
-      <td>False</td>
-      <td>3156</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>3</td>
-      <td>2</td>
-      <td>12.8815</td>
-      <td>12.9622</td>
-      <td>12.9105</td>
-      <td>0.0211</td>
-      <td>0.0000</td>
-      <td>0.0060</td>
-      <td>0.7442</td>
-      <td>True</td>
-      <td>3154</td>
+      <td>192</td>
     </tr>
   </tbody>
 </table>
     </section>
     <section id="sec10">
-      <h2>10. Consolidación y gráficos comparativos <button id="btn-sec10" onclick="runSection('10')" style="float:right;padding:4px 10px;background:#1f2937;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px">🔁 Re-ejecutar</button></h2>
-      <h4>% Significancia por variable (largo plazo, todos los modelos)</h4><table class="dataframe tbl">
+      <h2>10. Resultados Consolidados <button id="btn-sec10" onclick="runSection('10')" style="float:right;padding:4px 10px;background:#1f2937;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px">🔁 Re-ejecutar</button></h2>
+
+      <h3>① Coeficientes de CORTO PLAZO (γ en VECM, impacto h=0 en VAR)</h3>
+      <figure><img src="sec10_coef_vs_pval_corto_plazo.png" alt="sec10_coef_vs_pval_corto_plazo"><figcaption>Coef CORTO PLAZO vs P-valor</figcaption></figure>
+
+      <h3>② Coeficientes de LARGO PLAZO (β en VECM, suma de coefs en VAR)</h3>
+      <figure><img src="sec10_coef_vs_pval_largo_plazo.png" alt="sec10_coef_vs_pval_largo_plazo"><figcaption>Coef LARGO PLAZO vs P-valor</figcaption></figure>
+
+      <h3>③ Análisis PIP — Relevancia de cada variable en los Top-40 modelos</h3>
+      <h4>PIP — Frecuencia y significancia de cada variable en los top 40 modelos (por AIC)</h4><table class="dataframe tbl">
   <thead>
     <tr style="text-align: left;">
       <th>variable</th>
-      <th>N</th>
-      <th>N_sig</th>
-      <th>Pct_Sig</th>
+      <th>N_aparece</th>
+      <th>N_top</th>
+      <th>N_sig_lp</th>
+      <th>Pct_sig_LP</th>
+      <th>N_sig_cp</th>
+      <th>Pct_sig_CP</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>33</td>
-      <td>33</td>
+      <td>ITCRM Multilateral</td>
+      <td>3</td>
+      <td>40</td>
+      <td>2</td>
+      <td>66.7</td>
+      <td>1</td>
+      <td>33.3</td>
+    </tr>
+    <tr>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>1</td>
+      <td>40</td>
+      <td>1</td>
       <td>100.0</td>
-    </tr>
-    <tr>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>32</td>
-      <td>16</td>
-      <td>50.0</td>
-    </tr>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>30</td>
-      <td>8</td>
-      <td>26.7</td>
+      <td>1</td>
+      <td>100.0</td>
     </tr>
   </tbody>
 </table>
-      <h3>Largo plazo</h3>
-      <figure><img src="sec10_coef_vs_pval_largo_plazo.png" alt="sec10_coef_vs_pval_largo_plazo"><figcaption>Coef LARGO PLAZO vs P-valor (β en VECM)</figcaption></figure>
-      <h3>Corto plazo</h3>
-      <figure><img src="sec10_coef_vs_pval_corto_plazo.png" alt="sec10_coef_vs_pval_corto_plazo"><figcaption>Coef CORTO PLAZO vs P-valor (γ en VECM)</figcaption></figure>
-      <h3>Variables DUMMY exógenas</h3>
-      <h4>Dummies: %sig + coef medio/mediana por modelo</h4><table class="dataframe tbl">
+
+      <h3>④ Top 10 modelos por criterio (clic para expandir)</h3>
+      <details style="margin:8px 0"><summary style="cursor:pointer;font-weight:600;color:#1f2937;padding:6px 10px;background:#f3f4f6;border-radius:4px">🔽 Top 10 GLOBAL por AIC</summary><h4>Top 10 GLOBAL por AIC</h4><table class="dataframe tbl">
   <thead>
     <tr style="text-align: left;">
-      <th>dummy</th>
       <th>modelo</th>
-      <th>N</th>
-      <th>N_sig</th>
-      <th>Pct_Sig</th>
-      <th>mean</th>
-      <th>median</th>
+      <th>vars_label</th>
+      <th>aic</th>
+      <th>bic</th>
+      <th>hq</th>
+      <th>r2</th>
+      <th>nobs</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>Dummy_cepo</td>
-      <td>VAR</td>
-      <td>30</td>
-      <td>0</td>
-      <td>0.0</td>
-      <td>-0.1077</td>
-      <td>-0.1084</td>
-    </tr>
-    <tr>
-      <td>Dummy_cepo</td>
       <td>VECM</td>
-      <td>14</td>
-      <td>8</td>
-      <td>57.1</td>
-      <td>-0.4014</td>
-      <td>-0.6348</td>
+      <td>ITCRM Multilateral</td>
+      <td>18.6171</td>
+      <td>18.9247</td>
+      <td>18.7417</td>
+      <td>0.1494</td>
+      <td>190</td>
     </tr>
     <tr>
-      <td>Dummy_elecciones</td>
       <td>VAR</td>
-      <td>30</td>
-      <td>0</td>
-      <td>0.0</td>
-      <td>0.0789</td>
-      <td>0.0781</td>
+      <td>ITCRM Multilate</td>
+      <td>18.6731</td>
+      <td>18.9124</td>
+      <td>18.7700</td>
+      <td>0.1345</td>
+      <td>190</td>
     </tr>
     <tr>
-      <td>Dummy_elecciones</td>
-      <td>VECM</td>
-      <td>14</td>
-      <td>0</td>
-      <td>0.0</td>
-      <td>0.0855</td>
-      <td>0.0805</td>
+      <td>ARDL</td>
+      <td>Brecha Cambiaria MEP/Oficial|ITCRM Multilateral</td>
+      <td>3468.3446</td>
+      <td>3494.3208</td>
+      <td>3478.8672</td>
+      <td>NaN</td>
+      <td>190</td>
     </tr>
   </tbody>
-</table><figure><img src="sec10_dummies_coef_vs_pval.png" alt="sec10_dummies_coef_vs_pval"><figcaption>Dummies exógenas: coef vs p-valor</figcaption></figure>
-      <h3>VECM — Velocidad de ajuste (α)</h3>
-      <figure><img src="sec10_vecm_alpha_dep.png" alt="sec10_vecm_alpha_dep"><figcaption>α vs p-valor (dependiente)</figcaption></figure>
+</table></details><details style="margin:8px 0"><summary style="cursor:pointer;font-weight:600;color:#1f2937;padding:6px 10px;background:#f3f4f6;border-radius:4px">🔽 Top 10 GLOBAL por BIC</summary><h4>Top 10 GLOBAL por BIC</h4><table class="dataframe tbl">
+  <thead>
+    <tr style="text-align: left;">
+      <th>modelo</th>
+      <th>vars_label</th>
+      <th>aic</th>
+      <th>bic</th>
+      <th>hq</th>
+      <th>r2</th>
+      <th>nobs</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate</td>
+      <td>18.6731</td>
+      <td>18.9124</td>
+      <td>18.7700</td>
+      <td>0.1345</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>ITCRM Multilateral</td>
+      <td>18.6171</td>
+      <td>18.9247</td>
+      <td>18.7417</td>
+      <td>0.1494</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>ARDL</td>
+      <td>Brecha Cambiaria MEP/Oficial|ITCRM Multilateral</td>
+      <td>3468.3446</td>
+      <td>3494.3208</td>
+      <td>3478.8672</td>
+      <td>NaN</td>
+      <td>190</td>
+    </tr>
+  </tbody>
+</table></details><details style="margin:8px 0"><summary style="cursor:pointer;font-weight:600;color:#1f2937;padding:6px 10px;background:#f3f4f6;border-radius:4px">🔽 Top 10 GLOBAL por HQ</summary><h4>Top 10 GLOBAL por HQ</h4><table class="dataframe tbl">
+  <thead>
+    <tr style="text-align: left;">
+      <th>modelo</th>
+      <th>vars_label</th>
+      <th>aic</th>
+      <th>bic</th>
+      <th>hq</th>
+      <th>r2</th>
+      <th>nobs</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>VECM</td>
+      <td>ITCRM Multilateral</td>
+      <td>18.6171</td>
+      <td>18.9247</td>
+      <td>18.7417</td>
+      <td>0.1494</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate</td>
+      <td>18.6731</td>
+      <td>18.9124</td>
+      <td>18.7700</td>
+      <td>0.1345</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>ARDL</td>
+      <td>Brecha Cambiaria MEP/Oficial|ITCRM Multilateral</td>
+      <td>3468.3446</td>
+      <td>3494.3208</td>
+      <td>3478.8672</td>
+      <td>NaN</td>
+      <td>190</td>
+    </tr>
+  </tbody>
+</table></details><details style="margin:8px 0"><summary style="cursor:pointer;font-weight:600;color:#1f2937;padding:6px 10px;background:#f3f4f6;border-radius:4px">🔽 Top 10 GLOBAL por R² ajustado</summary><h4>Top 10 GLOBAL por R² ajustado</h4><table class="dataframe tbl">
+  <thead>
+    <tr style="text-align: left;">
+      <th>modelo</th>
+      <th>vars_label</th>
+      <th>aic</th>
+      <th>bic</th>
+      <th>hq</th>
+      <th>r2</th>
+      <th>nobs</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>VECM</td>
+      <td>ITCRM Multilateral</td>
+      <td>18.6171</td>
+      <td>18.9247</td>
+      <td>18.7417</td>
+      <td>0.1494</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate</td>
+      <td>18.6731</td>
+      <td>18.9124</td>
+      <td>18.7700</td>
+      <td>0.1345</td>
+      <td>190</td>
+    </tr>
+  </tbody>
+</table></details>
+
+      <h3>⑤ Distribución de criterios y R² por tipo de modelo</h3>
+      <figure><img src="sec11_boxplot_criterios.png" alt="sec11_boxplot_criterios"><figcaption>Boxplots de IC y R² (ARDL vs VAR vs VECM)</figcaption></figure>
+
+      <h3>⑥ Mejor modelo por criterio — detalle de coeficientes</h3>
+      <h4>🏆 Mejor por AIC: VECM — ITCRM Multilateral <span class="muted">(AIC=18.617 · BIC=18.925 · HQ=18.742 · R²=0.1494)</span></h4><table class="dataframe tbl">
+  <thead>
+    <tr style="text-align: left;">
+      <th>Variable</th>
+      <th>Coef LP</th>
+      <th>p-val LP</th>
+      <th>Coef CP</th>
+      <th>p-val CP</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ITCRM Multilateral</td>
+      <td>804.2319</td>
+      <td>0.0</td>
+      <td>-7.9505</td>
+      <td>0.396</td>
+    </tr>
+  </tbody>
+</table><h4>🏆 Mejor por BIC: VAR — ITCRM Multilate <span class="muted">(AIC=18.673 · BIC=18.912 · HQ=18.770 · R²=0.1345)</span></h4><table class="dataframe tbl">
+  <thead>
+    <tr style="text-align: left;">
+      <th>Variable</th>
+      <th>Coef LP</th>
+      <th>p-val LP</th>
+      <th>Coef CP</th>
+      <th>p-val CP</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ITCRM Multilateral</td>
+      <td>8.4194</td>
+      <td>0.4426</td>
+      <td>-172.1794</td>
+      <td>0.2955</td>
+    </tr>
+  </tbody>
+</table><h4>🏆 Mejor por HQ: VECM — ITCRM Multilateral <span class="muted">(AIC=18.617 · BIC=18.925 · HQ=18.742 · R²=0.1494)</span></h4><table class="dataframe tbl">
+  <thead>
+    <tr style="text-align: left;">
+      <th>Variable</th>
+      <th>Coef LP</th>
+      <th>p-val LP</th>
+      <th>Coef CP</th>
+      <th>p-val CP</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ITCRM Multilateral</td>
+      <td>804.2319</td>
+      <td>0.0</td>
+      <td>-7.9505</td>
+      <td>0.396</td>
+    </tr>
+  </tbody>
+</table><h4>🏆 Mejor por R² ajustado: VECM — ITCRM Multilateral <span class="muted">(AIC=18.617 · BIC=18.925 · HQ=18.742 · R²=0.1494)</span></h4><table class="dataframe tbl">
+  <thead>
+    <tr style="text-align: left;">
+      <th>Variable</th>
+      <th>Coef LP</th>
+      <th>p-val LP</th>
+      <th>Coef CP</th>
+      <th>p-val CP</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ITCRM Multilateral</td>
+      <td>804.2319</td>
+      <td>0.0</td>
+      <td>-7.9505</td>
+      <td>0.396</td>
+    </tr>
+  </tbody>
+</table>
+
+      <h3>⑦ Predicción del mejor modelo vs serie observada</h3>
+      <figure><img src="sec11_real_vs_ajustado.png" alt="sec11_real_vs_ajustado"><figcaption>Mejor modelo GLOBAL — Predicción vs Observado</figcaption></figure>
+      <h4>Mejor por tipo de modelo</h4>
+      <figure><img src="sec11_real_vs_ajustado_ardl.png" alt="sec11_real_vs_ajustado_ardl"><figcaption>Mejor ARDL — Predicción vs Observado</figcaption></figure>
+      <figure><img src="sec11_real_vs_ajustado_var.png" alt="sec11_real_vs_ajustado_var"><figcaption>Mejor VAR — Predicción vs Observado</figcaption></figure>
+      <figure><img src="sec11_real_vs_ajustado_vecm.png" alt="sec11_real_vs_ajustado_vecm"><figcaption>Mejor VECM — Predicción vs Observado</figcaption></figure>
+
+      <h3>⑧ VECM — Velocidad de ajuste (α) y γ</h3>
+      <figure><img src="sec10_vecm_alpha_dep.png" alt="sec10_vecm_alpha_dep"><figcaption>α vs p-valor (variable dependiente)</figcaption></figure>
       <figure><img src="sec10_vecm_gamma_pct_segun_alpha.png" alt="sec10_vecm_gamma_pct_segun_alpha"><figcaption>% γ_x significativo según α_dep</figcaption></figure>
-    </section>
-    <section id="sec11">
-      <h2>11. Ranking y mejor modelo <button id="btn-sec11" onclick="runSection('11')" style="float:right;padding:4px 10px;background:#1f2937;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px">🔁 Re-ejecutar</button></h2>
-      <h3>Ranking GLOBAL</h3><h4>Top 10 GLOBAL por AIC</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.1052</td>
-      <td>-0.0706</td>
-      <td>-0.0928</td>
-      <td>0.0175</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb</td>
-      <td>-0.0684</td>
-      <td>-0.0338</td>
-      <td>-0.0560</td>
-      <td>0.0129</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
-      <td>1.2207</td>
-      <td>1.3014</td>
-      <td>1.2496</td>
-      <td>0.0193</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|VIX — CBOE Vola</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>2.6749</td>
-      <td>2.7018</td>
-      <td>2.6846</td>
-      <td>0.0139</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola</td>
-      <td>2.6932</td>
-      <td>2.7201</td>
-      <td>2.7029</td>
-      <td>0.0138</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>12.8815</td>
-      <td>12.9622</td>
-      <td>12.9105</td>
-      <td>0.0211</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas|log(Brecha Camb</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|Reservas Brutas</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — VECM | log(Brecha Cambiaria MEP/Oficial) | AIC=-0.105 BIC=-0.071 HQ=-0.093 R²=0.0175</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>56.9034</td>
-      <td>0.0007</td>
-      <td>-0.4464</td>
-      <td>0.0165</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7640</td>
-      <td>0.0000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0465</td>
-      <td>0.5210</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — VAR | log(Brecha Camb | AIC=-0.068 BIC=-0.034 HQ=-0.056 R²=0.0129</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.2233</td>
-      <td>0.2434</td>
-      <td>-0.0044</td>
-      <td>0.9000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.1016</td>
-      <td>0.1839</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0819</td>
-      <td>0.2877</td>
-    </tr>
-  </tbody>
-</table><h4>#3 — VECM | log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index | AIC=1.221 BIC=1.301 HQ=1.250 R²=0.0193</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>53.4543</td>
-      <td>0.0006</td>
-      <td>-0.4523</td>
-      <td>0.0159</td>
-    </tr>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0000</td>
-      <td>0.0006</td>
-      <td>-0.0578</td>
-      <td>0.0413</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7947</td>
-      <td>0.0000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0413</td>
-      <td>0.5739</td>
-    </tr>
-  </tbody>
-</table></div><h4>Top 10 GLOBAL por BIC</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.1052</td>
-      <td>-0.0706</td>
-      <td>-0.0928</td>
-      <td>0.0175</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb</td>
-      <td>-0.0684</td>
-      <td>-0.0338</td>
-      <td>-0.0560</td>
-      <td>0.0129</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
-      <td>1.2355</td>
-      <td>1.2988</td>
-      <td>1.2582</td>
-      <td>0.0182</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|VIX — CBOE Vola</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>2.6749</td>
-      <td>2.7018</td>
-      <td>2.6846</td>
-      <td>0.0139</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola</td>
-      <td>2.6932</td>
-      <td>2.7201</td>
-      <td>2.7029</td>
-      <td>0.0138</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>12.8978</td>
-      <td>12.9611</td>
-      <td>12.9205</td>
-      <td>0.0199</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas|log(Brecha Camb</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|Reservas Brutas</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — VECM | log(Brecha Cambiaria MEP/Oficial) | AIC=-0.105 BIC=-0.071 HQ=-0.093 R²=0.0175</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>56.9034</td>
-      <td>0.0007</td>
-      <td>-0.4464</td>
-      <td>0.0165</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7640</td>
-      <td>0.0000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0465</td>
-      <td>0.5210</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — VAR | log(Brecha Camb | AIC=-0.068 BIC=-0.034 HQ=-0.056 R²=0.0129</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.2233</td>
-      <td>0.2434</td>
-      <td>-0.0044</td>
-      <td>0.9000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.1016</td>
-      <td>0.1839</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0819</td>
-      <td>0.2877</td>
-    </tr>
-  </tbody>
-</table><h4>#3 — VECM | log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index | AIC=1.235 BIC=1.299 HQ=1.258 R²=0.0182</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>63.7385</td>
-      <td>0.002</td>
-      <td>-0.2559</td>
-      <td>0.0442</td>
-    </tr>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>0.0000</td>
-      <td>0.002</td>
-      <td>-0.0500</td>
-      <td>0.0380</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7365</td>
-      <td>0.0001</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0470</td>
-      <td>0.5210</td>
-    </tr>
-  </tbody>
-</table></div><h4>Top 10 GLOBAL por HQ</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.1052</td>
-      <td>-0.0706</td>
-      <td>-0.0928</td>
-      <td>0.0175</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb</td>
-      <td>-0.0684</td>
-      <td>-0.0338</td>
-      <td>-0.0560</td>
-      <td>0.0129</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
-      <td>1.2207</td>
-      <td>1.3014</td>
-      <td>1.2496</td>
-      <td>0.0193</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|VIX — CBOE Vola</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>2.6749</td>
-      <td>2.7018</td>
-      <td>2.6846</td>
-      <td>0.0139</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola</td>
-      <td>2.6932</td>
-      <td>2.7201</td>
-      <td>2.7029</td>
-      <td>0.0138</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>12.8815</td>
-      <td>12.9622</td>
-      <td>12.9105</td>
-      <td>0.0211</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas|log(Brecha Camb</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|Reservas Brutas</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — VECM | log(Brecha Cambiaria MEP/Oficial) | AIC=-0.105 BIC=-0.071 HQ=-0.093 R²=0.0175</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>56.9034</td>
-      <td>0.0007</td>
-      <td>-0.4464</td>
-      <td>0.0165</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7640</td>
-      <td>0.0000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0465</td>
-      <td>0.5210</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — VAR | log(Brecha Camb | AIC=-0.068 BIC=-0.034 HQ=-0.056 R²=0.0129</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.2233</td>
-      <td>0.2434</td>
-      <td>-0.0044</td>
-      <td>0.9000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.1016</td>
-      <td>0.1839</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0819</td>
-      <td>0.2877</td>
-    </tr>
-  </tbody>
-</table><h4>#3 — VECM | log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index | AIC=1.221 BIC=1.301 HQ=1.250 R²=0.0193</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>53.4543</td>
-      <td>0.0006</td>
-      <td>-0.4523</td>
-      <td>0.0159</td>
-    </tr>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0000</td>
-      <td>0.0006</td>
-      <td>-0.0578</td>
-      <td>0.0413</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7947</td>
-      <td>0.0000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0413</td>
-      <td>0.5739</td>
-    </tr>
-  </tbody>
-</table></div><h3>Ranking — ARDL</h3><h4>Top 10 ARDL por AIC</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>ARDL</td>
-      <td>Reservas Brutas BCRA/PBI|VIX — CBOE Volatility Index</td>
-      <td>13212.9901</td>
-      <td>13261.4440</td>
-      <td>13230.3742</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>ARDL</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>13214.1617</td>
-      <td>13250.5022</td>
-      <td>13227.1998</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>ARDL</td>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>13223.1375</td>
-      <td>13259.4780</td>
-      <td>13236.1756</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — ARDL | Reservas Brutas BCRA/PBI|VIX — CBOE Volatility Index | AIC=13212.990 BIC=13261.444 HQ=13230.374 R²=nan</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>-0.0002</td>
-      <td>0.0245</td>
-      <td>-0.0002</td>
-      <td>0.0758</td>
-    </tr>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0964</td>
-      <td>0.0002</td>
-      <td>-0.1014</td>
-      <td>0.0009</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — ARDL | VIX — CBOE Volatility Index | AIC=13214.162 BIC=13250.502 HQ=13227.200 R²=nan</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0958</td>
-      <td>0.0002</td>
-      <td>-0.1008</td>
-      <td>0.0009</td>
-    </tr>
-  </tbody>
-</table></div><h4>Top 10 ARDL por BIC</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>ARDL</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>13214.1617</td>
-      <td>13250.5022</td>
-      <td>13227.1998</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>ARDL</td>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>13223.1375</td>
-      <td>13259.4780</td>
-      <td>13236.1756</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>ARDL</td>
-      <td>Reservas Brutas BCRA/PBI|VIX — CBOE Volatility Index</td>
-      <td>13212.9901</td>
-      <td>13261.4440</td>
-      <td>13230.3742</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — ARDL | VIX — CBOE Volatility Index | AIC=13214.162 BIC=13250.502 HQ=13227.200 R²=nan</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0958</td>
-      <td>0.0002</td>
-      <td>-0.1008</td>
-      <td>0.0009</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — ARDL | Reservas Brutas BCRA/PBI | AIC=13223.137 BIC=13259.478 HQ=13236.176 R²=nan</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>-0.0002</td>
-      <td>0.0274</td>
-      <td>-0.0002</td>
-      <td>0.0819</td>
-    </tr>
-  </tbody>
-</table></div><h4>Top 10 ARDL por HQ</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>ARDL</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>13214.1617</td>
-      <td>13250.5022</td>
-      <td>13227.1998</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>ARDL</td>
-      <td>Reservas Brutas BCRA/PBI|VIX — CBOE Volatility Index</td>
-      <td>13212.9901</td>
-      <td>13261.4440</td>
-      <td>13230.3742</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>ARDL</td>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>13223.1375</td>
-      <td>13259.4780</td>
-      <td>13236.1756</td>
-      <td>NaN</td>
-      <td>3155</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — ARDL | VIX — CBOE Volatility Index | AIC=13214.162 BIC=13250.502 HQ=13227.200 R²=nan</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0958</td>
-      <td>0.0002</td>
-      <td>-0.1008</td>
-      <td>0.0009</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — ARDL | Reservas Brutas BCRA/PBI|VIX — CBOE Volatility Index | AIC=13212.990 BIC=13261.444 HQ=13230.374 R²=nan</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>-0.0002</td>
-      <td>0.0245</td>
-      <td>-0.0002</td>
-      <td>0.0758</td>
-    </tr>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0964</td>
-      <td>0.0002</td>
-      <td>-0.1014</td>
-      <td>0.0009</td>
-    </tr>
-  </tbody>
-</table></div><h3>Ranking — VAR</h3><h4>Top 10 VAR por AIC</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb</td>
-      <td>-0.0684</td>
-      <td>-0.0338</td>
-      <td>-0.0560</td>
-      <td>0.0129</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|VIX — CBOE Vola</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola</td>
-      <td>2.6932</td>
-      <td>2.7201</td>
-      <td>2.7029</td>
-      <td>0.0138</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas|log(Brecha Camb</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|Reservas Brutas</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas|log(Brecha Camb|VIX — CBOE Vola</td>
-      <td>14.2672</td>
-      <td>14.3824</td>
-      <td>14.3086</td>
-      <td>0.0157</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas|VIX — CBOE Vola|log(Brecha Camb</td>
-      <td>14.2672</td>
-      <td>14.3824</td>
-      <td>14.3086</td>
-      <td>0.0157</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb|Reservas Brutas</td>
-      <td>14.2672</td>
-      <td>14.3824</td>
-      <td>14.3086</td>
-      <td>0.0157</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|Reservas Brutas|log(Brecha Camb</td>
-      <td>14.2672</td>
-      <td>14.3824</td>
-      <td>14.3086</td>
-      <td>0.0157</td>
-      <td>3154</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — VAR | log(Brecha Camb | AIC=-0.068 BIC=-0.034 HQ=-0.056 R²=0.0129</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.2233</td>
-      <td>0.2434</td>
-      <td>-0.0044</td>
-      <td>0.9000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.1016</td>
-      <td>0.1839</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0819</td>
-      <td>0.2877</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — VAR | log(Brecha Camb|VIX — CBOE Vola | AIC=1.275 BIC=1.344 HQ=1.300 R²=0.0145</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.2165</td>
-      <td>0.2547</td>
-      <td>-0.0030</td>
-      <td>0.9324</td>
-    </tr>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0611</td>
-      <td>0.0324</td>
-      <td>-0.1078</td>
-      <td>0.0021</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.1016</td>
-      <td>0.1836</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0825</td>
-      <td>0.2841</td>
-    </tr>
-  </tbody>
-</table></div><h4>Top 10 VAR por BIC</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb</td>
-      <td>-0.0684</td>
-      <td>-0.0338</td>
-      <td>-0.0560</td>
-      <td>0.0129</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|VIX — CBOE Vola</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola</td>
-      <td>2.6932</td>
-      <td>2.7201</td>
-      <td>2.7029</td>
-      <td>0.0138</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas|log(Brecha Camb</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|Reservas Brutas</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas</td>
-      <td>14.3436</td>
-      <td>14.3705</td>
-      <td>14.3532</td>
-      <td>0.0134</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas|log(Brecha Camb|VIX — CBOE Vola</td>
-      <td>14.2866</td>
-      <td>14.3710</td>
-      <td>14.3169</td>
-      <td>0.0153</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|Reservas Brutas|VIX — CBOE Vola</td>
-      <td>14.2866</td>
-      <td>14.3710</td>
-      <td>14.3169</td>
-      <td>0.0153</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb|Reservas Brutas</td>
-      <td>14.2866</td>
-      <td>14.3710</td>
-      <td>14.3169</td>
-      <td>0.0153</td>
-      <td>3155</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — VAR | log(Brecha Camb | AIC=-0.068 BIC=-0.034 HQ=-0.056 R²=0.0129</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.2233</td>
-      <td>0.2434</td>
-      <td>-0.0044</td>
-      <td>0.9000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.1016</td>
-      <td>0.1839</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0819</td>
-      <td>0.2877</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — VAR | VIX — CBOE Vola|log(Brecha Camb | AIC=1.275 BIC=1.344 HQ=1.300 R²=0.0145</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0611</td>
-      <td>0.0324</td>
-      <td>-0.1078</td>
-      <td>0.0021</td>
-    </tr>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.2165</td>
-      <td>0.2547</td>
-      <td>-0.0011</td>
-      <td>0.9748</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.1016</td>
-      <td>0.1836</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0825</td>
-      <td>0.2841</td>
-    </tr>
-  </tbody>
-</table></div><h4>Top 10 VAR por HQ</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb</td>
-      <td>-0.0684</td>
-      <td>-0.0338</td>
-      <td>-0.0560</td>
-      <td>0.0129</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|VIX — CBOE Vola</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb</td>
-      <td>1.2751</td>
-      <td>1.3442</td>
-      <td>1.2999</td>
-      <td>0.0145</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola</td>
-      <td>2.6932</td>
-      <td>2.7201</td>
-      <td>2.7029</td>
-      <td>0.0138</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas|log(Brecha Camb</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>log(Brecha Camb|Reservas Brutas</td>
-      <td>12.9215</td>
-      <td>12.9907</td>
-      <td>12.9463</td>
-      <td>0.0141</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas|log(Brecha Camb|VIX — CBOE Vola</td>
-      <td>14.2672</td>
-      <td>14.3824</td>
-      <td>14.3086</td>
-      <td>0.0157</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Reservas Brutas|VIX — CBOE Vola|log(Brecha Camb</td>
-      <td>14.2672</td>
-      <td>14.3824</td>
-      <td>14.3086</td>
-      <td>0.0157</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|log(Brecha Camb|Reservas Brutas</td>
-      <td>14.2672</td>
-      <td>14.3824</td>
-      <td>14.3086</td>
-      <td>0.0157</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>VIX — CBOE Vola|Reservas Brutas|log(Brecha Camb</td>
-      <td>14.2672</td>
-      <td>14.3824</td>
-      <td>14.3086</td>
-      <td>0.0157</td>
-      <td>3154</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — VAR | log(Brecha Camb | AIC=-0.068 BIC=-0.034 HQ=-0.056 R²=0.0129</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.2233</td>
-      <td>0.2434</td>
-      <td>-0.0044</td>
-      <td>0.9000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.1016</td>
-      <td>0.1839</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0819</td>
-      <td>0.2877</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — VAR | log(Brecha Camb|VIX — CBOE Vola | AIC=1.275 BIC=1.344 HQ=1.300 R²=0.0145</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.2165</td>
-      <td>0.2547</td>
-      <td>-0.0030</td>
-      <td>0.9324</td>
-    </tr>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0611</td>
-      <td>0.0324</td>
-      <td>-0.1078</td>
-      <td>0.0021</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.1016</td>
-      <td>0.1836</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0825</td>
-      <td>0.2841</td>
-    </tr>
-  </tbody>
-</table></div><h3>Ranking — VECM</h3><h4>Top 10 VECM por AIC</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.1052</td>
-      <td>-0.0706</td>
-      <td>-0.0928</td>
-      <td>0.0175</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
-      <td>1.2207</td>
-      <td>1.3014</td>
-      <td>1.2496</td>
-      <td>0.0193</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>2.6749</td>
-      <td>2.7018</td>
-      <td>2.6846</td>
-      <td>0.0139</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>12.8815</td>
-      <td>12.9622</td>
-      <td>12.9105</td>
-      <td>0.0211</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
-      <td>14.2108</td>
-      <td>14.3567</td>
-      <td>14.2631</td>
-      <td>0.0233</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>14.3374</td>
-      <td>14.3643</td>
-      <td>14.3471</td>
-      <td>0.0149</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|VIX — CBOE Volatility Index</td>
-      <td>15.6630</td>
-      <td>15.7264</td>
-      <td>15.6858</td>
-      <td>0.0168</td>
-      <td>3155</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — VECM | log(Brecha Cambiaria MEP/Oficial) | AIC=-0.105 BIC=-0.071 HQ=-0.093 R²=0.0175</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>56.9034</td>
-      <td>0.0007</td>
-      <td>-0.4464</td>
-      <td>0.0165</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7640</td>
-      <td>0.0000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0465</td>
-      <td>0.5210</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — VECM | log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index | AIC=1.221 BIC=1.301 HQ=1.250 R²=0.0193</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>53.4543</td>
-      <td>0.0006</td>
-      <td>-0.4523</td>
-      <td>0.0159</td>
-    </tr>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0000</td>
-      <td>0.0006</td>
-      <td>-0.0578</td>
-      <td>0.0413</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7947</td>
-      <td>0.0000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0413</td>
-      <td>0.5739</td>
-    </tr>
-  </tbody>
-</table></div><h4>Top 10 VECM por BIC</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.1052</td>
-      <td>-0.0706</td>
-      <td>-0.0928</td>
-      <td>0.0175</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
-      <td>1.2355</td>
-      <td>1.2988</td>
-      <td>1.2582</td>
-      <td>0.0182</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>2.6749</td>
-      <td>2.7018</td>
-      <td>2.6846</td>
-      <td>0.0139</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>12.8978</td>
-      <td>12.9611</td>
-      <td>12.9205</td>
-      <td>0.0199</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
-      <td>14.2218</td>
-      <td>14.3370</td>
-      <td>14.2632</td>
-      <td>0.0220</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>14.3374</td>
-      <td>14.3643</td>
-      <td>14.3471</td>
-      <td>0.0149</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|VIX — CBOE Volatility Index</td>
-      <td>15.6630</td>
-      <td>15.7264</td>
-      <td>15.6858</td>
-      <td>0.0168</td>
-      <td>3155</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — VECM | log(Brecha Cambiaria MEP/Oficial) | AIC=-0.105 BIC=-0.071 HQ=-0.093 R²=0.0175</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>56.9034</td>
-      <td>0.0007</td>
-      <td>-0.4464</td>
-      <td>0.0165</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7640</td>
-      <td>0.0000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0465</td>
-      <td>0.5210</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — VECM | log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index | AIC=1.235 BIC=1.299 HQ=1.258 R²=0.0182</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>63.7385</td>
-      <td>0.002</td>
-      <td>-0.2559</td>
-      <td>0.0442</td>
-    </tr>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>0.0000</td>
-      <td>0.002</td>
-      <td>-0.0500</td>
-      <td>0.0380</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7365</td>
-      <td>0.0001</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0470</td>
-      <td>0.5210</td>
-    </tr>
-  </tbody>
-</table></div><h4>Top 10 VECM por HQ</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>modelo</th>
-      <th>vars_label</th>
-      <th>aic</th>
-      <th>bic</th>
-      <th>hq</th>
-      <th>r2</th>
-      <th>nobs</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>-0.1052</td>
-      <td>-0.0706</td>
-      <td>-0.0928</td>
-      <td>0.0175</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
-      <td>1.2207</td>
-      <td>1.3014</td>
-      <td>1.2496</td>
-      <td>0.0193</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>2.6749</td>
-      <td>2.7018</td>
-      <td>2.6846</td>
-      <td>0.0139</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>12.8815</td>
-      <td>12.9622</td>
-      <td>12.9105</td>
-      <td>0.0211</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index</td>
-      <td>14.2108</td>
-      <td>14.3567</td>
-      <td>14.2631</td>
-      <td>0.0233</td>
-      <td>3154</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI</td>
-      <td>14.3374</td>
-      <td>14.3643</td>
-      <td>14.3471</td>
-      <td>0.0149</td>
-      <td>3155</td>
-    </tr>
-    <tr>
-      <td>VECM</td>
-      <td>Reservas Brutas BCRA/PBI|VIX — CBOE Volatility Index</td>
-      <td>15.6630</td>
-      <td>15.7264</td>
-      <td>15.6858</td>
-      <td>0.0168</td>
-      <td>3155</td>
-    </tr>
-  </tbody>
-</table><div style="margin-left:12px"><h4>#1 — VECM | log(Brecha Cambiaria MEP/Oficial) | AIC=-0.105 BIC=-0.071 HQ=-0.093 R²=0.0175</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>56.9034</td>
-      <td>0.0007</td>
-      <td>-0.4464</td>
-      <td>0.0165</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7640</td>
-      <td>0.0000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0465</td>
-      <td>0.5210</td>
-    </tr>
-  </tbody>
-</table><h4>#2 — VECM | log(Brecha Cambiaria MEP/Oficial)|VIX — CBOE Volatility Index | AIC=1.221 BIC=1.301 HQ=1.250 R²=0.0193</h4><table class="dataframe tbl">
-  <thead>
-    <tr style="text-align: left;">
-      <th>Variable</th>
-      <th>Coef LP</th>
-      <th>p-val LP</th>
-      <th>Coef CP</th>
-      <th>p-val CP</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>log(Brecha Cambiaria MEP/Oficial)</td>
-      <td>53.4543</td>
-      <td>0.0006</td>
-      <td>-0.4523</td>
-      <td>0.0159</td>
-    </tr>
-    <tr>
-      <td>VIX — CBOE Volatility Index</td>
-      <td>-0.0000</td>
-      <td>0.0006</td>
-      <td>-0.0578</td>
-      <td>0.0413</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_cepo</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>-0.7947</td>
-      <td>0.0000</td>
-    </tr>
-    <tr>
-      <td>[D] Dummy_elecciones</td>
-      <td>NaN</td>
-      <td>NaN</td>
-      <td>0.0413</td>
-      <td>0.5739</td>
-    </tr>
-  </tbody>
-</table></div>
-      <figure><img src="sec11_boxplot_criterios.png" alt="sec11_boxplot_criterios"><figcaption>Distribución de IC/R² por tipo de modelo</figcaption></figure>
-      <h3>Real vs Ajustado — Mejor modelo GLOBAL</h3>
-      <figure><img src="sec11_real_vs_ajustado.png" alt="sec11_real_vs_ajustado"><figcaption>Mejor modelo global — Real vs Ajustado</figcaption></figure>
-      <h3>Real vs Ajustado — Mejor por tipo de modelo</h3>
-      <figure><img src="sec11_real_vs_ajustado_ardl.png" alt="sec11_real_vs_ajustado_ardl"><figcaption>Mejor ARDL — Real vs Ajustado</figcaption></figure>
-      <figure><img src="sec11_real_vs_ajustado_var.png" alt="sec11_real_vs_ajustado_var"><figcaption>Mejor VAR — Real vs Ajustado</figcaption></figure>
-      <figure><img src="sec11_real_vs_ajustado_vecm.png" alt="sec11_real_vs_ajustado_vecm"><figcaption>Mejor VECM — Real vs Ajustado</figcaption></figure>
-      <p class="muted" style="margin-top:14px;font-size:12px">
-        <b>Nota sobre dummies:</b> al ser variables exógenas binarias (0/1), las dummies
-        actúan como shocks de impacto y no entran en la relación de cointegración (β)
-        ni en la suma de coeficientes de largo plazo. Por eso <i>Coef LP</i> y
-        <i>p-val LP</i> aparecen como NaN — solo tienen interpretación de corto plazo.
-      </p>
+
+      <h3>⑨ Variables DUMMY exógenas (controles fijos)</h3>
+      <p class="muted">Sin coeficientes de dummies extraídos.</p>
+
+      
     </section>
 </main>
 <footer>Trabajo Final — Lic. en Economía, UNC · Martín Gómez Pizarro · <span class="muted">Botones requieren server.py corriendo</span></footer>

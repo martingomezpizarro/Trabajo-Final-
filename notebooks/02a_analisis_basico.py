@@ -1053,24 +1053,38 @@ def seccion_45_seleccion_dependiente(df_panel, _LISTA_SERIES, FRECUENCIA_USADA, 
 
 
 def seccion_5_descriptivos(df_panel, ETI_DEP):
-    """Sección 5: Estadísticos descriptivos."""
+    """Sección 5: Estadísticos descriptivos.
+    Muestra las series en niveles (columna izquierda) y en primera diferencia
+    (columna derecha) para que el usuario pueda inspeccionar ambas visualmente
+    antes del test formal de estacionariedad."""
     _print_header('5', 'ESTADÍSTICOS DESCRIPTIVOS')
 
     print(resumen_estadistico(df_panel).round(4).to_string())
 
+    df_diff = df_panel.diff()
     n_series = len(df_panel.columns)
-    fig, axes = plt.subplots(n_series, 1, figsize=(12, 3 * n_series), sharex=True, squeeze=False)
+    fig, axes = plt.subplots(n_series, 2, figsize=(14, 3 * n_series), sharex=False, squeeze=False)
     for i, col in enumerate(df_panel.columns):
         color = '#d62728' if col == ETI_DEP else '#1f77b4'
         axes[i][0].plot(df_panel.index, df_panel[col], color=color, linewidth=1.2)
-        axes[i][0].set_title(col, fontsize=9)
-    fig.suptitle('Series del panel  (rojo = variable dependiente)', fontsize=11)
+        axes[i][0].set_title(f'{col}  —  Niveles', fontsize=9)
+        axes[i][0].grid(True, alpha=0.25)
+        axes[i][1].plot(df_diff.index, df_diff[col], color=color, linewidth=1.0, alpha=0.85)
+        axes[i][1].axhline(0, color='gray', linewidth=0.7, linestyle='--')
+        axes[i][1].set_title(f'{col}  —  Δ (1ª diferencia)', fontsize=9)
+        axes[i][1].grid(True, alpha=0.25)
+    fig.suptitle('Series del panel — Niveles (izq) y Primera Diferencia (der)  ·  rojo = variable dependiente', fontsize=11)
     plt.tight_layout()
     _save_fig(fig, 'sec05_series_panel')
 
 
-def seccion_6_estacionariedad(df_panel, ctx):
-    """Sección 6: Tests de estacionariedad (ADF + KPSS)."""
+def seccion_6_estacionariedad(df_panel, ctx, df_csv=None):
+    """Sección 6: Tests de estacionariedad (ADF + KPSS).
+
+    Si el CSV trae una columna `Orden_I` (visualizador la exporta), se usa para
+    sobreescribir el orden detectado por ADF/KPSS sobre las series que matcheen
+    por etiqueta. Esto permite respetar la decisión del usuario que ya corrió
+    el test desde la UI."""
     _print_header('6', 'TESTS DE ESTACIONARIEDAD (ADF + KPSS)')
 
     df_safe = ctx['df_safe']
@@ -1132,15 +1146,39 @@ def seccion_6_estacionariedad(df_panel, ctx):
     df_resumen_est = pd.DataFrame(_resumen_rows)
     print(df_resumen_est.set_index('Variable').to_string())
 
+    # Override desde CSV (visualizador) si existe columna Orden_I
+    _csv_orden_map = {}
+    if df_csv is not None and 'Orden_I' in df_csv.columns:
+        for _, _rcsv in df_csv.iterrows():
+            try:
+                _ord_csv = int(str(_rcsv.get('Orden_I', '')).strip())
+            except (ValueError, TypeError):
+                continue
+            if _ord_csv not in (0, 1, 2):
+                continue
+            _eti_csv = str(_rcsv.get('Label', '') or _rcsv.get('Serie A', '')).strip()
+            if _eti_csv:
+                _csv_orden_map[_eti_csv] = _ord_csv
+        if _csv_orden_map:
+            print(f'\n  📥 Orden_I del visualizador (override): {len(_csv_orden_map)} series')
+
     # INFO_ESTACIONARIEDAD
     INFO_ESTACIONARIEDAD = {}
     for _row in _resumen_rows:
         _s = _row['Safe']
         _orden = int(_row['Orden'][2])
+        _eti = _row['Variable']
+        # Override por CSV si matchea por etiqueta (sub-string en ambos sentidos)
+        for _csv_eti, _csv_ord in _csv_orden_map.items():
+            if _csv_eti and (_csv_eti in _eti or _eti in _csv_eti):
+                if _csv_ord != _orden:
+                    print(f'     {_eti[:50]}: ADF/KPSS=I({_orden}) → CSV=I({_csv_ord})')
+                _orden = _csv_ord
+                break
         INFO_ESTACIONARIEDAD[_s] = {
-            'label': _row['Variable'],
-            'nivel_estacionaria': _row['Nivel OK'] == 'SI',
-            'diff_estacionaria': _row['Diff OK'] == 'SI',
+            'label': _eti,
+            'nivel_estacionaria': _orden == 0,
+            'diff_estacionaria': _orden == 1,
             'orden': _orden,
         }
 
@@ -1771,6 +1809,7 @@ def seccion_9_vecm(ctx, est_ctx, config, var_res=None):
     DUMMY_SAFE = ctx.get('DUMMY_SAFE', [])
     MAX_LAGS_VAR = ctx['MAX_LAGS_VAR']
     LAG_CAP_FREQ = ctx.get('LAG_CAP_FREQ', MAX_LAGS_VAR)
+    LAG_CAP_FREQ_VECM = ctx.get('LAG_CAP_FREQ_VECM', LAG_CAP_FREQ)
     X_SAFE_I1 = est_ctx['X_SAFE_I1']
     X_SAFE_EST = est_ctx['X_SAFE_EST']
     Y_ORDEN = est_ctx['Y_ORDEN']
@@ -1840,9 +1879,9 @@ def seccion_9_vecm(ctx, est_ctx, config, var_res=None):
         random.seed(SEMILLA)
         _combos_vecm = random.sample(_combos_vecm, MAX_COMBINACIONES)
 
-    # Cap de lags: 3 si M, 2 si Q (LAG_CAP_FREQ). VECM exige k_ar_diff >= 1.
-    _kdiff_range = list(range(1, max(1, LAG_CAP_FREQ) + 1))
-    print(f'Combinaciones: {len(_combos_vecm)} subsets x {len(_kdiff_range)} lags (cap={LAG_CAP_FREQ})')
+    # Cap de lags: usa LAG_CAP_FREQ_VECM (override CLI) o LAG_CAP_FREQ. VECM exige k_ar_diff >= 1.
+    _kdiff_range = list(range(1, max(1, LAG_CAP_FREQ_VECM) + 1))
+    print(f'Combinaciones: {len(_combos_vecm)} subsets x {len(_kdiff_range)} lags (cap_vecm={LAG_CAP_FREQ_VECM})')
 
     _RESULTADOS_VECM = []
     _t0_vecm = pd.Timestamp.now()
@@ -2593,18 +2632,19 @@ def generar_reporte_html(ctx, est_ctx, ardl_res, var_res, vecm_res,
           {_tabla(df_est, max_rows=50)}
         </section>''')
 
-    # ── Sec 7: ARDL ───────────────────────────────────────────────────────────
+    # ── Sec 7: ARDL ─── (OCULTA por pedido del usuario; los resultados se ven
+    # consolidados en sec 10, junto con VAR y VECM) ──────────────────────────
     df_a = ardl_res.get('df_res_ardl', pd.DataFrame())
     df_a_rb = ardl_res.get('df_ardl_ruido_blanco', pd.DataFrame())
-    secciones.append(f'''
-    <section id="sec7">
-      <h2>7. Modelos ARDL</h2>
-      <p>Total estimados: <b>{len(df_a)}</b> | Con ruido blanco (LB): <b>{len(df_a_rb)}</b></p>
-      {_img('sec07_ccf_bj', 'CCF Box-Jenkins (X blanqueada vs Y filtrada)')}
-      {_tabla(df_a.sort_values('aic').head(10) if not df_a.empty else df_a,
-              cols=['modelo','vars_label','aic','bic','hq','r2','nobs'],
-              titulo='Top 10 ARDL por AIC')}
-    </section>''')
+    # secciones.append(f'''
+    # <section id="sec7">
+    #   <h2>7. Modelos ARDL</h2>
+    #   <p>Total estimados: <b>{len(df_a)}</b> | Con ruido blanco (LB): <b>{len(df_a_rb)}</b></p>
+    #   {_img('sec07_ccf_bj', 'CCF Box-Jenkins (X blanqueada vs Y filtrada)')}
+    #   {_tabla(df_a.sort_values('aic').head(10) if not df_a.empty else df_a,
+    #           cols=['modelo','vars_label','aic','bic','hq','r2','nobs'],
+    #           titulo='Top 10 ARDL por AIC')}
+    # </section>''')
 
     # ── Sec 8: VAR ────────────────────────────────────────────────────────────
     df_v = var_res.get('df_res_var', pd.DataFrame())
@@ -2660,19 +2700,140 @@ def generar_reporte_html(ctx, est_ctx, ardl_res, var_res, vecm_res,
     else:
         dum_html = '<p class="muted">Sin coeficientes de dummies extraídos.</p>'
 
+    # ── PIP: para cada variable, en cuántos de los top-40 modelos (por AIC)
+    # aparece, y en cuántos de esos resulta significativa (en CP o LP). ──────
+    pip_html = ''
+    if not df_res.empty and not df_largo.empty:
+        _N_PIP = 40
+        _top40 = (df_res.dropna(subset=['aic'])
+                        .sort_values('aic')
+                        .drop_duplicates(subset=['vars_safe','modelo'])
+                        .head(_N_PIP))
+        _top40_ids = set(_top40['combo_id'].tolist())
+        _df_pip = df_largo[df_largo['combo_id'].isin(_top40_ids)].copy()
+        if not _df_pip.empty:
+            _pip = (_df_pip.groupby('variable')
+                          .agg(N_aparece=('combo_id','nunique'),
+                               N_sig_lp=('sig','sum'),
+                               N_sig_cp=('sig_sr','sum'))
+                          .reset_index())
+            _pip['N_top'] = _N_PIP
+            _pip['Pct_sig_LP'] = (_pip['N_sig_lp'] / _pip['N_aparece'] * 100).round(1)
+            _pip['Pct_sig_CP'] = (_pip['N_sig_cp'] / _pip['N_aparece'] * 100).round(1)
+            _pip = _pip.sort_values('N_sig_lp', ascending=False)
+            pip_html = _tabla(
+                _pip[['variable','N_aparece','N_top','N_sig_lp','Pct_sig_LP','N_sig_cp','Pct_sig_CP']],
+                max_rows=40,
+                titulo=f'PIP — Frecuencia y significancia de cada variable en los top {_N_PIP} modelos (por AIC)')
+
+    # ── 4 dropdowns colapsables con Top-10 por criterio ──────────────────────
+    def _top10_drop(df_src, crit, asc, label):
+        if df_src.empty or crit not in df_src.columns:
+            return ''
+        top = (df_src.dropna(subset=[crit])
+                    .sort_values(crit, ascending=asc)
+                    .drop_duplicates(subset=['vars_safe','modelo'])
+                    .head(10).reset_index(drop=True))
+        tbl = _tabla(top, max_rows=10,
+                     cols=['modelo','vars_label','aic','bic','hq','r2','nobs'],
+                     titulo=f'Top 10 GLOBAL por {label}')
+        return f'<details style="margin:8px 0"><summary style="cursor:pointer;font-weight:600;color:#1f2937;padding:6px 10px;background:#f3f4f6;border-radius:4px">🔽 Top 10 GLOBAL por {label}</summary>{tbl}</details>'
+
+    top10_html = (
+        _top10_drop(df_res, 'aic', True,  'AIC')
+        + _top10_drop(df_res, 'bic', True,  'BIC')
+        + _top10_drop(df_res, 'hq',  True,  'HQ')
+        + _top10_drop(df_res, 'r2',  False, 'R² ajustado')
+    )
+
+    # ── Mejor modelo por cada criterio, con detalle de coefs ─────────────────
+    COL_LABEL_local = ctx.get('COL_LABEL', {})
+    DUMMY_SAFE_local = ctx.get('DUMMY_SAFE', [])
+
+    def _detalle_coefs_inline(fila):
+        xv = [v for v in str(fila.get('vars_safe', '')).split('|') if v]
+        modelo = fila.get('modelo', '')
+        rows = []
+        for x in xv:
+            label = COL_LABEL_local.get(x, x)
+            if modelo == 'ARDL':
+                lp_c, lp_p = fila.get(f'lr_coef_{x}'), fila.get(f'lr_pval_{x}')
+                cp_c, cp_p = fila.get(f'coef_{x}'), fila.get(f'pval_{x}')
+            elif modelo == 'VAR':
+                lp_c, lp_p = fila.get(f'sum_coef_{x}'), fila.get(f'wald_pval_{x}')
+                cp_c, cp_p = fila.get(f'irf_{x}_h0', fila.get(f'coef_{x}')), fila.get(f'irfpval_{x}_h0', fila.get(f'pval_{x}'))
+            elif modelo == 'VECM':
+                lp_c, lp_p = fila.get(f'beta_coef_{x}'), fila.get(f'beta_pval_{x}')
+                cp_c, cp_p = fila.get(f'gamma_coef_{x}'), fila.get(f'gamma_pval_{x}')
+            else:
+                lp_c = lp_p = cp_c = cp_p = float('nan')
+            rows.append({'Variable': label, 'Coef LP': lp_c, 'p-val LP': lp_p, 'Coef CP': cp_c, 'p-val CP': cp_p})
+        for d in DUMMY_SAFE_local:
+            dc, dp = fila.get(f'dum_coef_{d}'), fila.get(f'dum_pval_{d}')
+            if dc is None or (isinstance(dc, float) and math.isnan(dc)):
+                continue
+            rows.append({'Variable': f'[D] {COL_LABEL_local.get(d, d)}',
+                         'Coef LP': float('nan'), 'p-val LP': float('nan'),
+                         'Coef CP': dc, 'p-val CP': dp})
+        if not rows:
+            return '<p class="muted">Sin coeficientes para mostrar.</p>'
+        return _tabla(pd.DataFrame(rows), max_rows=50)
+
+    best_html = ''
+    if not df_res.empty:
+        for _crit, _asc, _lbl in [('aic', True, 'AIC'), ('bic', True, 'BIC'),
+                                   ('hq', True, 'HQ'), ('r2', False, 'R² ajustado')]:
+            if _crit not in df_res.columns or df_res[_crit].isna().all():
+                continue
+            _best = (df_res.dropna(subset=[_crit])
+                         .sort_values(_crit, ascending=_asc)
+                         .iloc[0])
+            best_html += (f'<h4>🏆 Mejor por {_lbl}: {_best["modelo"]} — {_best.get("vars_label","")[:120]}'
+                          f' <span class="muted">(AIC={_best.get("aic", float("nan")):.3f} · '
+                          f'BIC={_best.get("bic", float("nan")):.3f} · '
+                          f'HQ={_best.get("hq", float("nan")):.3f} · '
+                          f'R²={_best.get("r2", float("nan")):.4f})</span></h4>')
+            best_html += _detalle_coefs_inline(_best)
+
     secciones.append(f'''
     <section id="sec10">
-      <h2>10. Consolidación y gráficos comparativos</h2>
-      {sig_html}
-      <h3>Largo plazo</h3>
-      {_img('sec10_coef_vs_pval_largo_plazo', 'Coef LARGO PLAZO vs P-valor (β en VECM)')}
-      <h3>Corto plazo</h3>
-      {_img('sec10_coef_vs_pval_corto_plazo', 'Coef CORTO PLAZO vs P-valor (γ en VECM)')}
-      <h3>Variables DUMMY exógenas</h3>
-      {dum_html}
-      <h3>VECM — Velocidad de ajuste (α)</h3>
-      {_img('sec10_vecm_alpha_dep', 'α vs p-valor (dependiente)')}
+      <h2>10. Resultados Consolidados</h2>
+
+      <h3>① Coeficientes de CORTO PLAZO (γ en VECM, impacto h=0 en VAR)</h3>
+      {_img('sec10_coef_vs_pval_corto_plazo', 'Coef CORTO PLAZO vs P-valor')}
+
+      <h3>② Coeficientes de LARGO PLAZO (β en VECM, suma de coefs en VAR)</h3>
+      {_img('sec10_coef_vs_pval_largo_plazo', 'Coef LARGO PLAZO vs P-valor')}
+
+      <h3>③ Análisis PIP — Relevancia de cada variable en los Top-40 modelos</h3>
+      {pip_html or '<p class="muted">Sin datos suficientes para PIP.</p>'}
+
+      <h3>④ Top 10 modelos por criterio (clic para expandir)</h3>
+      {top10_html or '<p class="muted">Sin modelos disponibles.</p>'}
+
+      <h3>⑤ Distribución de criterios y R² por tipo de modelo</h3>
+      {_img('sec11_boxplot_criterios', 'Boxplots de IC y R² (ARDL vs VAR vs VECM)')}
+
+      <h3>⑥ Mejor modelo por criterio — detalle de coeficientes</h3>
+      {best_html or '<p class="muted">Sin modelos disponibles.</p>'}
+
+      <h3>⑦ Predicción del mejor modelo vs serie observada</h3>
+      {_img('sec11_real_vs_ajustado', 'Mejor modelo GLOBAL — Predicción vs Observado')}
+      <h4>Mejor por tipo de modelo</h4>
+      {_img('sec11_real_vs_ajustado_ardl', 'Mejor ARDL — Predicción vs Observado')}
+      {_img('sec11_real_vs_ajustado_var',  'Mejor VAR — Predicción vs Observado')}
+      {_img('sec11_real_vs_ajustado_vecm', 'Mejor VECM — Predicción vs Observado')}
+
+      <h3>⑧ VECM — Velocidad de ajuste (α) y γ</h3>
+      {_img('sec10_vecm_alpha_dep', 'α vs p-valor (variable dependiente)')}
       {_img('sec10_vecm_gamma_pct_segun_alpha', '% γ_x significativo según α_dep')}
+
+      <h3>⑨ Variables DUMMY exógenas (controles fijos)</h3>
+      {dum_html}
+
+      {('<p class="muted" style="margin-top:14px;font-size:12px">'
+        '<b>Nota:</b> en VECM las dummies son shocks exógenos de impacto — no entran '
+        'en β ni en la suma de coefs de LP, por eso aparecen NaN ahí.</p>') if DUMMY_SAFE_local else ''}
     </section>''')
 
     # ── Sec 11: Ranking ───────────────────────────────────────────────────────
@@ -2761,28 +2922,13 @@ def generar_reporte_html(ctx, est_ctx, ardl_res, var_res, vecm_res,
             rankings_html += _top_block(_df_m, 'bic', True, f'Top 10 {_m} por BIC', ncoef=2)
             rankings_html += _top_block(_df_m, 'hq',  True, f'Top 10 {_m} por HQ',  ncoef=2)
 
-    secciones.append(f'''
-    <section id="sec11">
-      <h2>11. Ranking y mejor modelo</h2>
-      {rankings_html}
-      {_img('sec11_boxplot_criterios', 'Distribución de IC/R² por tipo de modelo')}
-      <h3>Real vs Ajustado — Mejor modelo GLOBAL</h3>
-      {_img('sec11_real_vs_ajustado', 'Mejor modelo global — Real vs Ajustado')}
-      <h3>Real vs Ajustado — Mejor por tipo de modelo</h3>
-      {_img('sec11_real_vs_ajustado_ardl', 'Mejor ARDL — Real vs Ajustado')}
-      {_img('sec11_real_vs_ajustado_var',  'Mejor VAR — Real vs Ajustado')}
-      {_img('sec11_real_vs_ajustado_vecm', 'Mejor VECM — Real vs Ajustado')}
-      <p class="muted" style="margin-top:14px;font-size:12px">
-        <b>Nota sobre dummies:</b> al ser variables exógenas binarias (0/1), las dummies
-        actúan como shocks de impacto y no entran en la relación de cointegración (β)
-        ni en la suma de coeficientes de largo plazo. Por eso <i>Coef LP</i> y
-        <i>p-val LP</i> aparecen como NaN — solo tienen interpretación de corto plazo.
-      </p>
-    </section>''')
+    # Sec 11 fue mergeada dentro de sec 10 (ranking, boxplots, real vs
+    # ajustado, mejor por criterio) — ya no se emite como sección separada.
+    pass
 
     # ── HTML armado ───────────────────────────────────────────────────────────
     nav_links = ''.join(
-        f'<a href="#sec{s}">§ {s}</a>' for s in ['3','5','6','7','8','9','10','11'])
+        f'<a href="#sec{s}">§ {s}</a>' for s in ['3','5','6','8','9','10'])
 
     # Mapa sección → nombre de caché que invalidar al re-ejecutar
     _CACHE_MAP = {
@@ -2905,6 +3051,21 @@ def main():
     parser.add_argument('--csv', type=str, default=None,
                         help='Nombre del CSV en notebooks/Variables Regresivas/ '
                              '(default: el último analisis_series_*.csv)')
+    parser.add_argument('--freq', type=str, default=None,
+                        help='Frecuencia (M/Q/W/D/A o auto). Override de config.')
+    parser.add_argument('--max-lag-ardl-dep', type=int, default=None,
+                        help='Override del MAX_LAGS_DEP (ARDL, var. dependiente)')
+    parser.add_argument('--max-lag-ardl-ind', type=int, default=None,
+                        help='Override del MAX_LAGS_IND (ARDL, var. independiente)')
+    parser.add_argument('--max-lag-var', type=int, default=None,
+                        help='Override del MAX_LAGS_VAR y LAG_CAP_FREQ (VAR)')
+    parser.add_argument('--max-lag-vecm', type=int, default=None,
+                        help='Override del LAG_CAP_FREQ_VECM (k_ar_diff del VECM)')
+    parser.add_argument('--max-vars', type=int, default=None,
+                        help='Override de MAX_VARS_POR_MODELO (tope vars por modelo)')
+    parser.add_argument('--modelos', type=str, default=None,
+                        help='Comma-list de modelos a correr (ARDL,VAR,VECM). '
+                             'Las secciones de modelos no seleccionados se saltan.')
     args = parser.parse_args()
 
     REUSE = args.reuse_cache
@@ -2945,6 +3106,15 @@ def main():
     if args.csv:
         config['CSV_ANALISIS'] = args.csv
         print(f'  📌 CSV forzado por CLI: {args.csv}')
+    if args.freq:
+        config['FRECUENCIA'] = args.freq
+        print(f'  📌 Frecuencia forzada por CLI: {args.freq}')
+    if args.max_vars is not None:
+        config['MAX_VARS_POR_MODELO'] = args.max_vars
+        print(f'  📌 MAX_VARS_POR_MODELO forzado por CLI: {args.max_vars}')
+    if args.modelos:
+        config['MODELOS_CLI'] = [m.strip().upper() for m in args.modelos.split(',') if m.strip()]
+        print(f'  📌 Modelos forzados por CLI: {config["MODELOS_CLI"]}')
 
     def _need(sec, *deps):
         """Sección a correr (la pidió el usuario o la pide una dependencia)."""
@@ -2973,6 +3143,24 @@ def main():
         print('♻️  Ctx cargado desde caché')
         ctx = ctx_cache
 
+    # Overrides de lags desde CLI (visualizador → server.py → CLI)
+    if args.max_lag_ardl_dep is not None:
+        ctx['MAX_LAGS_DEP'] = int(args.max_lag_ardl_dep)
+        print(f'  📌 MAX_LAGS_DEP override: {ctx["MAX_LAGS_DEP"]}')
+    if args.max_lag_ardl_ind is not None:
+        ctx['MAX_LAGS_IND'] = int(args.max_lag_ardl_ind)
+        print(f'  📌 MAX_LAGS_IND override: {ctx["MAX_LAGS_IND"]}')
+    if args.max_lag_var is not None:
+        ctx['MAX_LAGS_VAR'] = int(args.max_lag_var)
+        ctx['LAG_CAP_FREQ'] = int(args.max_lag_var)
+        print(f'  📌 MAX_LAGS_VAR / LAG_CAP_FREQ override: {args.max_lag_var}')
+    # LAG_CAP_FREQ_VECM: si no se setea explícito, mirror de LAG_CAP_FREQ
+    ctx['LAG_CAP_FREQ_VECM'] = (int(args.max_lag_vecm)
+                                if args.max_lag_vecm is not None
+                                else ctx.get('LAG_CAP_FREQ', 3))
+    if args.max_lag_vecm is not None:
+        print(f'  📌 LAG_CAP_FREQ_VECM override: {args.max_lag_vecm}')
+
     # Sec 5
     if should_run('5'):
         seccion_5_descriptivos(df_panel, ctx['ETI_DEP'])
@@ -2980,41 +3168,50 @@ def main():
     # ── Estacionariedad (sec 6) ──────────────────────────────────────────────
     est_cache = _cache_load('est') if REUSE else None
     if est_cache is None:
-        est_ctx = seccion_6_estacionariedad(df_panel, ctx)
+        est_ctx = seccion_6_estacionariedad(df_panel, ctx, df_csv=df_csv)
         _cache_save('est', est_ctx)
     else:
         print('♻️  Estacionariedad cargada desde caché')
         est_ctx = est_cache
 
+    # Filtro de modelos desde CLI (visualizador). Si no se pasa, corre todos los que estén en secciones.
+    _MODELOS_OK = set(config.get('MODELOS_CLI') or ['ARDL', 'VAR', 'VECM'])
+
     # ── ARDL (sec 7) ─────────────────────────────────────────────────────────
     ardl_res = {}
     ardl_cache = _cache_load('ardl') if REUSE else None
-    if should_run('7') and ardl_cache is None:
+    if 'ARDL' in _MODELOS_OK and should_run('7') and ardl_cache is None:
         ardl_res = seccion_7_ardl(ctx, est_ctx, config)
         _cache_save('ardl', ardl_res)
     elif ardl_cache is not None:
         print('♻️  ARDL cargado desde caché')
         ardl_res = ardl_cache
+    elif 'ARDL' not in _MODELOS_OK:
+        print('⏭️  ARDL excluido por --modelos')
 
     # ── VAR (sec 8) ──────────────────────────────────────────────────────────
     var_res = {}
     var_cache = _cache_load('var') if REUSE else None
-    if should_run('8') and var_cache is None:
+    if 'VAR' in _MODELOS_OK and should_run('8') and var_cache is None:
         var_res = seccion_8_var(ctx, est_ctx, config)
         _cache_save('var', var_res)
     elif var_cache is not None:
         print('♻️  VAR cargado desde caché')
         var_res = var_cache
+    elif 'VAR' not in _MODELOS_OK:
+        print('⏭️  VAR excluido por --modelos')
 
     # ── VECM (sec 9) ─────────────────────────────────────────────────────────
     vecm_res = {}
     vecm_cache = _cache_load('vecm') if REUSE else None
-    if should_run('9') and vecm_cache is None:
+    if 'VECM' in _MODELOS_OK and should_run('9') and vecm_cache is None:
         vecm_res = seccion_9_vecm(ctx, est_ctx, config, var_res=var_res if var_res else None)
         _cache_save('vecm', vecm_res)
     elif vecm_cache is not None:
         print('♻️  VECM cargado desde caché')
         vecm_res = vecm_cache
+    elif 'VECM' not in _MODELOS_OK:
+        print('⏭️  VECM excluido por --modelos')
 
     # ── Consolidación (sec 10) ───────────────────────────────────────────────
     df_res = pd.DataFrame(); df_largo = pd.DataFrame(); df_dum = pd.DataFrame()

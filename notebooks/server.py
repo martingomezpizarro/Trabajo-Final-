@@ -356,11 +356,28 @@ class Handler(BaseHTTPRequestHandler):
                     json.dumps({'ok': False, 'error': 'Ya hay un run en curso'}),
                     'application/json')
 
+            # Leer config opcional del visualizador (freq, lags, max_vars, modelos)
+            qs = parse_qs(u.query)
+            extra = []
+            qs_to_cli = {
+                'freq':         '--freq',
+                'lag_ardl_dep': '--max-lag-ardl-dep',
+                'lag_ardl_ind': '--max-lag-ardl-ind',
+                'lag_var':      '--max-lag-var',
+                'lag_vecm':     '--max-lag-vecm',
+                'max_vars':     '--max-vars',
+                'modelos':      '--modelos',
+            }
+            for k, cli in qs_to_cli.items():
+                v = qs.get(k, [''])[0].strip()
+                if v:
+                    extra += [cli, v]
+
             with _run_lock:
                 ok, log = _run_subprocess([
                     '--invalidate', 'panel,ctx,est,ardl,var,vecm,consolidado',
                     '--csv', csv_path.name,
-                ])
+                ] + extra)
             return self._send(200,
                 json.dumps({'ok': ok, 'log_tail': log[-30:]}),
                 'application/json')
