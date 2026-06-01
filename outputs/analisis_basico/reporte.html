@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="utf-8">
-<title>Análisis Básico — Riesgo País ARG | Reservas Brutas BCRA</title>
+<title>Análisis Básico — Riesgo País ARG | Riesgo País ARG (EMBI+) A − B EMBI+ Latinoamérica</title>
 <style>
  body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;margin:0;color:#222;background:#fafafa}
  header{background:#1f2937;color:#fff;padding:20px 32px;position:sticky;top:0;z-index:10}
@@ -33,7 +33,7 @@
     <button onclick="runAll()" style="float:right;padding:6px 12px;background:#dc2626;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:12px">🔄 Re-correr TODO</button>
   </h1>
   <div style="font-size:13px;opacity:.85">
-    Y = <b>Reservas Brutas BCRA</b> · Frecuencia: M (cap 3 lags) · Generado: 2026-05-27 19:48
+    Y = <b>Riesgo País ARG (EMBI+) A − B EMBI+ Latinoamérica</b> · Frecuencia: M (cap 3 lags) · Generado: 2026-05-29 09:57
   </div>
   <nav><a href="#sec3">§ 3</a><a href="#sec5">§ 5</a><a href="#sec6">§ 6</a><a href="#sec8">§ 8</a><a href="#sec9">§ 9</a><a href="#sec10">§ 10</a></nav>
 </header>
@@ -42,10 +42,10 @@
     <section id="sec3">
       <h2>3-4. Configuración y panel <button id="btn-sec3" onclick="runSection('3')" style="float:right;padding:4px 10px;background:#1f2937;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px">🔁 Re-ejecutar</button></h2>
       <ul>
-        <li>Variable dependiente: <b>Reservas Brutas BCRA</b></li>
+        <li>Variable dependiente: <b>Riesgo País ARG (EMBI+) A − B EMBI+ Latinoamérica</b></li>
         <li>Frecuencia detectada: <b>M</b> (cap de lags = 3)</li>
         <li>Observaciones: <b>194</b></li>
-        <li>Variables explicativas: <b>2</b></li>
+        <li>Variables explicativas: <b>3</b></li>
         <li>Período: 2010-02-28 → 2026-03-31</li>
         <li>Nivel de significancia: α = 0.05</li>
       </ul>
@@ -67,13 +67,7 @@
   </thead>
   <tbody>
     <tr>
-      <td>Reservas Brutas BCRA</td>
-      <td>NO</td>
-      <td>SI</td>
-      <td>I(1)</td>
-    </tr>
-    <tr>
-      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>Reservas Brutas BCRA/PBI USD</td>
       <td>NO</td>
       <td>SI</td>
       <td>I(1)</td>
@@ -84,12 +78,24 @@
       <td>SI</td>
       <td>I(1)</td>
     </tr>
+    <tr>
+      <td>Riesgo País ARG (EMBI+) A − B EMBI+ Latinoamérica</td>
+      <td>NO</td>
+      <td>SI</td>
+      <td>I(1)</td>
+    </tr>
+    <tr>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>NO</td>
+      <td>SI</td>
+      <td>I(1)</td>
+    </tr>
   </tbody>
 </table>
         </section>
     <section id="sec8">
       <h2>8. Modelos VAR (Cholesky) <button id="btn-sec8" onclick="runSection('8')" style="float:right;padding:4px 10px;background:#1f2937;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px">🔁 Re-ejecutar</button></h2>
-      <p>Total estimados: <b>12</b> | Con ruido blanco (LB en Y): <b>1</b></p>
+      <p>Total estimados: <b>45</b> | Con ruido blanco (LB en Y): <b>30</b></p>
       <h4>Top 10 VAR por AIC</h4><table class="dataframe tbl">
   <thead>
     <tr style="text-align: left;">
@@ -110,107 +116,107 @@
       <td>VAR</td>
       <td>Brecha Cambiari</td>
       <td>2</td>
-      <td>10.8077</td>
-      <td>10.9779</td>
-      <td>10.8766</td>
-      <td>0.1529</td>
-      <td>0.0017</td>
-      <td>False</td>
+      <td>5.5721</td>
+      <td>5.7424</td>
+      <td>5.6411</td>
+      <td>0.2041</td>
+      <td>0.0867</td>
+      <td>True</td>
       <td>191</td>
     </tr>
     <tr>
       <td>VAR</td>
       <td>Brecha Cambiari</td>
       <td>3</td>
-      <td>10.8294</td>
-      <td>11.0687</td>
-      <td>10.9263</td>
-      <td>0.1776</td>
-      <td>0.0365</td>
-      <td>False</td>
+      <td>5.6060</td>
+      <td>5.8453</td>
+      <td>5.7029</td>
+      <td>0.2057</td>
+      <td>0.0994</td>
+      <td>True</td>
       <td>190</td>
     </tr>
     <tr>
       <td>VAR</td>
       <td>Brecha Cambiari</td>
       <td>1</td>
-      <td>10.8355</td>
-      <td>10.9373</td>
-      <td>10.8767</td>
-      <td>0.1437</td>
-      <td>0.0013</td>
-      <td>False</td>
-      <td>192</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Brecha Cambiari|ITCRM Multilate</td>
-      <td>2</td>
-      <td>13.7415</td>
-      <td>14.0990</td>
-      <td>13.8863</td>
-      <td>0.1584</td>
-      <td>0.0005</td>
-      <td>False</td>
-      <td>191</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>ITCRM Multilate|Brecha Cambiari</td>
-      <td>2</td>
-      <td>13.7415</td>
-      <td>14.0990</td>
-      <td>13.8863</td>
-      <td>0.1584</td>
-      <td>0.0005</td>
-      <td>False</td>
-      <td>191</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Brecha Cambiari|ITCRM Multilate</td>
-      <td>3</td>
-      <td>13.7928</td>
-      <td>14.3055</td>
-      <td>14.0004</td>
-      <td>0.1906</td>
-      <td>0.0184</td>
-      <td>False</td>
-      <td>190</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>ITCRM Multilate|Brecha Cambiari</td>
-      <td>3</td>
-      <td>13.7928</td>
-      <td>14.3055</td>
-      <td>14.0004</td>
-      <td>0.1906</td>
-      <td>0.0184</td>
-      <td>False</td>
-      <td>190</td>
-    </tr>
-    <tr>
-      <td>VAR</td>
-      <td>Brecha Cambiari|ITCRM Multilate</td>
-      <td>1</td>
-      <td>13.8176</td>
-      <td>14.0212</td>
-      <td>13.9001</td>
-      <td>0.1478</td>
-      <td>0.0006</td>
+      <td>5.7142</td>
+      <td>5.8160</td>
+      <td>5.7554</td>
+      <td>0.1060</td>
+      <td>0.0002</td>
       <td>False</td>
       <td>192</td>
     </tr>
     <tr>
       <td>VAR</td>
       <td>ITCRM Multilate|Brecha Cambiari</td>
+      <td>2</td>
+      <td>8.5376</td>
+      <td>8.8951</td>
+      <td>8.6824</td>
+      <td>0.2045</td>
+      <td>0.0904</td>
+      <td>True</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|ITCRM Multilate</td>
+      <td>2</td>
+      <td>8.5376</td>
+      <td>8.8951</td>
+      <td>8.6824</td>
+      <td>0.2045</td>
+      <td>0.0904</td>
+      <td>True</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|ITCRM Multilate</td>
+      <td>3</td>
+      <td>8.6153</td>
+      <td>9.1280</td>
+      <td>8.8230</td>
+      <td>0.2060</td>
+      <td>0.1029</td>
+      <td>True</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate|Brecha Cambiari</td>
+      <td>3</td>
+      <td>8.6153</td>
+      <td>9.1280</td>
+      <td>8.8230</td>
+      <td>0.2060</td>
+      <td>0.1029</td>
+      <td>True</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate|Brecha Cambiari</td>
       <td>1</td>
-      <td>13.8176</td>
-      <td>14.0212</td>
-      <td>13.9001</td>
-      <td>0.1478</td>
-      <td>0.0006</td>
+      <td>8.7179</td>
+      <td>8.9215</td>
+      <td>8.8003</td>
+      <td>0.1065</td>
+      <td>0.0002</td>
+      <td>False</td>
+      <td>192</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|ITCRM Multilate</td>
+      <td>1</td>
+      <td>8.7179</td>
+      <td>8.9215</td>
+      <td>8.8003</td>
+      <td>0.1065</td>
+      <td>0.0002</td>
       <td>False</td>
       <td>192</td>
     </tr>
@@ -218,12 +224,12 @@
       <td>VAR</td>
       <td>ITCRM Multilate</td>
       <td>2</td>
-      <td>18.6576</td>
-      <td>18.8279</td>
-      <td>18.7265</td>
-      <td>0.1130</td>
-      <td>0.0079</td>
-      <td>False</td>
+      <td>13.5449</td>
+      <td>13.7152</td>
+      <td>13.6139</td>
+      <td>0.1766</td>
+      <td>0.2468</td>
+      <td>True</td>
       <td>191</td>
     </tr>
   </tbody>
@@ -231,8 +237,8 @@
     </section>
     <section id="sec9">
       <h2>9. Modelos VECM <button id="btn-sec9" onclick="runSection('9')" style="float:right;padding:4px 10px;background:#1f2937;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px">🔁 Re-ejecutar</button></h2>
-      <p>Total estimados: <b>3</b> | Con ruido blanco (LB en Y): <b>1</b> |
-         α significativo: <b>0/3</b></p>
+      <p>Total estimados: <b>17</b> | Con ruido blanco (LB en Y): <b>10</b> |
+         α significativo: <b>10/17</b></p>
       <h4>Top 10 VECM por AIC</h4><table class="dataframe tbl">
   <thead>
     <tr style="text-align: left;">
@@ -254,48 +260,153 @@
   <tbody>
     <tr>
       <td>VECM</td>
-      <td>ITCRM Multilateral</td>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>2</td>
+      <td>1</td>
+      <td>5.5481</td>
+      <td>5.7865</td>
+      <td>5.6446</td>
+      <td>0.2042</td>
+      <td>8.3590</td>
+      <td>0.8797</td>
+      <td>0.0884</td>
+      <td>True</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>Brecha Cambiaria MEP/Oficial</td>
       <td>3</td>
       <td>1</td>
-      <td>18.6171</td>
-      <td>18.9247</td>
-      <td>18.7417</td>
-      <td>0.1494</td>
-      <td>21.8894</td>
-      <td>0.0693</td>
-      <td>0.2665</td>
+      <td>5.5588</td>
+      <td>5.8664</td>
+      <td>5.6834</td>
+      <td>0.2057</td>
+      <td>5.4096</td>
+      <td>0.9244</td>
+      <td>0.0995</td>
       <td>True</td>
       <td>190</td>
     </tr>
     <tr>
       <td>VECM</td>
-      <td>ITCRM Multilateral</td>
-      <td>2</td>
+      <td>Brecha Cambiaria MEP/Oficial</td>
       <td>1</td>
-      <td>18.6260</td>
-      <td>18.8644</td>
-      <td>18.7226</td>
-      <td>0.1176</td>
-      <td>12.2267</td>
-      <td>0.3186</td>
-      <td>0.0136</td>
+      <td>1</td>
+      <td>5.6644</td>
+      <td>5.8341</td>
+      <td>5.7331</td>
+      <td>0.1174</td>
+      <td>85.4228</td>
+      <td>0.1177</td>
+      <td>0.0007</td>
       <td>False</td>
-      <td>191</td>
+      <td>192</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>ITCRM Multilateral|Brecha Cambiaria MEP/Oficial</td>
+      <td>1</td>
+      <td>1</td>
+      <td>8.7197</td>
+      <td>9.0760</td>
+      <td>8.8640</td>
+      <td>0.1275</td>
+      <td>0.6180</td>
+      <td>0.0329</td>
+      <td>0.0012</td>
+      <td>False</td>
+      <td>192</td>
     </tr>
     <tr>
       <td>VECM</td>
       <td>ITCRM Multilateral</td>
       <td>1</td>
       <td>1</td>
-      <td>18.6591</td>
-      <td>18.8287</td>
-      <td>18.7278</td>
-      <td>0.1088</td>
-      <td>15.8855</td>
-      <td>0.1824</td>
-      <td>0.0161</td>
+      <td>13.6814</td>
+      <td>13.8511</td>
+      <td>13.7501</td>
+      <td>0.1093</td>
+      <td>1.7527</td>
+      <td>0.0306</td>
+      <td>0.0007</td>
       <td>False</td>
       <td>192</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>Reservas Brutas BCRA/PBI USD|Brecha Cambiaria MEP/Oficial</td>
+      <td>2</td>
+      <td>2</td>
+      <td>21.0208</td>
+      <td>21.5827</td>
+      <td>21.2484</td>
+      <td>0.2529</td>
+      <td>0.0037</td>
+      <td>0.0009</td>
+      <td>0.0915</td>
+      <td>True</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>Reservas Brutas BCRA/PBI USD|Brecha Cambiaria MEP/Oficial</td>
+      <td>3</td>
+      <td>2</td>
+      <td>21.0484</td>
+      <td>21.7662</td>
+      <td>21.3392</td>
+      <td>0.2453</td>
+      <td>0.0042</td>
+      <td>0.0036</td>
+      <td>0.1113</td>
+      <td>True</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>Reservas Brutas BCRA/PBI USD|Brecha Cambiaria MEP/Oficial</td>
+      <td>1</td>
+      <td>2</td>
+      <td>21.0885</td>
+      <td>21.4957</td>
+      <td>21.2534</td>
+      <td>0.1613</td>
+      <td>0.0023</td>
+      <td>0.0037</td>
+      <td>0.0028</td>
+      <td>False</td>
+      <td>192</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>Reservas Brutas BCRA/PBI USD|ITCRM Multilateral|Brecha Cambiaria MEP/Oficial</td>
+      <td>2</td>
+      <td>3</td>
+      <td>24.0238</td>
+      <td>25.0455</td>
+      <td>24.4376</td>
+      <td>0.2454</td>
+      <td>0.0026</td>
+      <td>0.0703</td>
+      <td>0.1060</td>
+      <td>True</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>Reservas Brutas BCRA/PBI USD|ITCRM Multilateral|Brecha Cambiaria MEP/Oficial</td>
+      <td>3</td>
+      <td>3</td>
+      <td>24.0772</td>
+      <td>25.3760</td>
+      <td>24.6034</td>
+      <td>0.2499</td>
+      <td>0.0030</td>
+      <td>0.0470</td>
+      <td>0.1336</td>
+      <td>True</td>
+      <td>190</td>
     </tr>
   </tbody>
 </table>
@@ -324,22 +435,31 @@
   </thead>
   <tbody>
     <tr>
-      <td>ITCRM Multilateral</td>
-      <td>3</td>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>17</td>
       <td>40</td>
-      <td>2</td>
-      <td>66.7</td>
-      <td>1</td>
-      <td>33.3</td>
+      <td>16</td>
+      <td>94.1</td>
+      <td>17</td>
+      <td>100.0</td>
     </tr>
     <tr>
-      <td>Brecha Cambiaria MEP/Oficial</td>
-      <td>1</td>
+      <td>Reservas Brutas BCRA/PBI USD</td>
+      <td>17</td>
       <td>40</td>
-      <td>1</td>
-      <td>100.0</td>
-      <td>1</td>
-      <td>100.0</td>
+      <td>4</td>
+      <td>23.5</td>
+      <td>13</td>
+      <td>76.5</td>
+    </tr>
+    <tr>
+      <td>ITCRM Multilateral</td>
+      <td>14</td>
+      <td>40</td>
+      <td>2</td>
+      <td>14.3</td>
+      <td>0</td>
+      <td>0.0</td>
     </tr>
   </tbody>
 </table>
@@ -360,30 +480,93 @@
   <tbody>
     <tr>
       <td>VECM</td>
-      <td>ITCRM Multilateral</td>
-      <td>18.6171</td>
-      <td>18.9247</td>
-      <td>18.7417</td>
-      <td>0.1494</td>
-      <td>190</td>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>5.5481</td>
+      <td>5.7865</td>
+      <td>5.6446</td>
+      <td>0.2042</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari</td>
+      <td>5.5721</td>
+      <td>5.7424</td>
+      <td>5.6411</td>
+      <td>0.2041</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate|Brecha Cambiari</td>
+      <td>8.5376</td>
+      <td>8.8951</td>
+      <td>8.6824</td>
+      <td>0.2045</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|ITCRM Multilate</td>
+      <td>8.5376</td>
+      <td>8.8951</td>
+      <td>8.6824</td>
+      <td>0.2045</td>
+      <td>191</td>
     </tr>
     <tr>
       <td>VAR</td>
       <td>ITCRM Multilate</td>
-      <td>18.6731</td>
-      <td>18.9124</td>
-      <td>18.7700</td>
-      <td>0.1345</td>
-      <td>190</td>
+      <td>13.5449</td>
+      <td>13.7152</td>
+      <td>13.6139</td>
+      <td>0.1766</td>
+      <td>191</td>
     </tr>
     <tr>
-      <td>ARDL</td>
-      <td>Brecha Cambiaria MEP/Oficial|ITCRM Multilateral</td>
-      <td>3468.3446</td>
-      <td>3494.3208</td>
-      <td>3478.8672</td>
-      <td>NaN</td>
-      <td>190</td>
+      <td>VECM</td>
+      <td>Reservas Brutas BCRA/PBI USD|Brecha Cambiaria MEP/Oficial</td>
+      <td>21.0208</td>
+      <td>21.5827</td>
+      <td>21.2484</td>
+      <td>0.2529</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Reservas Brutas|Brecha Cambiari</td>
+      <td>21.0214</td>
+      <td>21.3790</td>
+      <td>21.1662</td>
+      <td>0.2075</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|Reservas Brutas</td>
+      <td>21.0214</td>
+      <td>21.3790</td>
+      <td>21.1662</td>
+      <td>0.2075</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Reservas Brutas|ITCRM Multilate|Brecha Cambiari</td>
+      <td>23.9867</td>
+      <td>24.5997</td>
+      <td>24.2350</td>
+      <td>0.2080</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|Reservas Brutas|ITCRM Multilate</td>
+      <td>23.9867</td>
+      <td>24.5997</td>
+      <td>24.2350</td>
+      <td>0.2080</td>
+      <td>191</td>
     </tr>
   </tbody>
 </table></details><details style="margin:8px 0"><summary style="cursor:pointer;font-weight:600;color:#1f2937;padding:6px 10px;background:#f3f4f6;border-radius:4px">🔽 Top 10 GLOBAL por BIC</summary><h4>Top 10 GLOBAL por BIC</h4><table class="dataframe tbl">
@@ -401,30 +584,93 @@
   <tbody>
     <tr>
       <td>VAR</td>
-      <td>ITCRM Multilate</td>
-      <td>18.6731</td>
-      <td>18.9124</td>
-      <td>18.7700</td>
-      <td>0.1345</td>
-      <td>190</td>
+      <td>Brecha Cambiari</td>
+      <td>5.5721</td>
+      <td>5.7424</td>
+      <td>5.6411</td>
+      <td>0.2041</td>
+      <td>191</td>
     </tr>
     <tr>
       <td>VECM</td>
-      <td>ITCRM Multilateral</td>
-      <td>18.6171</td>
-      <td>18.9247</td>
-      <td>18.7417</td>
-      <td>0.1494</td>
-      <td>190</td>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>5.5481</td>
+      <td>5.7865</td>
+      <td>5.6446</td>
+      <td>0.2042</td>
+      <td>191</td>
     </tr>
     <tr>
-      <td>ARDL</td>
-      <td>Brecha Cambiaria MEP/Oficial|ITCRM Multilateral</td>
-      <td>3468.3446</td>
-      <td>3494.3208</td>
-      <td>3478.8672</td>
-      <td>NaN</td>
-      <td>190</td>
+      <td>VAR</td>
+      <td>ITCRM Multilate|Brecha Cambiari</td>
+      <td>8.5376</td>
+      <td>8.8951</td>
+      <td>8.6824</td>
+      <td>0.2045</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|ITCRM Multilate</td>
+      <td>8.5376</td>
+      <td>8.8951</td>
+      <td>8.6824</td>
+      <td>0.2045</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate</td>
+      <td>13.5449</td>
+      <td>13.7152</td>
+      <td>13.6139</td>
+      <td>0.1766</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Reservas Brutas|Brecha Cambiari</td>
+      <td>21.0214</td>
+      <td>21.3790</td>
+      <td>21.1662</td>
+      <td>0.2075</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|Reservas Brutas</td>
+      <td>21.0214</td>
+      <td>21.3790</td>
+      <td>21.1662</td>
+      <td>0.2075</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>Reservas Brutas BCRA/PBI USD|Brecha Cambiaria MEP/Oficial</td>
+      <td>21.0208</td>
+      <td>21.5827</td>
+      <td>21.2484</td>
+      <td>0.2529</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Reservas Brutas|ITCRM Multilate|Brecha Cambiari</td>
+      <td>23.9867</td>
+      <td>24.5997</td>
+      <td>24.2350</td>
+      <td>0.2080</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|ITCRM Multilate|Reservas Brutas</td>
+      <td>23.9867</td>
+      <td>24.5997</td>
+      <td>24.2350</td>
+      <td>0.2080</td>
+      <td>191</td>
     </tr>
   </tbody>
 </table></details><details style="margin:8px 0"><summary style="cursor:pointer;font-weight:600;color:#1f2937;padding:6px 10px;background:#f3f4f6;border-radius:4px">🔽 Top 10 GLOBAL por HQ</summary><h4>Top 10 GLOBAL por HQ</h4><table class="dataframe tbl">
@@ -441,31 +687,94 @@
   </thead>
   <tbody>
     <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari</td>
+      <td>5.5721</td>
+      <td>5.7424</td>
+      <td>5.6411</td>
+      <td>0.2041</td>
+      <td>191</td>
+    </tr>
+    <tr>
       <td>VECM</td>
-      <td>ITCRM Multilateral</td>
-      <td>18.6171</td>
-      <td>18.9247</td>
-      <td>18.7417</td>
-      <td>0.1494</td>
-      <td>190</td>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>5.5481</td>
+      <td>5.7865</td>
+      <td>5.6446</td>
+      <td>0.2042</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate|Brecha Cambiari</td>
+      <td>8.5376</td>
+      <td>8.8951</td>
+      <td>8.6824</td>
+      <td>0.2045</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|ITCRM Multilate</td>
+      <td>8.5376</td>
+      <td>8.8951</td>
+      <td>8.6824</td>
+      <td>0.2045</td>
+      <td>191</td>
     </tr>
     <tr>
       <td>VAR</td>
       <td>ITCRM Multilate</td>
-      <td>18.6731</td>
-      <td>18.9124</td>
-      <td>18.7700</td>
-      <td>0.1345</td>
-      <td>190</td>
+      <td>13.5449</td>
+      <td>13.7152</td>
+      <td>13.6139</td>
+      <td>0.1766</td>
+      <td>191</td>
     </tr>
     <tr>
-      <td>ARDL</td>
-      <td>Brecha Cambiaria MEP/Oficial|ITCRM Multilateral</td>
-      <td>3468.3446</td>
-      <td>3494.3208</td>
-      <td>3478.8672</td>
-      <td>NaN</td>
-      <td>190</td>
+      <td>VAR</td>
+      <td>Reservas Brutas|Brecha Cambiari</td>
+      <td>21.0214</td>
+      <td>21.3790</td>
+      <td>21.1662</td>
+      <td>0.2075</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|Reservas Brutas</td>
+      <td>21.0214</td>
+      <td>21.3790</td>
+      <td>21.1662</td>
+      <td>0.2075</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>Reservas Brutas BCRA/PBI USD|Brecha Cambiaria MEP/Oficial</td>
+      <td>21.0208</td>
+      <td>21.5827</td>
+      <td>21.2484</td>
+      <td>0.2529</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Reservas Brutas|ITCRM Multilate|Brecha Cambiari</td>
+      <td>23.9867</td>
+      <td>24.5997</td>
+      <td>24.2350</td>
+      <td>0.2080</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|ITCRM Multilate|Reservas Brutas</td>
+      <td>23.9867</td>
+      <td>24.5997</td>
+      <td>24.2350</td>
+      <td>0.2080</td>
+      <td>191</td>
     </tr>
   </tbody>
 </table></details><details style="margin:8px 0"><summary style="cursor:pointer;font-weight:600;color:#1f2937;padding:6px 10px;background:#f3f4f6;border-radius:4px">🔽 Top 10 GLOBAL por R² ajustado</summary><h4>Top 10 GLOBAL por R² ajustado</h4><table class="dataframe tbl">
@@ -483,20 +792,92 @@
   <tbody>
     <tr>
       <td>VECM</td>
-      <td>ITCRM Multilateral</td>
-      <td>18.6171</td>
-      <td>18.9247</td>
-      <td>18.7417</td>
-      <td>0.1494</td>
+      <td>Reservas Brutas BCRA/PBI USD|Brecha Cambiaria MEP/Oficial</td>
+      <td>21.0208</td>
+      <td>21.5827</td>
+      <td>21.2484</td>
+      <td>0.2529</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>Reservas Brutas BCRA/PBI USD|ITCRM Multilateral|Brecha Cambiaria MEP/Oficial</td>
+      <td>24.0772</td>
+      <td>25.3760</td>
+      <td>24.6034</td>
+      <td>0.2499</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>Reservas Brutas BCRA/PBI USD|ITCRM Multilateral</td>
+      <td>28.9971</td>
+      <td>29.5590</td>
+      <td>29.2247</td>
+      <td>0.2199</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VECM</td>
+      <td>Reservas Brutas BCRA/PBI USD</td>
+      <td>25.8114</td>
+      <td>26.0498</td>
+      <td>25.9080</td>
+      <td>0.2150</td>
+      <td>191</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Reservas Brutas|Brecha Cambiari|ITCRM Multilate</td>
+      <td>24.0834</td>
+      <td>24.9720</td>
+      <td>24.4434</td>
+      <td>0.2110</td>
       <td>190</td>
     </tr>
     <tr>
       <td>VAR</td>
-      <td>ITCRM Multilate</td>
-      <td>18.6731</td>
-      <td>18.9124</td>
-      <td>18.7700</td>
-      <td>0.1345</td>
+      <td>Brecha Cambiari|ITCRM Multilate|Reservas Brutas</td>
+      <td>24.0834</td>
+      <td>24.9720</td>
+      <td>24.4434</td>
+      <td>0.2110</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Brecha Cambiari|Reservas Brutas|ITCRM Multilate</td>
+      <td>24.0834</td>
+      <td>24.9720</td>
+      <td>24.4434</td>
+      <td>0.2110</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate|Brecha Cambiari|Reservas Brutas</td>
+      <td>24.0834</td>
+      <td>24.9720</td>
+      <td>24.4434</td>
+      <td>0.2110</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>ITCRM Multilate|Reservas Brutas|Brecha Cambiari</td>
+      <td>24.0834</td>
+      <td>24.9720</td>
+      <td>24.4434</td>
+      <td>0.2110</td>
+      <td>190</td>
+    </tr>
+    <tr>
+      <td>VAR</td>
+      <td>Reservas Brutas|ITCRM Multilate|Brecha Cambiari</td>
+      <td>24.0834</td>
+      <td>24.9720</td>
+      <td>24.4434</td>
+      <td>0.2110</td>
       <td>190</td>
     </tr>
   </tbody>
@@ -506,7 +887,7 @@
       <figure><img src="sec11_boxplot_criterios.png" alt="sec11_boxplot_criterios"><figcaption>Boxplots de IC y R² (ARDL vs VAR vs VECM)</figcaption></figure>
 
       <h3>⑥ Mejor modelo por criterio — detalle de coeficientes</h3>
-      <h4>🏆 Mejor por AIC: VECM — ITCRM Multilateral <span class="muted">(AIC=18.617 · BIC=18.925 · HQ=18.742 · R²=0.1494)</span></h4><table class="dataframe tbl">
+      <h4>🏆 Mejor por AIC: VECM — Brecha Cambiaria MEP/Oficial <span class="muted">(AIC=5.548 · BIC=5.786 · HQ=5.645 · R²=0.2042)</span></h4><table class="dataframe tbl">
   <thead>
     <tr style="text-align: left;">
       <th>Variable</th>
@@ -518,14 +899,14 @@
   </thead>
   <tbody>
     <tr>
-      <td>ITCRM Multilateral</td>
-      <td>804.2319</td>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>2085.7597</td>
       <td>0.0</td>
-      <td>-7.9505</td>
-      <td>0.396</td>
+      <td>-313.3784</td>
+      <td>0.0203</td>
     </tr>
   </tbody>
-</table><h4>🏆 Mejor por BIC: VAR — ITCRM Multilate <span class="muted">(AIC=18.673 · BIC=18.912 · HQ=18.770 · R²=0.1345)</span></h4><table class="dataframe tbl">
+</table><h4>🏆 Mejor por BIC: VAR — Brecha Cambiari <span class="muted">(AIC=5.572 · BIC=5.742 · HQ=5.641 · R²=0.2041)</span></h4><table class="dataframe tbl">
   <thead>
     <tr style="text-align: left;">
       <th>Variable</th>
@@ -537,14 +918,14 @@
   </thead>
   <tbody>
     <tr>
-      <td>ITCRM Multilateral</td>
-      <td>8.4194</td>
-      <td>0.4426</td>
-      <td>-172.1794</td>
-      <td>0.2955</td>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>65.1594</td>
+      <td>0.0038</td>
+      <td>57.7015</td>
+      <td>0.0</td>
     </tr>
   </tbody>
-</table><h4>🏆 Mejor por HQ: VECM — ITCRM Multilateral <span class="muted">(AIC=18.617 · BIC=18.925 · HQ=18.742 · R²=0.1494)</span></h4><table class="dataframe tbl">
+</table><h4>🏆 Mejor por HQ: VAR — Brecha Cambiari <span class="muted">(AIC=5.572 · BIC=5.742 · HQ=5.641 · R²=0.2041)</span></h4><table class="dataframe tbl">
   <thead>
     <tr style="text-align: left;">
       <th>Variable</th>
@@ -556,14 +937,14 @@
   </thead>
   <tbody>
     <tr>
-      <td>ITCRM Multilateral</td>
-      <td>804.2319</td>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>65.1594</td>
+      <td>0.0038</td>
+      <td>57.7015</td>
       <td>0.0</td>
-      <td>-7.9505</td>
-      <td>0.396</td>
     </tr>
   </tbody>
-</table><h4>🏆 Mejor por R² ajustado: VECM — ITCRM Multilateral <span class="muted">(AIC=18.617 · BIC=18.925 · HQ=18.742 · R²=0.1494)</span></h4><table class="dataframe tbl">
+</table><h4>🏆 Mejor por R² ajustado: VECM — Reservas Brutas BCRA/PBI USD|Brecha Cambiaria MEP/Oficial <span class="muted">(AIC=21.021 · BIC=21.583 · HQ=21.248 · R²=0.2529)</span></h4><table class="dataframe tbl">
   <thead>
     <tr style="text-align: left;">
       <th>Variable</th>
@@ -575,11 +956,18 @@
   </thead>
   <tbody>
     <tr>
-      <td>ITCRM Multilateral</td>
-      <td>804.2319</td>
-      <td>0.0</td>
-      <td>-7.9505</td>
-      <td>0.396</td>
+      <td>Reservas Brutas BCRA/PBI USD</td>
+      <td>0.1473</td>
+      <td>0.2103</td>
+      <td>0.0013</td>
+      <td>0.8196</td>
+    </tr>
+    <tr>
+      <td>Brecha Cambiaria MEP/Oficial</td>
+      <td>-0.0000</td>
+      <td>0.2103</td>
+      <td>-335.3317</td>
+      <td>0.0115</td>
     </tr>
   </tbody>
 </table>
@@ -597,6 +985,20 @@
 
       <h3>⑨ Variables DUMMY exógenas (controles fijos)</h3>
       <p class="muted">Sin coeficientes de dummies extraídos.</p>
+
+      <h3>⑩ Causalidad de Granger (pairwise + rolling)</h3>
+      <p class="muted" style="font-size:12px;margin:4px 0 8px">
+        Test pairwise sobre todas las series del panel (transformadas a su forma estacionaria
+        según el orden de integración detectado). Fila = causa, columna = efecto. El valor
+        reportado es el p-valor mínimo a lo largo de los lags 1..max_lag, junto al lag óptimo (L).
+        En negrita = p&lt;0.05. El grafo dibuja solo las aristas significativas; grosor
+        proporcional a −log₁₀(p). El rolling muestra cómo evoluciona la causalidad en ventanas móviles
+        para los pares que involucran a la variable dependiente (zonas verdes = la causalidad
+        es estadísticamente significativa en esa ventana).
+      </p>
+      <figure><img src="sec10_granger_matrix.png" alt="sec10_granger_matrix"><figcaption>Matriz de Granger (fila → columna)</figcaption></figure>
+      <figure><img src="sec10_granger_grafo.png" alt="sec10_granger_grafo"><figcaption>Grafo dirigido de aristas significativas</figcaption></figure>
+      <figure><img src="sec10_granger_rolling.png" alt="sec10_granger_rolling"><figcaption>Rolling Granger sobre la dependiente</figcaption></figure>
 
       
     </section>

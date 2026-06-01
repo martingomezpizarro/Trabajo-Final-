@@ -101,13 +101,21 @@ for filename, needed_cols in sorted(file_columns.items()):
         embedded[filename] = data
         print(f"  [OK] {filename:60s} {n:>6} filas, {len(data)} cols")
 
-# ── PBI (deflactor ÷PBI — se mantiene aunque el grupo PBI no esté en el catálogo) ──
-pbi_path = os.path.join(VARS_DIR, 'pbi_constante_2004.csv')
-if os.path.exists(pbi_path) and 'pbi_constante_2004.csv' not in embedded:
+# ── PBI nominal (deflactor ÷PBI ARS usa pbi_corriente.csv para producir ratio % del PBI) ──
+pbi_path = os.path.join(VARS_DIR, 'pbi_corriente.csv')
+if os.path.exists(pbi_path) and 'pbi_corriente.csv' not in embedded:
     data = read_csv_cols(pbi_path, {'fecha', 'pbi'})
     if data:
-        embedded['pbi_constante_2004.csv'] = data
-        print(f"  [OK] {'pbi_constante_2004.csv (deflector PBI)':60s} {len(data['fecha']):>6} filas")
+        embedded['pbi_corriente.csv'] = data
+        print(f"  [OK] {'pbi_corriente.csv (deflector PBI ARS)':60s} {len(data['fecha']):>6} filas")
+
+# ── PBI USD MEP (deflactor ÷PBI USD para series en USD) ──
+pbi_usd_path = os.path.join(VARS_DIR, 'pbi_trimestral_usd_mep.csv')
+if os.path.exists(pbi_usd_path) and 'pbi_trimestral_usd_mep.csv' not in embedded:
+    data = read_csv_cols(pbi_usd_path, {'periodo', 'pbi_usd_mm'})
+    if data:
+        embedded['pbi_trimestral_usd_mep.csv'] = data
+        print(f"  [OK] {'pbi_trimestral_usd_mep.csv (deflector PBI USD)':60s} {len(data['periodo']):>6} filas")
 
 # ── CER (deflactor) ──
 cer_path = os.path.join(RAW_DIR, 'bcra', 'cer.csv')

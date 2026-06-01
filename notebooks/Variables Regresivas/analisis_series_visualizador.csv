@@ -1,4 +1,5 @@
 #,Dependiente,Serie A,Deflactor A,Serie B,Deflactor B,Operación,Desde,Hasta,Frecuencia,Log,Dif.,MM,Orden_I,Estacionariedad,Safe,Label
-"1","Sí","Reservas Brutas BCRA","—","—","—","Solo A","—","—","Original","No","0","0","1","diff","reservas_brutas_bcra_1","Reservas Brutas BCRA"
-"2","No","Brecha Cambiaria MEP/Oficial","—","—","—","Solo A","—","—","Original","No","0","0","1","diff","brecha_cambiaria_mep_oficial_2","Brecha Cambiaria MEP/Oficial"
-"3","No","ITCRM Multilateral","—","—","—","Solo A","—","—","Original","No","0","0","1","diff","itcrm_multilateral_3","ITCRM Multilateral"
+"1","No","Reservas Brutas BCRA","PBI USD","—","—","Solo A","—","—","Original","No","0","0","1","diff","reservas_brutas_bcra_1","Reservas Brutas BCRA"
+"2","No","ITCRM Multilateral","—","—","—","Solo A","—","—","Original","No","0","0","1","diff","itcrm_multilateral_2","ITCRM Multilateral"
+"3","Sí","Riesgo País ARG (EMBI+)","—","EMBI+ Latinoamérica","—","A − B","—","—","Original","No","0","0","1","diff","riesgo_pais_arg_embi_a_b_embi_latinoamerica_3","Riesgo País ARG (EMBI+) A-B EMBI+ Latinoamérica"
+"4","No","Brecha Cambiaria MEP/Oficial","—","—","—","Solo A","—","—","Original","No","0","0","1","diff","brecha_cambiaria_mep_oficial_4","Brecha Cambiaria MEP/Oficial"

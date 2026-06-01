@@ -126,6 +126,149 @@ def _run_subprocess(args_list):
         return False, _last_log
 
 
+def _run_granger(payload: dict) -> dict:
+    """Calcula causalidad de Granger pairwise (matriz) y/o rolling.
+
+    payload = {
+        series: [{label, dates: [YYYY-MM-DD], values: [float], order_i?: 0|1|2}, ...],
+        max_lag: int,
+        alpha: float,
+        mode: 'pairwise' | 'rolling',
+        rolling: { window: int, step: int, causa_idx: int, efecto_idx: int }   # solo en mode='rolling'
+    }
+    """
+    import pandas as _pd
+    import numpy as _np
+    from statsmodels.tsa.stattools import grangercausalitytests as _gct
+
+    series_in = payload.get('series') or []
+    max_lag   = max(1, int(payload.get('max_lag', 4)))
+    alpha     = float(payload.get('alpha', 0.05))
+    mode      = (payload.get('mode') or 'pairwise').lower()
+
+    if len(series_in) < 2:
+        return {'ok': False, 'error': 'Se requieren al menos 2 series'}
+
+    # Construir panel transformado a forma estacionaria
+    cols = {}
+    labels = []
+    for s in series_in:
+        lab = s.get('label') or f'serie_{len(labels)}'
+        dates = s.get('dates') or []
+        vals  = s.get('values') or []
+        ord_i = int(s.get('order_i', 0) or 0)
+        if not dates or not vals or len(dates) != len(vals):
+            continue
+        ser = _pd.Series(vals, index=_pd.to_datetime(dates), name=lab).dropna()
+        ser = _pd.to_numeric(ser, errors='coerce').dropna()
+        if ord_i == 1:
+            ser = ser.diff()
+        # ord_i == 2 → no aplica, descartar
+        if ord_i >= 2:
+            continue
+        cols[lab] = ser
+        labels.append(lab)
+
+    if len(labels) < 2:
+        return {'ok': False, 'error': 'Series insuficientes tras transformación'}
+
+    df = _pd.concat(cols.values(), axis=1).dropna(how='any')
+    df.columns = labels
+    if len(df) < max_lag * 4 + 5:
+        return {'ok': False, 'error': f'Pocas observaciones tras alinear ({len(df)})'}
+
+    n = len(labels)
+
+    if mode == 'pairwise':
+        pmat = [[None] * n for _ in range(n)]
+        lagmat = [[0] * n for _ in range(n)]
+        rows = []
+        for i, causa in enumerate(labels):
+            for j, efecto in enumerate(labels):
+                if i == j:
+                    continue
+                sub = df[[efecto, causa]].dropna()
+                if len(sub) < max_lag * 4 + 5:
+                    continue
+                try:
+                    res = _gct(sub, maxlag=max_lag, verbose=False)
+                    pvals = {lag: float(res[lag][0]['ssr_ftest'][1]) for lag in res}
+                    best_lag = min(pvals, key=pvals.get)
+                    pmat[i][j]   = pvals[best_lag]
+                    lagmat[i][j] = int(best_lag)
+                    rows.append({
+                        'causa': causa, 'efecto': efecto,
+                        'lag_opt': int(best_lag), 'p_value': pvals[best_lag],
+                        'significativo': pvals[best_lag] < alpha,
+                    })
+                except Exception:
+                    continue
+        return {
+            'ok': True, 'mode': 'pairwise',
+            'labels': labels, 'pmat': pmat, 'lagmat': lagmat,
+            'alpha': alpha, 'max_lag': max_lag, 'n_obs': int(len(df)),
+            'pairs': rows,
+        }
+
+    if mode == 'rolling':
+        rcfg = payload.get('rolling') or {}
+        T = len(df)
+        window = int(rcfg.get('window') or max(40, T // 3))
+        step   = max(1, int(rcfg.get('step') or max(1, window // 25)))
+        # Pares: si vienen indices úsalos; si no, top-K más significativos en pairwise
+        pairs_req = rcfg.get('pairs')  # lista de {causa_idx, efecto_idx}
+        if not pairs_req:
+            # Computar pairwise rápido y elegir top 4
+            quick = []
+            for i in range(n):
+                for j in range(n):
+                    if i == j:
+                        continue
+                    sub = df[[labels[j], labels[i]]].dropna()
+                    if len(sub) < max_lag * 4 + 5:
+                        continue
+                    try:
+                        r = _gct(sub, maxlag=max_lag, verbose=False)
+                        p = float(min(r[lag][0]['ssr_ftest'][1] for lag in r))
+                        quick.append((p, i, j))
+                    except Exception:
+                        continue
+            quick.sort()
+            pairs_req = [{'causa_idx': i, 'efecto_idx': j} for _, i, j in quick[:4]]
+
+        out_series = []
+        for pr in pairs_req:
+            i = int(pr['causa_idx']); j = int(pr['efecto_idx'])
+            if i == j or i >= n or j >= n:
+                continue
+            causa, efecto = labels[i], labels[j]
+            centros, pvals_w = [], []
+            for start in range(0, T - window + 1, step):
+                sub = df[[efecto, causa]].iloc[start:start + window].dropna()
+                if len(sub) < max_lag * 4 + 5:
+                    continue
+                try:
+                    r = _gct(sub, maxlag=max_lag, verbose=False)
+                    p_min = float(min(r[lag][0]['ssr_ftest'][1] for lag in r))
+                    centros.append(sub.index[len(sub) // 2].strftime('%Y-%m-%d'))
+                    pvals_w.append(p_min)
+                except Exception:
+                    continue
+            out_series.append({
+                'causa': causa, 'efecto': efecto,
+                'causa_idx': i, 'efecto_idx': j,
+                'dates': centros, 'pvalues': pvals_w,
+            })
+        return {
+            'ok': True, 'mode': 'rolling',
+            'labels': labels, 'alpha': alpha, 'max_lag': max_lag,
+            'window': window, 'step': step, 'n_obs': int(T),
+            'series': out_series,
+        }
+
+    return {'ok': False, 'error': f'mode desconocido: {mode}'}
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass  # silencio en consola
@@ -335,6 +478,17 @@ class Handler(BaseHTTPRequestHandler):
                                   'application/json')
             return self._send(200, json.dumps({'ok': True, 'run_id': run_id}),
                               'application/json')
+
+        if u.path == '/api/granger':
+            try:
+                payload = self._read_json_body()
+                out = _run_granger(payload)
+                return self._send(200, json.dumps(out), 'application/json')
+            except Exception as e:
+                import traceback as _tb
+                return self._send(500, json.dumps({
+                    'ok': False, 'error': str(e), 'trace': _tb.format_exc()[-1500:]
+                }), 'application/json')
 
         if u.path == '/api/save-and-run':
             length = int(self.headers.get('Content-Length', 0))

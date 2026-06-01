@@ -3,172 +3,249 @@
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Visualizador — TFG ARG</title>
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<script type="importmap">
+{"imports":{"motion":"https://cdn.jsdelivr.net/npm/motion@12.40.0/dist/es/index.mjs"}}
+</script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
+/* ═══════════ PARTICLE BACKGROUND ═══════════ */
+#particles-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.8}
+body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse at 20% 50%,rgba(91,164,230,.08) 0%,transparent 50%),radial-gradient(ellipse at 80% 30%,rgba(232,168,23,.05) 0%,transparent 50%),radial-gradient(ellipse at 50% 80%,rgba(91,164,230,.04) 0%,transparent 50%);pointer-events:none}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:flex;height:100vh;overflow:hidden}
+body{font-family:'Inter',sans-serif;background:#0A1628;color:#d4d4e8;display:flex;height:100vh;overflow:hidden;position:relative}
+#sb,#main,#sb-toggle,.modal-bg{position:relative;z-index:1}
 /* sidebar */
-#sb{width:290px;min-width:180px;background:#10102a;border-right:1px solid #1e1e42;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
-#sb-head{padding:10px 13px 7px;background:#14143a;border-bottom:1px solid #1e1e42}
-#sb-head h1{font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.06em}
-#sb-head small{color:#3a3a5a;font-size:9px}
-#search{margin:5px 7px;padding:4px 8px;background:#181838;border:1px solid #252550;border-radius:4px;color:#d4d4e8;font-size:11px;font-family:inherit;width:calc(100% - 14px)}
-#search:focus{outline:none;border-color:#7c3aed}
+#sb{width:290px;min-width:180px;background:rgba(13,31,60,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-right:1px solid rgba(91,164,230,.15);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .3s cubic-bezier(.16,1,.3,1),min-width .3s cubic-bezier(.16,1,.3,1)}
+#sb.collapsed{width:0;min-width:0;border-right:0}
+#sb-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:1000;background:linear-gradient(135deg,#5BA4E6,#2B7AB8);color:#fff;border:0;border-radius:0 6px 6px 0;width:18px;height:48px;cursor:pointer;font-size:12px;padding:0;box-shadow:0 0 20px rgba(91,164,230,.3);transition:box-shadow .3s}
+#sb-toggle:hover{background:linear-gradient(135deg,#78C0F0,#5BA4E6);box-shadow:0 0 30px rgba(91,164,230,.55)}
+#sb-head{padding:10px 13px 7px;background:rgba(15,40,72,.9);border-bottom:1px solid rgba(91,164,230,.1)}
+#sb-head h1{font-size:11px;font-weight:700;background:linear-gradient(135deg,#F6B40E,#E8A817);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-transform:uppercase;letter-spacing:.06em}
+#sb-head small{color:#305A80;font-size:9px}
+#search{margin:5px 7px;padding:4px 8px;background:rgba(15,40,72,.8);border:1px solid rgba(91,164,230,.15);border-radius:6px;color:#d4d4e8;font-size:11px;font-family:inherit;width:calc(100% - 14px);transition:border-color .3s,box-shadow .3s}
+#search:focus{outline:none;border-color:#5BA4E6;box-shadow:0 0 12px rgba(91,164,230,.15)}
 #tree{flex:1;overflow-y:auto;padding-bottom:16px}
-#tree::-webkit-scrollbar{width:4px}#tree::-webkit-scrollbar-thumb{background:#2a2a50;border-radius:3px}
-.grp-hd{padding:6px 10px 3px;font-size:9.5px;font-weight:700;color:#404080;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px}
-.grp-hd:hover{color:#a78bfa}
-.grp-arr{font-size:8px;transition:transform .15s}
+#tree::-webkit-scrollbar{width:4px}#tree::-webkit-scrollbar-thumb{background:#2a3a50;border-radius:3px}
+.grp-hd{padding:6px 10px 3px;font-size:9.5px;font-weight:700;color:#406088;text-transform:uppercase;letter-spacing:.07em;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;transition:color .2s}
+.grp-hd:hover{color:#78C0F0}
+.grp-arr{font-size:8px;transition:transform .25s cubic-bezier(.16,1,.3,1)}
 .grp-hd.open .grp-arr{transform:rotate(90deg)}
 .grp-body{display:none}.grp-body.open{display:block}
-.sub-hd{padding:3px 10px 2px 20px;font-size:9px;font-weight:700;color:#303060;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px}
-.sub-hd:hover{color:#7c3aed}
-.sub-arr{font-size:7px;transition:transform .15s}
+.sub-hd{padding:3px 10px 2px 20px;font-size:9px;font-weight:700;color:#305070;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;transition:color .2s}
+.sub-hd:hover{color:#5BA4E6}
+.sub-arr{font-size:7px;transition:transform .25s cubic-bezier(.16,1,.3,1)}
 .sub-hd.open .sub-arr{transform:rotate(90deg)}
 .sub-body{display:none}.sub-body.open{display:block}
-.sub2-hd{padding:2px 10px 2px 36px;font-size:7.5px;font-weight:700;color:#1e1e44;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px}
-.sub2-hd:hover{color:#7c3aed}
-.sub2-arr{font-size:6px;transition:transform .15s}
+.sub2-hd{padding:2px 10px 2px 36px;font-size:7.5px;font-weight:700;color:#203854;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;transition:color .2s}
+.sub2-hd:hover{color:#5BA4E6}
+.sub2-arr{font-size:6px;transition:transform .25s cubic-bezier(.16,1,.3,1)}
 .sub2-hd.open .sub2-arr{transform:rotate(90deg)}
 .sub2-body{display:none}.sub2-body.open{display:block}
 .sub2-body > .item{padding-left:44px}
-.item-folder-hd{padding:2px 10px 2px 22px;font-size:10.5px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;color:#4a4a88;transition:all .1s}
-.item-folder-hd:hover{background:#181840;color:#a78bfa}
-.folder-arr{font-size:7px;flex-shrink:0;transition:transform .15s;color:#404080}
+.item-folder-hd{padding:2px 10px 2px 22px;font-size:10.5px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;color:#4A6090;transition:all .2s}
+.item-folder-hd:hover{background:rgba(91,164,230,.08);color:#78C0F0}
+.folder-arr{font-size:7px;flex-shrink:0;transition:transform .25s cubic-bezier(.16,1,.3,1);color:#406080}
 .item-folder-hd.open .folder-arr{transform:rotate(90deg)}
 .item-folder-body{display:none}.item-folder-body.open{display:block}
 .item-folder-body > .item,.item-folder-body > .item-folder > .item-folder-hd{padding-left:36px}
 .item-folder-body > .item-folder > .item-folder-body > .item,.item-folder-body > .item-folder > .item-folder-body > .item-folder > .item-folder-hd{padding-left:48px}
 .item-folder-body > .item-folder > .item-folder-body > .item-folder > .item-folder-body > .item{padding-left:60px}
-.item{padding:3px 10px 3px 28px;font-size:11px;cursor:pointer;border-left:2px solid transparent;display:flex;align-items:center;gap:6px;color:#5a5a98;transition:all .1s}
-.item:hover{background:#181840;color:#c4b5fd}
-.item.sel{background:#1a1a48;border-left-color:#7c3aed;color:#e0d4ff;font-weight:500}
-.item.cmp{border-left-color:#10b981;color:#6ee7b7}
-.item.sel.cmp{border-left-color:#10b981;background:#0c2a1e}
-.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.chk{width:12px;height:12px;accent-color:#10b981;cursor:pointer;flex-shrink:0}
-.dummy-item{padding:3px 10px 3px 20px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#888;transition:all .1s}
-.dummy-item:hover{color:#fcd34d}
-.dchk{width:12px;height:12px;cursor:pointer;flex-shrink:0;accent-color:#f59e0b}
+.item{padding:3px 10px 3px 28px;font-size:11px;cursor:pointer;border-left:2px solid transparent;display:flex;align-items:center;gap:6px;color:#5070A0;transition:all .2s}
+.item:hover{background:rgba(91,164,230,.06);color:#A8D4F8}
+.item.sel{background:rgba(91,164,230,.12);border-left-color:#5BA4E6;color:#D0E8FF;font-weight:500;box-shadow:inset 0 0 20px rgba(91,164,230,.05)}
+.item.cmp{border-left-color:#E8A817;color:#FCD34D}
+.item.sel.cmp{border-left-color:#E8A817;background:rgba(232,168,23,.08);box-shadow:inset 0 0 20px rgba(232,168,23,.05)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor}
+.chk{width:12px;height:12px;accent-color:#E8A817;cursor:pointer;flex-shrink:0}
+.dummy-item{padding:3px 10px 3px 20px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:6px;color:#888;transition:all .2s}
+.dummy-item:hover{color:#FCD34D}
+.dchk{width:12px;height:12px;cursor:pointer;flex-shrink:0;accent-color:#F6B40E}
 /* main */
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-#main-tabs{display:flex;background:#0d0d22;border-bottom:1px solid #222244;padding:0}
-.mtab{padding:7px 18px;font-size:11px;font-weight:600;color:#666;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none;letter-spacing:.03em}
-.mtab:hover{color:#c4b5fd;background:#12122e}
-.mtab.active{color:#a78bfa;border-bottom-color:#7c3aed;background:#12122e}
+#main-tabs{display:flex;background:rgba(10,22,38,.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid rgba(91,164,230,.1);padding:0}
 .tab-content{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
 .tab-content.active{display:flex}
+.mtab{padding:7px 18px;font-size:11px;font-weight:600;color:#4A6080;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none;letter-spacing:.03em}
+.mtab:hover{color:#A8D4F8;background:rgba(91,164,230,.06)}
+.mtab.active{color:#78C0F0;border-bottom-color:#5BA4E6;background:rgba(91,164,230,.1);box-shadow:0 1px 12px rgba(91,164,230,.12)}
 /* topbar */
-#bar{background:linear-gradient(180deg,#14143a 0%,#12122e 100%);border-bottom:1px solid #1e1e42;padding:5px 10px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex-shrink:0;min-height:38px}
-#title{font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#cccce8;min-width:80px}
-.mbtn{padding:3px 9px;font-size:10.5px;border:1px solid #252545;border-radius:3px;background:#161636;color:#777;cursor:pointer;font-family:inherit;transition:all .1s;white-space:nowrap}
-.mbtn:hover{border-color:#7c3aed;color:#c4b5fd}
-.mbtn.on{background:#7c3aed;border-color:#7c3aed;color:#fff;font-weight:600}
-.mbtn.amber{border-color:#92400e;color:#fbbf24}
-.mbtn.amber.on{background:#92400e;border-color:#f59e0b;color:#fcd34d}
-.sep{width:1px;height:16px;background:#1e1e42;flex-shrink:0}
-.blbl{font-size:9px;color:#404060;white-space:nowrap}
-#badge{background:#064e3b;border:1px solid #10b981;color:#6ee7b7;border-radius:12px;padding:2px 9px;font-size:10px;display:none}
+#bar{background:linear-gradient(180deg,rgba(15,40,72,.92),rgba(13,31,60,.9));border-bottom:1px solid rgba(91,164,230,.1);padding:5px 10px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex-shrink:0;min-height:38px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#title{font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#B0CCF0;min-width:80px}
+.mbtn{padding:3px 9px;font-size:10.5px;border:1px solid rgba(91,164,230,.15);border-radius:4px;background:rgba(15,40,72,.7);color:#6080A0;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.mbtn:hover{border-color:#5BA4E6;color:#A8D4F8;box-shadow:0 0 10px rgba(91,164,230,.12)}
+.mbtn.on{background:linear-gradient(135deg,#5BA4E6,#2B7AB8);border-color:#5BA4E6;color:#fff;font-weight:600;box-shadow:0 0 16px rgba(91,164,230,.3)}
+.mbtn.amber{border-color:rgba(232,168,23,.2);color:#FCD34D}
+.mbtn.amber.on{background:linear-gradient(135deg,#E8A817,#B8860B);border-color:#E8A817;color:#FDE68A;box-shadow:0 0 16px rgba(232,168,23,.3)}
+.sep{width:1px;height:16px;background:rgba(91,164,230,.12);flex-shrink:0}
+.blbl{font-size:9px;color:#405070;white-space:nowrap}
+#badge{background:#0A3A2A;border:1px solid #E8A817;color:#FCD34D;border-radius:12px;padding:2px 9px;font-size:10px;display:none}
 #clr{background:none;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;display:none;font-family:inherit}
 #clr:hover{background:#ef4444;color:#fff}
 /* ma row */
-#ma-row{background:#0f0f28;border-bottom:1px solid #1a1a3a;padding:3px 10px;display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:10px;color:#444}
-#ma-row label{color:#555;font-size:9.5px}
-#ma-row input{width:46px;padding:2px 5px;background:#181838;border:1px solid #2a2a50;border-radius:3px;color:#d4d4e8;font-size:10px;font-family:inherit}
-#ma-row input:focus{outline:none;border-color:#7c3aed}
+#ma-row{background:rgba(13,31,60,.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid rgba(91,164,230,.08);padding:3px 10px;display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:10px;color:#3A5070}
+#ma-row label{color:#4A6080;font-size:9.5px}
+#ma-row input{width:46px;padding:2px 5px;background:rgba(15,40,72,.7);border:1px solid rgba(91,164,230,.12);border-radius:4px;color:#d4d4e8;font-size:10px;font-family:inherit;transition:border-color .3s,box-shadow .3s}
+#ma-row input:focus{outline:none;border-color:#5BA4E6;box-shadow:0 0 8px rgba(91,164,230,.15)}
 /* axis row */
-#axis-row{background:#0e0e26;border-bottom:1px solid #1a1a3a;padding:3px 10px;display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:10px;color:#444}
-#axis-row label{color:#555;font-size:9.5px;white-space:nowrap}
-#axis-row input{padding:2px 5px;background:#181838;border:1px solid #2a2a50;border-radius:3px;color:#d4d4e8;font-size:10px;font-family:inherit}
+#axis-row{background:rgba(12,28,52,.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid rgba(91,164,230,.08);padding:3px 10px;display:flex;align-items:center;gap:7px;flex-shrink:0;font-size:10px;color:#3A5070}
+#axis-row label{color:#4A6080;font-size:9.5px;white-space:nowrap}
+#axis-row input{padding:2px 5px;background:rgba(15,40,72,.7);border:1px solid rgba(91,164,230,.12);border-radius:4px;color:#d4d4e8;font-size:10px;font-family:inherit;transition:border-color .3s,box-shadow .3s}
 #axis-row input[type=date]{width:120px}
 #axis-row input[type=number]{width:70px}
-#axis-row input:focus{outline:none;border-color:#7c3aed}
-.axis-btn{padding:2px 7px;font-size:9px;border:1px solid #252545;border-radius:3px;background:#161636;color:#666;cursor:pointer;font-family:inherit}
-.axis-btn:hover{border-color:#7c3aed;color:#c4b5fd}
+#axis-row input:focus{outline:none;border-color:#5BA4E6;box-shadow:0 0 8px rgba(91,164,230,.15)}
+.axis-btn{padding:2px 7px;font-size:9px;border:1px solid rgba(91,164,230,.12);border-radius:4px;background:rgba(15,40,72,.7);color:#6080A0;cursor:pointer;font-family:inherit;transition:all .2s}
+.axis-btn:hover{border-color:#5BA4E6;color:#A8D4F8;box-shadow:0 0 10px rgba(91,164,230,.12)}
 /* info bar */
-#info{background:#0e0e26;border-bottom:1px solid #151530;padding:2px 12px;min-height:22px;display:flex;align-items:center;gap:12px;overflow-x:auto;flex-shrink:0;font-size:10px;color:#33335a}
+#info{background:rgba(12,28,52,.85);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid rgba(91,164,230,.06);padding:2px 12px;min-height:22px;display:flex;align-items:center;gap:12px;overflow-x:auto;flex-shrink:0;font-size:10px;color:#2A4060}
 #info::-webkit-scrollbar{height:2px}
 /* charts */
 #charts{flex:1;display:flex;flex-direction:column;min-height:0}
 #c1{flex:1;min-height:200px}
-#c2{flex:1;min-height:200px;border-top:1px solid #1a1a3a}
+#c2{flex:1;min-height:200px;border-top:1px solid rgba(91,164,230,.08)}
 #cw{flex:1;display:none;flex-direction:column;min-height:0;overflow-y:auto}
-#cw::-webkit-scrollbar{width:4px}#cw::-webkit-scrollbar-thumb{background:#2a2a50;border-radius:3px}
-#cmp-controls { display:flex; flex-direction:column; gap:5px; padding:8px 12px; background:#0f0f28; border-bottom:1px solid #1a1a3a; flex-shrink:0 }
-.cmp-row { display:flex; align-items:center; gap:8px; font-size:10px; color:#cccce8 }
-.cmp-lbl { font-weight:600; min-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
-.cmp-row select { background:#181838; border:1px solid #2a2a50; border-radius:3px; color:#d4d4e8; padding:2px 5px; font-size:9.5px; outline:none }
-.cmp-row input[type="checkbox"] { accent-color:#7c3aed; width:12px; height:12px }
+#cw::-webkit-scrollbar{width:4px}#cw::-webkit-scrollbar-thumb{background:#2a3a50;border-radius:3px}
+#cmp-controls{display:flex;flex-direction:column;gap:5px;padding:8px 12px;background:rgba(13,31,60,.88);border-bottom:1px solid rgba(91,164,230,.08);flex-shrink:0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.cmp-row{display:flex;align-items:center;gap:8px;font-size:10px;color:#B0CCF0}
+.cmp-lbl{font-weight:600;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmp-row select{background:rgba(15,40,72,.8);border:1px solid rgba(91,164,230,.12);border-radius:3px;color:#d4d4e8;padding:2px 5px;font-size:9.5px;outline:none}
+.cmp-row input[type="checkbox"]{accent-color:#5BA4E6;width:12px;height:12px}
 #cc{height:75vh;min-height:400px}
 #cs{height:35vh;min-height:200px}
-#cmp-corr{height:35vh;min-height:300px;border-top:1px solid #1a1a3a}
-#cmp-scatter{height:50vh;min-height:400px;border-top:1px solid #1a1a3a}
-#empty{display:none;flex:1;align-items:center;justify-content:center;color:#333;font-size:13px}
+#cmp-corr{height:35vh;min-height:300px;border-top:1px solid rgba(91,164,230,.08)}
+#cmp-scatter{height:50vh;min-height:400px;border-top:1px solid rgba(91,164,230,.08)}
+#empty{display:none;flex:1;align-items:center;justify-content:center;color:#2A4060;font-size:13px}
 /* variation bar */
-#vbar{background:#0f0f28;border-top:1px solid #1a1a3a;padding:2px 8px;display:flex;align-items:center;gap:5px;flex-shrink:0;font-size:9px;color:#444}
-.vbtn{padding:2px 7px;font-size:9.5px;border:1px solid #252545;border-radius:3px;background:#161636;color:#555;cursor:pointer;font-family:inherit}
-.vbtn:hover{border-color:#6d28d9;color:#c4b5fd}
-.vbtn.on{background:#4c1d95;border-color:#7c3aed;color:#ddd6fe}
+#vbar{background:rgba(13,31,60,.88);border-top:1px solid rgba(91,164,230,.08);padding:2px 8px;display:flex;align-items:center;gap:5px;flex-shrink:0;font-size:9px;color:#3A5070;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.vbtn{padding:2px 7px;font-size:9.5px;border:1px solid rgba(91,164,230,.12);border-radius:4px;background:rgba(15,40,72,.7);color:#5A7090;cursor:pointer;font-family:inherit;transition:all .2s}
+.vbtn:hover{border-color:#5BA4E6;color:#A8D4F8;box-shadow:0 0 8px rgba(91,164,230,.12)}
+.vbtn.on{background:linear-gradient(135deg,#5BA4E6,#2B7AB8);border-color:#5BA4E6;color:#D0E8FF;box-shadow:0 0 14px rgba(91,164,230,.25)}
 /* simulator */
 #sim-wrap{flex:1;display:flex;overflow:hidden}
-#sim-panel{width:300px;min-width:240px;background:#10102a;border-right:1px solid #222244;overflow-y:auto;padding:11px 13px}
-#sim-panel::-webkit-scrollbar{width:4px}#sim-panel::-webkit-scrollbar-thumb{background:#2a2a50;border-radius:3px}
+#sim-panel{width:300px;min-width:240px;background:rgba(13,31,60,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-right:1px solid rgba(91,164,230,.12);overflow-y:auto;padding:11px 13px}
+#sim-panel::-webkit-scrollbar{width:4px}#sim-panel::-webkit-scrollbar-thumb{background:#2a3a50;border-radius:3px}
 #sim-charts{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
 #sim-charts>div{flex:1;min-height:0}
 .sim-section{margin-bottom:13px}
-.sim-section h3{font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid #1e1e44}
+.sim-section h3{font-size:10px;font-weight:700;color:#F6B40E;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid rgba(91,164,230,.15)}
 .sim-row{display:flex;align-items:center;gap:5px;margin-bottom:4px}
-.sim-row label{font-size:10px;color:#888;min-width:65px;flex-shrink:0}
-.sim-row input,.sim-row select{flex:1;padding:2px 5px;background:#181838;border:1px solid #2a2a50;border-radius:3px;color:#d4d4e8;font-size:10px;font-family:inherit;min-width:0}
-.sim-row input:focus,.sim-row select:focus{outline:none;border-color:#7c3aed}
-.sim-row input[type=checkbox]{flex:none;width:13px;height:13px;accent-color:#7c3aed}
-#btn-sim{width:100%;padding:7px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:5px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:6px}
-#btn-sim:hover{filter:brightness(1.1)}
+.sim-row label{font-size:10px;color:#7090B0;min-width:65px;flex-shrink:0}
+.sim-row input,.sim-row select{flex:1;padding:2px 5px;background:rgba(15,40,72,.7);border:1px solid rgba(91,164,230,.12);border-radius:3px;color:#d4d4e8;font-size:10px;font-family:inherit;min-width:0}
+.sim-row input:focus,.sim-row select:focus{outline:none;border-color:#5BA4E6}
+.sim-row input[type=checkbox]{flex:none;width:13px;height:13px;accent-color:#5BA4E6}
+#btn-sim{width:100%;padding:7px;background:linear-gradient(135deg,#5BA4E6,#2B7AB8);border:none;border-radius:5px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:6px;transition:all .2s;position:relative;overflow:hidden}
+#btn-sim:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(91,164,230,.45);filter:brightness(1.1)}
+#btn-sim:active{transform:scale(.97)}
+#btn-sim::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(255,255,255,.12),transparent);transform:translateX(-100%);transition:transform .6s}
+#btn-sim:hover::after{transform:translateX(100%)}
 /* analysis */
 #anl-wrap{flex:1;display:flex;overflow:hidden}
-#anl-left{width:280px;background:#10102a;border-right:1px solid #222244;overflow-y:auto;padding:12px}
-#anl-left::-webkit-scrollbar{width:4px}#anl-left::-webkit-scrollbar-thumb{background:#2a2a50;border-radius:3px}
+#anl-left{width:340px;background:rgba(13,31,60,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-right:1px solid rgba(91,164,230,.12);overflow-y:auto;padding:12px}
+.anl-row .defl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 6px;flex:1;min-width:0}
+.anl-row .defl-grid label{display:flex;align-items:center;gap:3px;font-size:9.5px;white-space:nowrap;color:#8899BB}
+.anl-row .defl-grid input{margin:0;width:11px;height:11px;flex-shrink:0}
+#anl-left::-webkit-scrollbar{width:4px}#anl-left::-webkit-scrollbar-thumb{background:#2a3a50;border-radius:3px}
 #anl-right{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto}
-#anl-chart{height:45vh;min-height:250px;flex-shrink:0}
-#anl-acf{height:28vh;min-height:160px;flex-shrink:0;border-top:1px solid #1a1a3a}
-#anl-pacf{height:28vh;min-height:160px;flex-shrink:0;border-top:1px solid #1a1a3a}
-.anl-section{margin-bottom:14px}
-.anl-section h4{font-size:9.5px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;padding-bottom:3px;border-bottom:1px solid #1e1e44}
-.anl-row{display:flex;align-items:center;gap:5px;margin-bottom:5px;font-size:10px;color:#888}
+#anl-chart{height:48vh;min-height:280px;flex-shrink:0;animation:fadeUp .4s ease-out}
+#anl-corr-wrap{display:flex;gap:1px;background:rgba(91,164,230,.08);flex-shrink:0;border-top:1px solid rgba(91,164,230,.08);animation:fadeUp .5s ease-out}
+#anl-acf,#anl-pacf{flex:1;height:34vh;min-height:200px;background:#0A1628}
+#anl-desc{background:#0A1628;border-top:1px solid rgba(91,164,230,.08);padding:12px;animation:fadeUp .4s ease-out}
+#anl-desc .desc-h{font-size:11px;font-weight:700;color:#F6B40E;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid rgba(91,164,230,.15)}
+#anl-desc .desc-h:first-child{margin-top:0}
+#anl-desc .desc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:rgba(91,164,230,.08)}
+#anl-desc .desc-grid>div{height:300px;background:#0A1628}
+#anl-desc .desc-grid.g3>div{height:260px}
+@media(max-width:1100px){#anl-desc .desc-grid{grid-template-columns:1fr}}
+.stat-tbl{display:grid;grid-template-columns:repeat(4,auto);gap:4px 18px;font-size:11px;color:#8899BB;background:rgba(13,31,60,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(91,164,230,.1);border-radius:6px;padding:12px 16px;width:fit-content;max-width:100%}
+.stat-tbl b{color:#D0E0F8;font-weight:600}
+.stat-tbl .k{color:#6A8AB0}
+.test-card{display:inline-flex;flex-direction:column;gap:2px;background:rgba(13,31,60,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(91,164,230,.1);border-left:3px solid #5BA4E6;border-radius:6px;padding:9px 14px;margin:0 8px 8px 0;font-size:10.5px;min-width:200px;vertical-align:top;transition:border-color .3s,box-shadow .3s}
+.test-card:hover{border-left-color:#78C0F0;box-shadow:0 4px 16px rgba(91,164,230,.1)}
+.test-card .tc-name{color:#F6B40E;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.test-card .tc-stat{color:#C0D0E8}
+.test-card .tc-verdict{font-weight:600;margin-top:2px}
+.anl-section{margin-bottom:14px;padding:10px 11px;background:linear-gradient(180deg,rgba(91,164,230,.06),rgba(91,164,230,.02));border:1px solid rgba(91,164,230,.1);border-left:2px solid #3B8ED0;border-radius:5px;transition:border-color .25s,background .25s,box-shadow .25s}
+.anl-section:hover{border-left-color:#5BA4E6;background:linear-gradient(180deg,rgba(91,164,230,.1),rgba(91,164,230,.04));box-shadow:0 0 20px rgba(91,164,230,.06)}
+.anl-section h4{font-size:9.5px;font-weight:700;color:#78C0F0;text-transform:uppercase;letter-spacing:.05em;margin:-2px 0 8px;padding-bottom:4px;border-bottom:1px solid rgba(91,164,230,.15)}
+.anl-row{display:flex;align-items:center;gap:5px;margin-bottom:5px;font-size:10px;color:#7090B0;min-width:0}
 .anl-row label{min-width:70px;flex-shrink:0;font-size:10px}
-.anl-row select,.anl-row input{flex:1;padding:3px 6px;background:#181838;border:1px solid #2a2a50;border-radius:3px;color:#d4d4e8;font-size:10px;font-family:inherit}
-.anl-row select:focus,.anl-row input:focus{outline:none;border-color:#7c3aed}
-.abtn{padding:5px 12px;background:linear-gradient(135deg,#059669,#047857);border:none;border-radius:4px;color:#fff;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:2px;width:100%}
-.abtn:hover{filter:brightness(1.1)}
-.abtn-p{background:linear-gradient(135deg,#7c3aed,#6d28d9)}
-#adf-box{background:#0e0e26;border:1px solid #2a2a50;border-radius:5px;padding:8px;margin-top:8px;font-size:10px;color:#888;min-height:40px;white-space:pre-wrap;line-height:1.6}
+.anl-row select,.anl-row input{flex:1;min-width:0;max-width:100%;padding:3px 6px;background:rgba(15,40,72,.7);border:1px solid rgba(91,164,230,.12);border-radius:4px;color:#d4d4e8;font-size:10px;font-family:inherit;text-overflow:ellipsis;transition:border-color .3s,box-shadow .3s}
+.anl-row select:focus,.anl-row input:focus{outline:none;border-color:#5BA4E6;box-shadow:0 0 8px rgba(91,164,230,.12)}
+.abtn{padding:6px 12px;background:linear-gradient(135deg,#E8A817,#B8860B);border:none;border-radius:5px;color:#fff;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:2px;width:100%;transition:transform .2s ease,box-shadow .25s ease,filter .2s;letter-spacing:.02em;position:relative;overflow:hidden}
+.abtn:hover{filter:brightness(1.15);transform:translateY(-1px);box-shadow:0 4px 16px rgba(232,168,23,.45)}
+.abtn:active{transform:translateY(0)}
+.abtn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(255,255,255,.1),transparent);transform:translateX(-100%);transition:transform .5s}
+.abtn:hover::after{transform:translateX(100%)}
+.abtn-p{background:linear-gradient(135deg,#5BA4E6,#2B7AB8)}
+.abtn-p:hover{box-shadow:0 4px 16px rgba(91,164,230,.5)}
+.abtn-amber{background:linear-gradient(135deg,#E8A817,#B8860B)}
+.abtn-amber:hover{box-shadow:0 4px 16px rgba(232,168,23,.5)}
+#adf-box{background:#0e0e26;border:1px solid #2a2a50;border-radius:5px;padding:8px;margin-top:8px;font-size:10px;color:#888;min-height:40px;white-space:pre-wrap;line-height:1.6;transition:border-color .2s}
+#adf-box:not(:empty){animation:fadeIn .3s ease-out}
+
+/* Sección plegable */
+.collapser{cursor:pointer;user-select:none;display:flex;align-items:center;gap:7px;padding:7px 10px;background:linear-gradient(135deg,rgba(91,164,230,.14),rgba(91,164,230,.05));border:1px solid rgba(91,164,230,.15);border-radius:5px;color:#78C0F0;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:14px;transition:background .25s,border-color .25s,box-shadow .25s}
+.collapser:hover{background:linear-gradient(135deg,rgba(91,164,230,.24),rgba(91,164,230,.1));border-color:#5BA4E6;box-shadow:0 0 16px rgba(91,164,230,.12)}
+.collapser .chev{display:inline-block;transition:transform .3s cubic-bezier(.16,1,.3,1);font-size:9px;color:#5BA4E6}
+.collapser.open .chev{transform:rotate(90deg)}
+.collapser .count{margin-left:auto;background:rgba(91,164,230,.15);color:#78C0F0;padding:1px 7px;border-radius:10px;font-size:9px;font-weight:600}
+.collapse-body{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.16,1,.3,1),margin .4s cubic-bezier(.16,1,.3,1);margin-top:0}
+.collapse-body.open{max-height:60vh;margin-top:8px}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(5,15,30,.8);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.modal-bg.open{opacity:1;pointer-events:auto}
+.modal-box{background:rgba(13,31,60,.97);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(91,164,230,.2);border-radius:12px;padding:18px 20px;min-width:380px;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px rgba(91,164,230,.1);transform:translateY(20px) scale(.96);transition:transform .35s cubic-bezier(.16,1,.3,1)}
+.modal-bg.open .modal-box{transform:translateY(0) scale(1)}
+.modal-box h3{color:#F6B40E;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid rgba(91,164,230,.15);display:flex;align-items:center;gap:8px}
+.modal-close{position:absolute;top:10px;right:12px;background:transparent;border:0;color:#888;font-size:20px;cursor:pointer;line-height:1;padding:0 4px;transition:color .15s}
+.modal-close:hover{color:#fff}
+.modal-box .anl-section{background:transparent;border:0;padding:0;margin-bottom:10px}
+.modal-box .anl-section:hover{background:transparent}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideRight{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(91,164,230,.5)}50%{box-shadow:0 0 0 10px rgba(91,164,230,0)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes glowPulse{0%,100%{opacity:.5}50%{opacity:1}}
+
+/* glow en deflactor activo */
+.defl-grid label:has(input:checked){color:#D0E8FF}
+.defl-grid label:has(input:checked) input{accent-color:#5BA4E6}
 #anl-saved-scroll{overflow-x:auto}
 #anl-saved-scroll::-webkit-scrollbar{width:5px;height:5px}
-#anl-saved-scroll::-webkit-scrollbar-thumb{background:#2a2a50;border-radius:3px}
-#anl-saved-table{width:100%;border-collapse:collapse;font-size:9px;color:#aaa;font-family:inherit}
-#anl-saved-table th{position:sticky;top:0;background:#14143a;color:#a78bfa;padding:5px 8px;border-bottom:1px solid #2a2a50;text-align:left;font-weight:600;font-size:8.5px;white-space:nowrap}
-#anl-saved-table td{padding:4px 8px;border-bottom:1px solid #1a1a3a;white-space:nowrap}
-#anl-saved-table tr:hover td{background:#1a1a40}
-#anl-saved-table .ur-reject{color:#10b981}
-#anl-saved-table .ur-fail{color:#fbbf24}
+#anl-saved-scroll::-webkit-scrollbar-thumb{background:#2a3a50;border-radius:3px}
+#anl-saved-table{width:100%;border-collapse:collapse;font-size:9px;color:#8899BB;font-family:inherit}
+#anl-saved-table th{position:sticky;top:0;background:#0F2848;color:#78C0F0;padding:5px 8px;border-bottom:1px solid rgba(91,164,230,.12);text-align:left;font-weight:600;font-size:8.5px;white-space:nowrap}
+#anl-saved-table td{padding:4px 8px;border-bottom:1px solid rgba(91,164,230,.06);white-space:nowrap}
+#anl-saved-table tr:hover td{background:rgba(91,164,230,.06)}
+#anl-saved-table .ur-reject{color:#F6B40E}
+#anl-saved-table .ur-fail{color:#FCD34D}
 /* spinner */
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid #2a2a50;border-top-color:#7c3aed;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(91,164,230,.12);border-top-color:#5BA4E6;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
-#cmp-download-bar{display:flex;gap:6px;padding:6px 12px;background:#0f0f28;border-bottom:1px solid #1a1a3a;flex-wrap:wrap}
-#cmp-download-bar button{padding:3px 8px;font-size:9px;border:1px solid #2a2a50;border-radius:3px;background:#161636;color:#aaa;cursor:pointer;font-family:inherit}
-#cmp-download-bar button:hover{border-color:#7c3aed;color:#ddd}
-#cmp-corr-list{padding:8px 12px;background:#0e0e26;border-top:1px solid #1a1a3a;max-height:260px;overflow:auto}
-#cmp-corr-list table{width:100%;border-collapse:collapse;font-size:10px;color:#ccc}
-#cmp-corr-list th,#cmp-corr-list td{padding:4px 8px;text-align:left;border-bottom:1px solid #1a1a3a}
-#cmp-corr-list th{color:#7c3aed;font-weight:600}
+#cmp-download-bar{display:flex;gap:6px;padding:6px 12px;background:rgba(13,31,60,.85);border-bottom:1px solid rgba(91,164,230,.08);flex-wrap:wrap}
+#cmp-download-bar button{padding:3px 8px;font-size:9px;border:1px solid rgba(91,164,230,.15);border-radius:3px;background:rgba(15,40,72,.7);color:#7090B0;cursor:pointer;font-family:inherit;transition:all .2s}
+#cmp-download-bar button:hover{border-color:#5BA4E6;color:#A8D4F8}
+#cmp-corr-list{padding:8px 12px;background:rgba(12,28,52,.85);border-top:1px solid rgba(91,164,230,.08);max-height:260px;overflow:auto}
+#cmp-corr-list::-webkit-scrollbar{width:4px}#cmp-corr-list::-webkit-scrollbar-thumb{background:#2a3a50;border-radius:3px}
+#cmp-corr-list table{width:100%;border-collapse:collapse;font-size:10px;color:#B0CCF0}
+#cmp-corr-list th,#cmp-corr-list td{padding:4px 8px;text-align:left;border-bottom:1px solid rgba(91,164,230,.06)}
+#cmp-corr-list th{color:#F6B40E;font-weight:600}
+#adf-box{background:rgba(13,31,60,.85);border:1px solid rgba(91,164,230,.15);border-radius:5px;padding:8px;margin-top:8px;font-size:10px;color:#7090B0;min-height:40px;white-space:pre-wrap;line-height:1.6;transition:border-color .2s}
+#adf-box:not(:empty){animation:fadeIn .3s ease-out}
 </style>
 </head>
 <body>
+<canvas id="particles-canvas"></canvas>
+<button id="sb-toggle" onclick="toggleSidebar()" title="Mostrar/ocultar panel de series">◀</button>
 <div id="sb">
   <div id="sb-head">
-    <h1>📊 Series de Tiempo</h1>
+    <h1>☀️ Series de Tiempo</h1>
     <small>TFG — Riesgo País ARG — UNC</small>
+    <div style="display:flex;gap:2px;margin-top:5px"><div style="flex:1;height:2px;background:#5BA4E6;border-radius:1px"></div><div style="flex:1;height:2px;background:#fff;border-radius:1px"></div><div style="flex:1;height:2px;background:#5BA4E6;border-radius:1px"></div><div style="width:10px;height:10px;background:#F6B40E;border-radius:50%;margin-top:-6px"></div></div>
   </div>
   <input id="search" placeholder="Buscar serie…" oninput="filterTree(this.value)"/>
   <div id="tree"></div>
@@ -201,7 +278,8 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
       <button class="mbtn" id="bdiff" onclick="togDiff()">Δ Dif.</button>
       <button class="mbtn" id="blog" onclick="togLog()">Log</button>
       <div class="sep"></div>
-      <button class="mbtn amber" id="bpbi" onclick="togDefl('pbi')">÷ PBI</button>
+      <button class="mbtn amber" id="bpbi"    onclick="togDefl('pbi')">÷ PBI ARS</button>
+      <button class="mbtn amber" id="bpbiusd" onclick="togDefl('pbi_usd')">÷ PBI USD</button>
       <button class="mbtn amber" id="bmep" onclick="togDefl('mep')">÷ MEP</button>
       <button class="mbtn amber" id="bcer" onclick="togDefl('cer')">÷ CER</button>
       <button class="mbtn amber" id="bipc" onclick="togDefl('ipc')">÷ IPC USA</button>
@@ -309,22 +387,32 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
     <div id="anl-wrap">
       <div id="anl-left">
         <div class="anl-section"><h4>Serie y Periodo</h4>
-          <div class="anl-row"><label>Serie A</label><select id="anl-s1" onchange="anlUpdate()"><option value="">— elegir —</option></select></div>
+          <div class="anl-row"><label>Serie A</label>
+            <input type="text" id="anl-s1-search" list="anl-s1-list" placeholder="— elegir / buscar —" oninput="onAnlSeriePick('anl-s1')" autocomplete="off"/>
+            <datalist id="anl-s1-list"></datalist>
+            <input type="hidden" id="anl-s1"/>
+          </div>
           <div class="anl-row"><label>Deflactor A</label>
-            <div style="display:flex;gap:5px;font-size:9px">
-              <label><input type="checkbox" id="anl-da-pbi" onchange="anlUpdate()">PBI</label>
-              <label><input type="checkbox" id="anl-da-mep" onchange="anlUpdate()">MEP</label>
+            <div class="defl-grid">
+              <label><input type="checkbox" id="anl-da-pbi"     onchange="anlUpdate()">PBI ARS</label>
+              <label><input type="checkbox" id="anl-da-pbi_usd" onchange="anlUpdate()">PBI USD</label>
+              <label><input type="checkbox" id="anl-da-mep" onchange="anlUpdate()">USD</label>
               <label><input type="checkbox" id="anl-da-cer" onchange="anlUpdate()">CER</label>
-              <label><input type="checkbox" id="anl-da-ipc" onchange="anlUpdate()">IPC</label>
+              <label><input type="checkbox" id="anl-da-ipc" onchange="anlUpdate()">IPC USA</label>
             </div>
           </div>
-          <div class="anl-row"><label>Serie B</label><select id="anl-s2" onchange="anlUpdate()"><option value="">— ninguna —</option></select></div>
+          <div class="anl-row"><label>Serie B</label>
+            <input type="text" id="anl-s2-search" list="anl-s2-list" placeholder="— ninguna / buscar —" oninput="onAnlSeriePick('anl-s2')" autocomplete="off"/>
+            <datalist id="anl-s2-list"></datalist>
+            <input type="hidden" id="anl-s2"/>
+          </div>
           <div class="anl-row"><label>Deflactor B</label>
-            <div style="display:flex;gap:5px;font-size:9px">
-              <label><input type="checkbox" id="anl-db-pbi" onchange="anlUpdate()">PBI</label>
-              <label><input type="checkbox" id="anl-db-mep" onchange="anlUpdate()">MEP</label>
+            <div class="defl-grid">
+              <label><input type="checkbox" id="anl-db-pbi"     onchange="anlUpdate()">PBI ARS</label>
+              <label><input type="checkbox" id="anl-db-pbi_usd" onchange="anlUpdate()">PBI USD</label>
+              <label><input type="checkbox" id="anl-db-mep" onchange="anlUpdate()">USD</label>
               <label><input type="checkbox" id="anl-db-cer" onchange="anlUpdate()">CER</label>
-              <label><input type="checkbox" id="anl-db-ipc" onchange="anlUpdate()">IPC</label>
+              <label><input type="checkbox" id="anl-db-ipc" onchange="anlUpdate()">IPC USA</label>
             </div>
           </div>
           <div class="anl-row"><label>Operación</label>
@@ -369,40 +457,69 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
           <div class="anl-row"><label>Mostrar errores al <b>cuadrado</b></label><input type="checkbox" id="anl-resid-sq" onchange="anlUpdate()"/></div>
           <button class="abtn abtn-p" onclick="anlUpdate()">▶ Actualizar Gráficos</button>
         </div>
-        <div class="anl-section"><h4>Test de Raíz Unitaria</h4>
-          <div class="anl-row"><label>Test</label>
-            <select id="anl-ur-test">
-              <option value="adf">ADF</option>
-              <option value="pp">Phillips-Perron</option>
-            </select>
-          </div>
-          <div class="anl-row"><label>Términos</label>
-            <select id="anl-ur-trend">
-              <option value="c">Constante</option>
-              <option value="ct">Constante + Tendencia</option>
-              <option value="nc">Ninguno</option>
-            </select>
-          </div>
-          <button class="abtn" onclick="runUnitRootTest()">▶ Ejecutar Test</button>
-          <div id="adf-box">Presioná "Ejecutar Test" para ejecutar</div>
-          <button class="abtn" style="margin-top:8px;background:linear-gradient(135deg,#f59e0b,#d97706)" onclick="saveAnalysis()">💾 Guardar Análisis</button>
+        <div class="anl-section"><h4>Análisis Descriptivo</h4>
+          <div class="anl-row"><label title="Ventana para media/desvío móvil">Rolling (ventana)</label><input type="number" id="anl-roll" value="0" min="0" placeholder="auto" style="width:60px" onchange="if(descActive)anlDescriptive()"/></div>
+          <div class="anl-row"><label title="Período estacional; 0 = auto según frecuencia">Período estac.</label><input type="number" id="anl-seasper" value="0" min="0" placeholder="auto" style="width:60px" onchange="if(descActive)anlDescriptive()"/></div>
+          <div class="anl-row"><label title="Descomposición multiplicativa en vez de aditiva">Multiplicativa</label><input type="checkbox" id="anl-mult" onchange="if(descActive)anlDescriptive()"/></div>
+          <div class="anl-row"><label title="Criterio de selección de orden ARMA">Criterio ARIMA</label>
+            <select id="anl-arima-crit" style="width:80px"><option value="aic">AIC</option><option value="bic">BIC</option></select></div>
+          <button class="abtn abtn-p" style="margin-top:4px" onclick="anlDescriptive()">📊 Análisis Descriptivo</button>
+          <button class="abtn abtn-p" style="margin-top:6px" onclick="anlAutoArima()">🧬 Auto-ARIMA (corto plazo)</button>
         </div>
+        <button class="abtn abtn-p" style="margin-top:6px" onclick="openTestModal()">🔬 Tests de Raíz Unitaria</button>
+        <button class="abtn abtn-amber" style="margin-top:8px" onclick="saveAnalysis()">💾 Guardar Análisis</button>
       </div>
       <div id="anl-right">
         <div id="anl-chart"></div>
         <div id="anl-chart-diff" style="display:none"></div>
-        <div id="anl-acf"></div>
-        <div id="anl-pacf"></div>
-        <div id="anl-saved-section">
-          <h4 style="font-size:9.5px;font-weight:700;color:#7c3aed;text-transform:uppercase;margin:10px 0 6px;padding-bottom:3px;border-bottom:1px solid #1e1e44">📋 Análisis Guardados</h4>
-          <div style="display:flex;gap:6px;margin-bottom:6px">
-            <button class="abtn" style="width:auto;padding:4px 10px;font-size:9.5px;background:linear-gradient(135deg,#059669,#047857)" onclick="downloadAnalysesCSV()">⬇ CSV</button>
-            <button class="abtn" style="width:auto;padding:4px 10px;font-size:9.5px;background:linear-gradient(135deg,#ef4444,#b91c1c)" onclick="clearAnalyses()">✕ Limpiar</button>
+        <div id="anl-corr-wrap">
+          <div id="anl-acf"></div>
+          <div id="anl-pacf"></div>
+        </div>
+        <div id="anl-desc" style="display:none"></div>
+        <div id="anl-arima" style="display:none"></div>
+        <div id="anl-saved-section" style="padding:0 12px 12px">
+          <div class="collapser" id="anl-saved-toggle" onclick="toggleSavedAnalyses()">
+            <span class="chev">▶</span>
+            <span>📋 Análisis Guardados</span>
+            <span class="count" id="anl-saved-count">0</span>
           </div>
-          <div id="anl-saved-scroll" style="max-height:30vh;overflow:auto;border:1px solid #1e1e44;border-radius:4px">
-            <table id="anl-saved-table"></table>
+          <div class="collapse-body" id="anl-saved-body">
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <button class="abtn" style="width:auto;padding:4px 10px;font-size:9.5px" onclick="downloadAnalysesCSV()">⬇ CSV</button>
+              <button class="abtn" style="width:auto;padding:4px 10px;font-size:9.5px;background:linear-gradient(135deg,#ef4444,#b91c1c)" onclick="clearAnalyses()">✕ Limpiar</button>
+            </div>
+            <div id="anl-saved-scroll" style="max-height:55vh;overflow:auto;border:1px solid #1e1e44;border-radius:4px">
+              <table id="anl-saved-table"></table>
+            </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Test de Raíz Unitaria -->
+  <div class="modal-bg" id="modal-test" onclick="if(event.target===this)closeTestModal()">
+    <div class="modal-box" style="position:relative">
+      <button class="modal-close" onclick="closeTestModal()">✕</button>
+      <h3>🔬 Test de Raíz Unitaria</h3>
+      <div class="anl-section">
+        <div class="anl-row"><label>Test</label>
+          <select id="anl-ur-test">
+            <option value="adf">ADF (Augmented Dickey-Fuller)</option>
+            <option value="pp">Phillips-Perron</option>
+            <option value="kpss">KPSS (H0: estacionaria)</option>
+          </select>
+        </div>
+        <div class="anl-row"><label>Términos</label>
+          <select id="anl-ur-trend">
+            <option value="c">Constante</option>
+            <option value="ct">Constante + Tendencia</option>
+            <option value="nc">Ninguno</option>
+          </select>
+        </div>
+        <button class="abtn abtn-p" onclick="runUnitRootTest()" style="margin-top:8px">▶ Ejecutar Test</button>
+        <div id="adf-box" style="margin-top:10px">Presioná "Ejecutar Test" para ejecutar</div>
       </div>
     </div>
   </div>
@@ -410,19 +527,23 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
   <!-- ANÁLISIS BÁSICO (reporte de 02a_analisis_basico.py) -->
   <div id="tab-basico" class="tab-content" style="flex-direction:column">
     <div id="bb-bar" style="display:flex;gap:8px;padding:8px 12px;background:#1f2937;color:#fff;align-items:center;flex-wrap:wrap">
+      <button class="abtn" style="background:#2B7AB8;padding:6px 12px;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600" onclick="toggleBBConfig()" id="bb-config-toggle">▼ Configuración</button>
       <button class="abtn" style="background:linear-gradient(135deg,#dc2626,#991b1b);padding:6px 14px;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600" onclick="ejecutarAnalisisBasico()">▶ Ejecutar Análisis Básico</button>
       <span id="bb-status" style="font-size:11px;opacity:.85">Configurá variables, dep, frecuencia y lags, calculá preview, y ejecutá.</span>
       <button class="abtn" style="margin-left:auto;background:#374151;padding:4px 10px;color:#fff;border:0;border-radius:4px;cursor:pointer;font-size:11px" onclick="recargarReporte()">↻ Recargar reporte</button>
     </div>
-    <div style="flex:1;display:flex;min-height:0;overflow:hidden">
-      <!-- Panel de configuración interactivo -->
-      <div id="bb-config" style="width:380px;min-width:340px;overflow:auto;padding:10px;background:#0f172a;color:#e5e7eb;border-right:1px solid #334155;font-size:11px">
-        <h4 style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;margin:4px 0 8px;border-bottom:1px solid #334155;padding-bottom:4px">📋 Variables guardadas</h4>
-        <div id="bb-vars-list" style="max-height:30vh;overflow:auto;border:1px solid #334155;border-radius:4px;padding:4px;background:#1e293b;margin-bottom:10px">
+    <div style="flex:1;position:relative;display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <!-- Panel de configuración interactivo: overlay por ENCIMA del reporte cuando está desplegado -->
+      <div id="bb-config" style="position:absolute;top:0;left:0;right:0;z-index:30;max-height:75vh;overflow:auto;resize:vertical;padding:10px;background:#0f172a;color:#e5e7eb;border-bottom:2px solid #2B7AB8;box-shadow:0 10px 28px rgba(0,0,0,.55);font-size:11px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+        <div>
+        <h4 style="font-size:11px;font-weight:700;color:#F6B40E;text-transform:uppercase;margin:4px 0 8px;border-bottom:1px solid #334155;padding-bottom:4px">📋 Variables guardadas</h4>
+        <div id="bb-vars-list" style="max-height:35vh;overflow:auto;border:1px solid #334155;border-radius:4px;padding:4px;background:#1e293b;margin-bottom:10px">
           <em style="color:#94a3b8;font-size:10px">Guardá análisis en la pestaña 📐 Análisis</em>
         </div>
+        </div>
 
-        <h4 style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;margin:10px 0 6px;border-bottom:1px solid #334155;padding-bottom:4px">⚙️ Configuración</h4>
+        <div>
+        <h4 style="font-size:11px;font-weight:700;color:#F6B40E;text-transform:uppercase;margin:4px 0 6px;border-bottom:1px solid #334155;padding-bottom:4px">⚙️ Configuración</h4>
         <div style="display:flex;flex-direction:column;gap:6px">
           <label style="display:flex;justify-content:space-between;align-items:center">
             <span>Frecuencia</span>
@@ -463,8 +584,10 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
             <input type="number" id="bb-maxvars" value="" min="1" max="20" placeholder="todas" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
           </label>
         </div>
+        </div>
 
-        <h4 style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;margin:14px 0 6px;border-bottom:1px solid #334155;padding-bottom:4px">🔢 Preview de pruebas</h4>
+        <div>
+        <h4 style="font-size:11px;font-weight:700;color:#F6B40E;text-transform:uppercase;margin:4px 0 6px;border-bottom:1px solid #334155;padding-bottom:4px">🔢 Preview de pruebas</h4>
         <div id="bb-preview" style="background:#1e293b;border:1px solid #334155;border-radius:4px;padding:8px;font-family:'Consolas',monospace;font-size:11px;line-height:1.6">
           <em style="color:#94a3b8">Configurá las variables y modelos para ver el conteo.</em>
         </div>
@@ -472,10 +595,11 @@ body{font-family:'Inter',sans-serif;background:#0b0b18;color:#d4d4e8;display:fle
         <div style="margin-top:8px;font-size:10px;color:#94a3b8;line-height:1.4;background:#1e293b;border-left:3px solid #f59e0b;padding:6px 8px;border-radius:3px">
           <b>⚠️ Sobre VAR y orden:</b> el VAR itera por <b>permutaciones</b> porque el orden importa para identificación Cholesky (IRF ortogonalizado). Para la <b>estimación</b> del VAR el orden no afecta los coeficientes — son equivalentes. ARDL y VECM usan <b>combinaciones</b>.
         </div>
+        </div>
       </div>
 
-      <!-- iframe del reporte (a la derecha) -->
-      <iframe id="bb-iframe" src="about:blank" style="flex:1;width:100%;border:0;min-height:600px;background:#fafafa"></iframe>
+      <!-- iframe del reporte (ocupa todo; la config flota por encima) -->
+      <iframe id="bb-iframe" src="about:blank" style="flex:1;width:100%;border:0;min-height:0;background:#fafafa"></iframe>
     </div>
   </div>
 </div>
@@ -486,7 +610,7 @@ const BASE = '../data/Variables%20Finales/';
 const RAW  = '../data/raw/indec/';
 
 /* ── COLOR PALETTE ── */
-const PALETTE = ['#7c3aed','#10b981','#f59e0b','#ef4444','#3b82f6','#ec4899','#14b8a6','#f97316','#8b5cf6','#06b6d4','#84cc16','#e11d48','#0891b2','#d97706','#7c3aed'];
+const PALETTE = ['#5BA4E6','#F6B40E','#E8A817','#78C0F0','#8B5CF6','#EC4899','#14B8A6','#F97316','#3B82F6','#06B6D4','#84CC16','#E11D48','#0891B2','#D97706','#A78BFA'];
 
 /* ── CATALOG ── */
 // Items: {id,label,file,dateCol,valCol,unit,freq} (single-source)
@@ -496,7 +620,7 @@ const CATALOG = [
 
   /* ── SECTOR MONETARIO Y CAMBIARIO ── */
 
-  { grp:'Reservas y Liquidez', clr:'#7c3aed', items:[
+  { grp:'Reservas y Liquidez', clr:'#5BA4E6', items:[
     { id:'res_brutas', label:'Reservas Brutas BCRA', file:'001_reservas_brutas.csv', dateCol:'fecha', valCol:'valor', unit:'Mill. USD', freq:'D' }
   ]},
 
@@ -767,7 +891,7 @@ const CATALOG = [
 
   /* ── SECTOR EXTERNO: BALANCE DE PAGOS ── */
 
-  { grp:'Balance de Pagos (MBP6)', clr:'#8b5cf6', subs:[
+  { grp:'Balance de Pagos (MBP6)', clr:'#E8A817', subs:[
     { sub:'Cuenta Corriente', items:[
       { id:'bp_cc',    label:'Total Cuenta Corriente',           unit:'Mill. USD', sources:[
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'total_cuenta_corriente'},
@@ -868,6 +992,108 @@ const CATALOG = [
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'errores_omisiones_netos'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'errores_omisiones_netos'}
       ]}
+    ]}
+  ]},
+
+  /* ── CUENTAS NACIONALES (INDEC sh_oferta_demanda) ── */
+
+  { grp:'Cuentas Nacionales (INDEC)', clr:'#a855f7', subs:[
+    { sub:'Oferta y Demanda — Constante 2004', items:[
+      { id:'od_c_pbi',          label:'PBI',                file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'pbi',              unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'od_c_impo',         label:'Importaciones FOB',  file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'impo',             unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'od_c_oferta',       label:'Oferta Global',      file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'oferta_global',    unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'od_c_demanda',      label:'Demanda Global',     file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'demanda_global',   unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'od_c_cpriv',        label:'Consumo Privado',    file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'consumo_priv',     unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'od_c_cpub',         label:'Consumo Público',    file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'consumo_pub',      unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'od_c_expo',         label:'Exportaciones FOB',  file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'expo',             unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'od_c_fbkf',         label:'FBKF',               file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'fbkf',             unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'od_c_varex',        label:'Var. Existencias',   file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'var_existencias',  unit:'Mill. ARS 2004', freq:'Q' }
+    ]},
+    { sub:'Oferta y Demanda — Corriente (nominal)', items:[
+      { id:'od_n_pbi',          label:'PBI nominal',        file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'pbi',              unit:'Mill. ARS', freq:'Q' },
+      { id:'od_n_impo',         label:'Importaciones FOB',  file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'impo',             unit:'Mill. ARS', freq:'Q' },
+      { id:'od_n_oferta',       label:'Oferta Global',      file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'oferta_global',    unit:'Mill. ARS', freq:'Q' },
+      { id:'od_n_demanda',      label:'Demanda Global',     file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'demanda_global',   unit:'Mill. ARS', freq:'Q' },
+      { id:'od_n_cpriv',        label:'Consumo Privado',    file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'consumo_priv',     unit:'Mill. ARS', freq:'Q' },
+      { id:'od_n_cpub',         label:'Consumo Público',    file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'consumo_pub',      unit:'Mill. ARS', freq:'Q' },
+      { id:'od_n_expo',         label:'Exportaciones FOB',  file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'expo',             unit:'Mill. ARS', freq:'Q' },
+      { id:'od_n_fbkf',         label:'FBKF',               file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'fbkf',             unit:'Mill. ARS', freq:'Q' },
+      { id:'od_n_varex',        label:'Var. Existencias',   file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'var_existencias',  unit:'Mill. ARS', freq:'Q' }
+    ]},
+    { sub:'Oferta y Demanda — Precios Implícitos', items:[
+      { id:'od_p_pbi',          label:'IPI PBI',            file:'oferta_demanda_ipi.csv', dateCol:'fecha', valCol:'pbi',              unit:'Índice', freq:'Q' },
+      { id:'od_p_impo',         label:'IPI Importaciones',  file:'oferta_demanda_ipi.csv', dateCol:'fecha', valCol:'impo',             unit:'Índice', freq:'Q' },
+      { id:'od_p_cpriv',        label:'IPI Consumo Priv.',  file:'oferta_demanda_ipi.csv', dateCol:'fecha', valCol:'consumo_priv',     unit:'Índice', freq:'Q' },
+      { id:'od_p_cpub',         label:'IPI Consumo Púb.',   file:'oferta_demanda_ipi.csv', dateCol:'fecha', valCol:'consumo_pub',      unit:'Índice', freq:'Q' },
+      { id:'od_p_expo',         label:'IPI Exportaciones',  file:'oferta_demanda_ipi.csv', dateCol:'fecha', valCol:'expo',             unit:'Índice', freq:'Q' },
+      { id:'od_p_fbkf',         label:'IPI FBKF',           file:'oferta_demanda_ipi.csv', dateCol:'fecha', valCol:'fbkf',             unit:'Índice', freq:'Q' }
+    ]},
+    { sub:'PBI por Sector — Constante 2004', items:[
+      { id:'sec_c_vab',     label:'VAB total',                 file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'vab',                unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_agro',    label:'A — Agro',                  file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'agro',               unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_pesca',   label:'B — Pesca',                 file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'pesca',              unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_mineria', label:'C — Minería',               file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'mineria',            unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_indus',   label:'D — Industria',             file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'industria',          unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_eega',    label:'E — Elect/Gas/Agua',        file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'elect_gas_agua',     unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_cons',    label:'F — Construcción',          file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'construccion',       unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_com',     label:'G — Comercio',              file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'comercio',           unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_hot',     label:'H — Hoteles/Restaurantes',  file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'hoteles',            unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_trans',   label:'I — Transporte y Comun.',   file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'transporte',         unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_fin',     label:'J — Interm. Financiera',    file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'intermediacion_fin', unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_inmo',    label:'K — Inmobiliarias',         file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'inmobiliarias',      unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_admp',    label:'L — Admin. Pública',        file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'admin_publica',      unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_ense',    label:'M — Enseñanza',             file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'ensenanza',          unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_salud',   label:'N — Salud',                 file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'salud',              unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_otros',   label:'O — Otros Servicios',       file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'otros_servicios',    unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_hog',     label:'P — Hogares Dom.',          file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'hogares_dom',        unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_iva',     label:'IVA',                       file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'iva',                unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'sec_c_impimp',  label:'Imp. Importaciones',        file:'pbi_sectores_constante.csv', dateCol:'fecha', valCol:'imp_importaciones',  unit:'Mill. ARS 2004', freq:'Q' }
+    ]},
+    { sub:'PBI por Sector — Corriente (nominal)', items:[
+      { id:'sec_n_vab',     label:'VAB total',                 file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'vab',                unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_agro',    label:'A — Agro',                  file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'agro',               unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_pesca',   label:'B — Pesca',                 file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'pesca',              unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_mineria', label:'C — Minería',               file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'mineria',            unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_indus',   label:'D — Industria',             file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'industria',          unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_eega',    label:'E — Elect/Gas/Agua',        file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'elect_gas_agua',     unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_cons',    label:'F — Construcción',          file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'construccion',       unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_com',     label:'G — Comercio',              file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'comercio',           unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_hot',     label:'H — Hoteles/Restaurantes',  file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'hoteles',            unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_trans',   label:'I — Transporte y Comun.',   file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'transporte',         unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_fin',     label:'J — Interm. Financiera',    file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'intermediacion_fin', unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_inmo',    label:'K — Inmobiliarias',         file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'inmobiliarias',      unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_admp',    label:'L — Admin. Pública',        file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'admin_publica',      unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_ense',    label:'M — Enseñanza',             file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'ensenanza',          unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_salud',   label:'N — Salud',                 file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'salud',              unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_otros',   label:'O — Otros Servicios',       file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'otros_servicios',    unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_hog',     label:'P — Hogares Dom.',          file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'hogares_dom',        unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_iva',     label:'IVA',                       file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'iva',                unit:'Mill. ARS', freq:'Q' },
+      { id:'sec_n_impimp',  label:'Imp. Importaciones',        file:'pbi_sectores_corriente.csv', dateCol:'fecha', valCol:'imp_importaciones',  unit:'Mill. ARS', freq:'Q' }
+    ]},
+    { sub:'PBI por Sector — Precios Implícitos', items:[
+      { id:'sec_p_vab',     label:'IPI VAB',         file:'pbi_sectores_ipi.csv', dateCol:'fecha', valCol:'vab',                unit:'Índice', freq:'Q' },
+      { id:'sec_p_agro',    label:'IPI Agro',        file:'pbi_sectores_ipi.csv', dateCol:'fecha', valCol:'agro',               unit:'Índice', freq:'Q' },
+      { id:'sec_p_indus',   label:'IPI Industria',   file:'pbi_sectores_ipi.csv', dateCol:'fecha', valCol:'industria',          unit:'Índice', freq:'Q' },
+      { id:'sec_p_cons',    label:'IPI Construcc.',  file:'pbi_sectores_ipi.csv', dateCol:'fecha', valCol:'construccion',       unit:'Índice', freq:'Q' },
+      { id:'sec_p_com',     label:'IPI Comercio',    file:'pbi_sectores_ipi.csv', dateCol:'fecha', valCol:'comercio',           unit:'Índice', freq:'Q' }
+    ]},
+    { sub:'FBKF Detalle — Constante 2004', items:[
+      { id:'fbkf_c_tot',   label:'FBKF Total',             file:'fbkf_constante.csv', dateCol:'fecha', valCol:'fbkf_total',          unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'fbkf_c_cons',  label:'Construcciones',         file:'fbkf_constante.csv', dateCol:'fecha', valCol:'construcciones',      unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'fbkf_c_mq',    label:'Maquinaria y Equipo',    file:'fbkf_constante.csv', dateCol:'fecha', valCol:'maq_equipo',          unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'fbkf_c_mqn',   label:'Maq. Nacional',          file:'fbkf_constante.csv', dateCol:'fecha', valCol:'maq_nacional',        unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'fbkf_c_mqi',   label:'Maq. Importada',         file:'fbkf_constante.csv', dateCol:'fecha', valCol:'maq_importado',       unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'fbkf_c_tr',    label:'Equipo Transporte',      file:'fbkf_constante.csv', dateCol:'fecha', valCol:'eq_transporte',       unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'fbkf_c_otr',   label:'Otros Activos',          file:'fbkf_constante.csv', dateCol:'fecha', valCol:'otros_activos',       unit:'Mill. ARS 2004', freq:'Q' }
+    ]},
+    { sub:'FBKF Detalle — Corriente (nominal)', items:[
+      { id:'fbkf_n_tot',   label:'FBKF Total',             file:'fbkf_corriente.csv', dateCol:'fecha', valCol:'fbkf_total',          unit:'Mill. ARS', freq:'Q' },
+      { id:'fbkf_n_cons',  label:'Construcciones',         file:'fbkf_corriente.csv', dateCol:'fecha', valCol:'construcciones',      unit:'Mill. ARS', freq:'Q' },
+      { id:'fbkf_n_mq',    label:'Maquinaria y Equipo',    file:'fbkf_corriente.csv', dateCol:'fecha', valCol:'maq_equipo',          unit:'Mill. ARS', freq:'Q' },
+      { id:'fbkf_n_mqn',   label:'Maq. Nacional',          file:'fbkf_corriente.csv', dateCol:'fecha', valCol:'maq_nacional',        unit:'Mill. ARS', freq:'Q' },
+      { id:'fbkf_n_mqi',   label:'Maq. Importada',         file:'fbkf_corriente.csv', dateCol:'fecha', valCol:'maq_importado',       unit:'Mill. ARS', freq:'Q' },
+      { id:'fbkf_n_tr',    label:'Equipo Transporte',      file:'fbkf_corriente.csv', dateCol:'fecha', valCol:'eq_transporte',       unit:'Mill. ARS', freq:'Q' },
+      { id:'fbkf_n_otr',   label:'Otros Activos',          file:'fbkf_corriente.csv', dateCol:'fecha', valCol:'otros_activos',       unit:'Mill. ARS', freq:'Q' }
     ]}
   ]},
 
@@ -1175,7 +1401,8 @@ function buildTransformLabel(id) {
   const cfg = getCfg(id);
   let base = it.label;
   const parts = [];
-  if (cfg.deflModes.includes('pbi')) parts.push('÷ PBI');
+  if (cfg.deflModes.includes('pbi'))     parts.push('÷ PBI ARS 4Q');
+  if (cfg.deflModes.includes('pbi_usd')) parts.push('÷ PBI USD 4Q');
   if (cfg.deflModes.includes('mep')) parts.push('÷ MEP');
   if (cfg.deflModes.includes('cer')) parts.push('÷ CER');
   if (cfg.deflModes.includes('ipc')) parts.push('÷ IPC USA');
@@ -1346,7 +1573,9 @@ function movingAvg(values, win) {
 /* ── VARIATION ── */
 function computeVariation(dates, values, vtype) {
   if (vtype === 'none') return null;
-  const result = new Array(values.length).fill(NaN);
+  // pct = variación relativa (%); abs = variación absoluta (monto, en unidades de la serie)
+  const pct = new Array(values.length).fill(NaN);
+  const abs = new Array(values.length).fill(NaN);
   dates.forEach((d,i) => {
     if (isNaN(values[i])) return;
     let targetDate;
@@ -1366,7 +1595,8 @@ function computeVariation(dates, values, vtype) {
     // find closest date
     const tIdx = dates.findIndex(x => x === targetDate);
     if (tIdx !== -1 && !isNaN(values[tIdx]) && values[tIdx] !== 0) {
-      result[i] = (values[i] - values[tIdx]) / Math.abs(values[tIdx]);
+      pct[i] = (values[i] - values[tIdx]) / Math.abs(values[tIdx]);
+      abs[i] = values[i] - values[tIdx];
     } else {
       // find nearest ≤ targetDate
       let best = -1;
@@ -1374,11 +1604,35 @@ function computeVariation(dates, values, vtype) {
         if (dates[j] <= targetDate && (best === -1 || dates[j] > dates[best])) best = j;
       }
       if (best !== -1 && !isNaN(values[best]) && values[best] !== 0) {
-        result[i] = (values[i] - values[best]) / Math.abs(values[best]);
+        pct[i] = (values[i] - values[best]) / Math.abs(values[best]);
+        abs[i] = values[i] - values[best];
       }
     }
   });
-  return result;
+  return { pct, abs };
+}
+
+// Ancho de barra (en milisegundos) según la frecuencia activa, para barras más gruesas.
+function barWidthMs() {
+  const ms = { D:864e5, W:7*864e5, M:30*864e5, Q:91*864e5, A:365*864e5 };
+  return (ms[freq] || 30*864e5) * 0.85;
+}
+
+// Formateo de montos: separador de miles es-AR y decimales adaptados a la magnitud.
+function fmtMonto(v) {
+  if (v === null || v === undefined || isNaN(v)) return '–';
+  const a = Math.abs(v);
+  let dec;
+  if (a >= 1000) dec = 0;
+  else if (a >= 10) dec = 1;
+  else if (a >= 1)  dec = 2;
+  else dec = 3;
+  return v.toLocaleString('es-AR', { minimumFractionDigits:dec, maximumFractionDigits:dec });
+}
+
+// Patrón de relleno por signo (accesibilidad daltónica): negativos con rayado diagonal.
+function signPattern(arr) {
+  return { shape: arr.map(v => (v>=0 ? '' : '/')), fgcolor:'rgba(255,255,255,0.30)', size:4, solidity:0.35 };
 }
 
 /* ── DEFLATION ── */
@@ -1390,14 +1644,33 @@ let tipLoaded = false;
 async function loadPBI() {
   if (pbiLoaded) return;
   try {
-    const d = await loadFile('pbi_constante_2004.csv');
+    // pbi_corriente.csv = PBI nominal trimestral en M ARS (INDEC cuadro 8, sh_oferta_demanda).
+    // Para deflactar usamos la SUMA MÓVIL DE 4 TRIMESTRES (rolling annual / "año móvil"),
+    // que es el estándar en la literatura para ratios X/PBI: elimina la estacionalidad
+    // intra-anual y mantiene una escala interpretable de "% del PBI anualizado".
+    const d = await loadFile('pbi_corriente.csv');
+    const tmp = {}; // key Y-QN -> trim value
     d.rows.forEach(r => {
       if (r.fecha && r.pbi != null) {
         const [y, m] = r.fecha.split('-').map(Number);
         const q = Math.ceil(m / 3);
-        pbiCache[`${y}-Q${q}`] = parseFloat(r.pbi);
+        tmp[`${y}-Q${q}`] = parseFloat(r.pbi);
       }
     });
+    // Construyo rolling sum 4Q. Necesito iterar en orden cronológico.
+    const keys = Object.keys(tmp).sort();
+    const idx = keys.map(k => {
+      const m = k.match(/^(\d{4})-Q([1-4])$/);
+      return { key: k, n: parseInt(m[1])*4 + parseInt(m[2]) }; // índice secuencial
+    }).sort((a,b) => a.n - b.n);
+    for (let i = 0; i < idx.length; i++) {
+      if (i < 3) continue; // necesito al menos 4 trim para la suma
+      // verifico que los 4 trim sean consecutivos (sin huecos)
+      if (idx[i].n - idx[i-3].n !== 3) continue;
+      const sum = tmp[idx[i].key] + tmp[idx[i-1].key] + tmp[idx[i-2].key] + tmp[idx[i-3].key];
+      pbiCache[idx[i].key] = sum;
+    }
+    pbiAnchors = null; // forzar rebuild de anchors con los nuevos valores
     pbiLoaded = true;
   } catch(e) { console.warn('PBI no cargado', e); }
 }
@@ -1465,29 +1738,133 @@ function nearestValue(cache, dateStr) {
   return cache[best];
 }
 
-function getPBICacheValue(key) {
-  if (pbiCache[key]) return pbiCache[key];
-  const keys = Object.keys(pbiCache).sort();
-  if (!keys.length) return NaN;
-  let best = keys[0];
-  for (let i = 0; i < keys.length; i++) {
-    if (keys[i] <= key) best = keys[i];
-    else break;
+// Anchors trimestrales [{t: timestamp ms, v: rolling4Q}], se llena al final de loadPBI
+let pbiAnchors = null;
+function buildPBIAnchors() {
+  // Anclo cada rolling-4Q al ÚLTIMO día del trimestre correspondiente
+  const anchors = [];
+  Object.keys(pbiCache).forEach(k => {
+    const m = k.match(/^(\d{4})-Q([1-4])$/);
+    if (!m) return;
+    const y = parseInt(m[1]), q = parseInt(m[2]);
+    const endMonth = q*3;  // 3, 6, 9, 12
+    const endDay   = new Date(y, endMonth, 0).getDate(); // último día del mes
+    anchors.push({ t: new Date(y, endMonth-1, endDay).getTime(), v: pbiCache[k] });
+  });
+  anchors.sort((a,b) => a.t - b.t);
+  pbiAnchors = anchors;
+}
+
+function pbiInterp(dateStr) {
+  // Interpolación lineal entre anchors trimestrales para evitar escalones diarios.
+  if (!pbiAnchors) buildPBIAnchors();
+  if (!pbiAnchors.length) return NaN;
+  const t = new Date(dateStr).getTime();
+  if (t <= pbiAnchors[0].t) return pbiAnchors[0].v;
+  if (t >= pbiAnchors.at(-1).t) return pbiAnchors.at(-1).v;
+  // búsqueda binaria
+  let lo = 0, hi = pbiAnchors.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (pbiAnchors[mid].t <= t) lo = mid; else hi = mid;
   }
-  return pbiCache[best];
+  const a = pbiAnchors[lo], b = pbiAnchors[hi];
+  const w = (t - a.t) / (b.t - a.t);
+  return a.v + w * (b.v - a.v);
+}
+
+// Compat: algunas partes del código viejo todavía pueden llamar a getPBICacheValue.
+function getPBICacheValue(key) {
+  const m = key && key.match(/^(\d{4})-Q([1-4])$/);
+  if (!m) return NaN;
+  // Interpola al fin de trimestre, equivalente al anchor exacto
+  const y = parseInt(m[1]), q = parseInt(m[2]);
+  return pbiInterp(`${y}-${String(q*3).padStart(2,'0')}-28`);
 }
 
 function deflectByPBI(dates, values) {
-  const pbiVals = dates.map(d => {
-    const [y,m] = d.split('-').map(Number);
-    const key = `${y}-Q${Math.ceil(m/3)}`;
-    return getPBICacheValue(key);
-  });
-  const firstPbi = pbiVals.find(x => !isNaN(x) && x > 0) || 1;
+  // PBI nominal en M ARS — suma móvil de 4 trimestres (año móvil), con interpolación lineal
+  // diaria entre cierres de trimestre. Resultado: serie / PBI_4Q * 100 = ratio "% del PBI anualizado".
+  // Requiere que la serie esté en millones de ARS para que el % sea interpretable.
   return values.map((v,i) => {
-    const pbi = pbiVals[i];
-    // PBI en base 100 respecto al primer dato para no alterar la magnitud de la serie original en t=0
-    return pbi && !isNaN(pbi) && pbi > 0 ? (v * firstPbi) / pbi : NaN;
+    const pbi = pbiInterp(dates[i]);
+    return pbi && !isNaN(pbi) && pbi > 0 ? (v / pbi) * 100 : NaN;
+  });
+}
+
+/* ── PBI USD (al TC MEP) — para series denominadas en USD ── */
+const pbiUsdCache = {};   // Y-QN → rolling 4Q sum (millones de USD)
+let pbiUsdAnchors = null; // [{t, v}] anchors trimestrales
+let pbiUsdLoaded = false;
+
+async function loadPBIUsd() {
+  if (pbiUsdLoaded) return;
+  try {
+    // pbi_trimestral_usd_mep.csv tiene pbi_usd_mm = pbi_pesos_mm / tc_mep_promedio del trim.
+    // Usar MEP en vez del oficial A3500 evita la sobreestimación del PBI en USD durante el cepo
+    // (cuando el oficial está atrasado el ratio X_USD / PBI_USD_oficial sale artificialmente bajo).
+    const d = await loadFile('pbi_trimestral_usd_mep.csv');
+    const tmp = {};
+    d.rows.forEach(r => {
+      const p = r.periodo || r.Periodo;
+      const v = r.pbi_usd_mm;
+      if (!p || v == null) return;
+      const m = String(p).match(/^(\d{4})Q([1-4])$/);
+      if (m) tmp[`${m[1]}-Q${m[2]}`] = parseFloat(v);
+    });
+    const idx = Object.keys(tmp).map(k => {
+      const m = k.match(/^(\d{4})-Q([1-4])$/);
+      return { key: k, n: parseInt(m[1])*4 + parseInt(m[2]) };
+    }).sort((a,b) => a.n - b.n);
+    for (let i = 0; i < idx.length; i++) {
+      if (i < 3) continue;
+      if (idx[i].n - idx[i-3].n !== 3) continue;
+      pbiUsdCache[idx[i].key] = tmp[idx[i].key] + tmp[idx[i-1].key] + tmp[idx[i-2].key] + tmp[idx[i-3].key];
+    }
+    pbiUsdAnchors = null;
+    pbiUsdLoaded = true;
+  } catch(e) { console.warn('PBI USD no cargado', e); }
+}
+
+function buildPBIUsdAnchors() {
+  const anchors = [];
+  Object.keys(pbiUsdCache).forEach(k => {
+    const m = k.match(/^(\d{4})-Q([1-4])$/);
+    if (!m) return;
+    const y = parseInt(m[1]), q = parseInt(m[2]);
+    const endMonth = q*3;
+    const endDay = new Date(y, endMonth, 0).getDate();
+    anchors.push({ t: new Date(y, endMonth-1, endDay).getTime(), v: pbiUsdCache[k] });
+  });
+  anchors.sort((a,b) => a.t - b.t);
+  pbiUsdAnchors = anchors;
+}
+
+function pbiUsdInterp(dateStr) {
+  if (!pbiUsdAnchors) buildPBIUsdAnchors();
+  if (!pbiUsdAnchors.length) return NaN;
+  const t = new Date(dateStr).getTime();
+  // A diferencia del ARS, NO extrapolo: si la fecha es anterior al primer anchor (pre-2010Q4),
+  // devuelvo NaN para señalar que no hay PBI USD MEP fiable.
+  if (t < pbiUsdAnchors[0].t) return NaN;
+  if (t >= pbiUsdAnchors.at(-1).t) return pbiUsdAnchors.at(-1).v;
+  let lo = 0, hi = pbiUsdAnchors.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (pbiUsdAnchors[mid].t <= t) lo = mid; else hi = mid;
+  }
+  const a = pbiUsdAnchors[lo], b = pbiUsdAnchors[hi];
+  const w = (t - a.t) / (b.t - a.t);
+  return a.v + w * (b.v - a.v);
+}
+
+function deflectByPBIUsd(dates, values) {
+  // PBI nominal en M USD valuado al TC MEP — suma móvil de 4 trim, interpolación lineal diaria.
+  // Resultado: serie_USD / PBI_USD_4Q * 100 = "% del PBI USD MEP anualizado".
+  // Pensado para stocks/flujos en USD (reservas, depósitos USD, deuda externa, etc.).
+  return values.map((v,i) => {
+    const pbi = pbiUsdInterp(dates[i]);
+    return pbi && !isNaN(pbi) && pbi > 0 ? (v / pbi) * 100 : NaN;
   });
 }
 
@@ -1598,7 +1975,8 @@ async function applyTransforms(dates, values, item, nativeFreq) {
   // 1. resample
   ({ dates:d, values:v } = resample(d, v, nativeFreq || item.freq, freq));
   // 2. deflation
-  if (cfg.deflModes.includes('pbi')) { await loadPBI(); v = deflectByPBI(d, v); }
+  if (cfg.deflModes.includes('pbi'))     { await loadPBI();    v = deflectByPBI(d, v); }
+  if (cfg.deflModes.includes('pbi_usd')) { await loadPBIUsd(); v = deflectByPBIUsd(d, v); }
   if (cfg.deflModes.includes('mep')) { await loadMEP(); v = deflectByMEP(d, v); }
   if (cfg.deflModes.includes('cer')) { await loadCER(); v = deflectByCER(d, v); }
   if (cfg.deflModes.includes('ipc')) { await loadTIP(); v = deflectByTIP(d, v); }
@@ -1708,7 +2086,8 @@ async function renderInd() {
 
   const cfg = getCfg(selId);
   const deflStrs = [];
-  if (cfg.deflModes.includes('pbi')) deflStrs.push('÷ PBI');
+  if (cfg.deflModes.includes('pbi'))     deflStrs.push('÷ PBI ARS 4Q');
+  if (cfg.deflModes.includes('pbi_usd')) deflStrs.push('÷ PBI USD 4Q');
   if (cfg.deflModes.includes('mep')) deflStrs.push('÷ MEP');
   if (cfg.deflModes.includes('cer')) deflStrs.push('real (CER)');
   if (cfg.deflModes.includes('ipc')) deflStrs.push('real (IPC USA)');
@@ -1730,11 +2109,12 @@ async function renderInd() {
 
   // Main chart traces
   const mainTraces = [];
-  const clr = item.grpClr||'#7c3aed';
+  const clr = item.grpClr||'#5BA4E6';
   
   if (cfg.doDiff && varBars) {
-    mainTraces.push({ x:dates, y:values, type:'bar', name:item.label,
-      marker:{color:values.map(v=>v>=0?'rgba(16,185,129,0.7)':'rgba(239,68,68,0.7)')},
+    mainTraces.push({ x:dates, y:values, type:'bar', name:item.label, width:barWidthMs(),
+      marker:{ color:values.map(v=>v>=0?'rgba(16,185,129,0.75)':'rgba(239,68,68,0.75)'),
+               pattern:signPattern(values) },
       hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.3g}</b><extra></extra>' });
   } else {
     mainTraces.push({ x:dates, y:values, mode:'lines', name:item.label,
@@ -1758,16 +2138,34 @@ async function renderInd() {
 
   // Variation chart
   if (variation && varType !== 'none') {
-    const varY = variation.map(x=>isNaN(x)?null:x*100);
+    const varY   = variation.pct.map(x=>isNaN(x)?null:x*100);
+    const unitSfx = yUnit ? ' ' + yUnit : '';
+    // customdata como texto ya formateado (monto Δ legible es-AR)
+    const varCd = variation.abs.map(x => isNaN(x) ? '–' : fmtMonto(x) + unitSfx);
+    const hov = `%{x|%Y-%m-%d}<br><b>%{y:.2f}%</b>  (Δ %{customdata})<extra></extra>`;
     const trVar = varBars
-      ? { x:dates, y:varY, type:'bar', name:varLabel[varType],
-          marker:{color:varY.map(v=>v>=0?'rgba(16,185,129,0.7)':'rgba(239,68,68,0.7)')},
-          hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.2f}%</b><extra></extra>' }
-      : { x:dates, y:varY, mode:'lines', name:varLabel[varType],
+      ? { x:dates, y:varY, customdata:varCd, type:'bar', name:varLabel[varType], width:barWidthMs(),
+          marker:{ color:varY.map(v=>v>=0?'rgba(16,185,129,0.75)':'rgba(239,68,68,0.75)'),
+                   pattern:signPattern(varY) },
+          hovertemplate:hov }
+      : { x:dates, y:varY, customdata:varCd, mode:'lines', name:varLabel[varType],
           line:{color:'#10b981', width:1.3},
-          hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.2f}%</b><extra></extra>' };
+          hovertemplate:hov };
+    // Línea de referencia: variación promedio del período visible
+    const validVar = varY.filter(v => v !== null && !isNaN(v));
+    const avgVar = validVar.length ? validVar.reduce((a,b)=>a+b,0)/validVar.length : null;
+    const varShapes = shapes.slice();
+    if (avgVar !== null) {
+      varShapes.push({ type:'line', xref:'paper', x0:0, x1:1, yref:'y', y0:avgVar, y1:avgVar,
+        line:{ color:'#fbbf24', width:1, dash:'dot' } });
+    }
+    const varLayout = mkLayout(varLabel[varType], '% cambio · hover: Δ monto', varShapes);
+    if (avgVar !== null) {
+      varLayout.annotations = [{ xref:'paper', x:1, xanchor:'right', yref:'y', y:avgVar, yanchor:'bottom',
+        text:`prom. ${avgVar.toFixed(2)}%`, showarrow:false, font:{size:9, color:'#fbbf24'} }];
+    }
     document.getElementById('c2').style.display = '';
-    Plotly.react('c2', [trVar], mkLayout(varLabel[varType], '% cambio', shapes), CONF);
+    Plotly.react('c2', [trVar], varLayout, CONF);
   } else {
     document.getElementById('c2').style.display = 'none';
   }
@@ -1775,11 +2173,26 @@ async function renderInd() {
   // info bar
   const valid = values.filter(x => !isNaN(x));
   const last = valid[valid.length-1], mn = Math.min(...valid), mx = Math.max(...valid);
+  let varSpan = '';
+  if (variation && varType !== 'none') {
+    let lastVarPct = null, lastVarAbs = null;
+    for (let i = variation.pct.length - 1; i >= 0; i--) {
+      if (!isNaN(variation.pct[i])) { lastVarPct = variation.pct[i]*100; lastVarAbs = variation.abs[i]; break; }
+    }
+    if (lastVarPct !== null) {
+      const c = lastVarPct >= 0 ? '#6ee7b7' : '#f87171';
+      const sgn = lastVarPct >= 0 ? '+' : '';
+      varSpan = `<span title="${varLabel[varType]} del último período">${varLabel[varType]}: ` +
+        `<b style="color:${c}">${sgn}${lastVarPct.toFixed(2)}%</b> ` +
+        `<span style="color:#555">(Δ ${sgn}${fmtMonto(lastVarAbs)})</span></span>`;
+    }
+  }
   document.getElementById('info').innerHTML =
-    `<span>Último: <b style="color:#c4b5fd">${last?.toFixed(3)}</b></span>` +
+    `<span>Último: <b style="color:#A8D4F8">${last?.toFixed(3)}</b></span>` +
     `<span>Mín: <b style="color:#6ee7b7">${mn?.toFixed(3)}</b></span>` +
     `<span>Máx: <b style="color:#f87171">${mx?.toFixed(3)}</b></span>` +
     `<span>N: <b style="color:#fbbf24">${valid.length}</b></span>` +
+    varSpan +
     `<span style="color:#333">${dates[0]} → ${dates[dates.length-1]}</span>`;
 }
 
@@ -1817,12 +2230,13 @@ async function renderCmp() {
     const row = document.createElement('div');
     row.className = 'cmp-row';
     row.innerHTML = `
-      <div class="dot" style="background:${it.grpClr||'#7c3aed'}"></div>
+      <div class="dot" style="background:${it.grpClr||'#5BA4E6'}"></div>
       <div class="cmp-lbl" style="color:${it.grpClr||'#cccce8'};max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${buildTransformLabel(id)}">${buildTransformLabel(id)}</div>
       <label><input type="checkbox" ${cfg.doLog?'checked':''} onchange="getCfg('${id}').doLog=this.checked; renderCmp()"> Log</label>
       <label><input type="checkbox" ${cfg.doDiff?'checked':''} onchange="getCfg('${id}').doDiff=this.checked; renderCmp()"> Δ Dif.</label>
       <span style="margin-left:6px; color:#aaa">Deflactores:</span>
-      <label><input type="checkbox" ${cfg.deflModes.includes('pbi')?'checked':''} onchange="togDeflMode('${id}','pbi',this.checked)"> PBI</label>
+      <label><input type="checkbox" ${cfg.deflModes.includes('pbi')?'checked':''}     onchange="togDeflMode('${id}','pbi',this.checked)"> PBI ARS</label>
+      <label><input type="checkbox" ${cfg.deflModes.includes('pbi_usd')?'checked':''} onchange="togDeflMode('${id}','pbi_usd',this.checked)"> PBI USD</label>
       <label><input type="checkbox" ${cfg.deflModes.includes('mep')?'checked':''} onchange="togDeflMode('${id}','mep',this.checked)"> MEP</label>
       <label><input type="checkbox" ${cfg.deflModes.includes('cer')?'checked':''} onchange="togDeflMode('${id}','cer',this.checked)"> CER</label>
       <label><input type="checkbox" ${cfg.deflModes.includes('ipc')?'checked':''} onchange="togDeflMode('${id}','ipc',this.checked)"> IPC USA</label>
@@ -1840,7 +2254,7 @@ async function renderCmp() {
     const raw = await getSeries(ids[i]);
     let { dates, values, maValues } = await applyTransforms(raw.dates, raw.values, item, raw.nativeFreq);
     ({ dates, values, maValues } = filterByDateRange(dates, values, maValues, ax.from, ax.to));
-    const clr = PALETTE[i % PALETTE.length] || item.grpClr || '#7c3aed';
+    const clr = PALETTE[i % PALETTE.length] || item.grpClr || '#5BA4E6';
     seriesData.push({ dates, values, maValues, item, clr });
     allDates.push(...dates);
   }
@@ -1941,20 +2355,22 @@ async function renderCmp() {
     seriesData.forEach((s, i) => {
       const vari = computeVariation(s.dates, s.values, varType);
       if (vari) {
-        const varY = vari.map(x=>isNaN(x)?null:x*100);
+        const varY  = vari.pct.map(x=>isNaN(x)?null:x*100);
+        const varCd = vari.abs.map(x=>isNaN(x)?'–':fmtMonto(x));
         const tLbl = buildTransformLabel(ids[i]);
+        const hov = `${tLbl}<br><b>%{y:.2f}%</b>  (Δ %{customdata})<extra></extra>`;
         varTraces.push(varBars
-          ? { x:s.dates, y:varY, type:'bar', name:tLbl,
+          ? { x:s.dates, y:varY, customdata:varCd, type:'bar', name:tLbl, width:barWidthMs(),
               marker:{color:s.clr, opacity:0.7},
-              hovertemplate:`${tLbl}: <b>%{y:.2f}%</b><extra></extra>` }
-          : { x:s.dates, y:varY, mode:'lines', name:tLbl,
+              hovertemplate:hov }
+          : { x:s.dates, y:varY, customdata:varCd, mode:'lines', name:tLbl,
               line:{color:s.clr, width:1.3, dash:'dot'},
-              hovertemplate:`${tLbl}: <b>%{y:.2f}%</b><extra></extra>` });
+              hovertemplate:hov });
       }
     });
     const varLabel = { yoy:'Var. Interanual', qoq:'Var. Intertrimestral', mom:'Var. Intermensual', wow:'Var. Intersemanal' };
     document.getElementById('cs').style.display='';
-    Plotly.react('cs', varTraces, Object.assign(mkLayout(varLabel[varType], '% cambio', shapes),{ height:undefined }), CONF);
+    Plotly.react('cs', varTraces, Object.assign(mkLayout(varLabel[varType], '% cambio · hover: Δ monto', shapes),{ height:undefined }), CONF);
   } else {
     document.getElementById('cs').style.display='none';
   }
@@ -2069,6 +2485,7 @@ function updateTopbarButtons() {
   document.getElementById('bdiff').classList.toggle('on', cfg.doDiff);
   document.getElementById('blog').classList.toggle('on', cfg.doLog);
   document.getElementById('bpbi').classList.toggle('on', cfg.deflModes.includes('pbi'));
+  document.getElementById('bpbiusd').classList.toggle('on', cfg.deflModes.includes('pbi_usd'));
   document.getElementById('bmep').classList.toggle('on', cfg.deflModes.includes('mep'));
   document.getElementById('bcer').classList.toggle('on', cfg.deflModes.includes('cer'));
   document.getElementById('bipc').classList.toggle('on', cfg.deflModes.includes('ipc'));
@@ -2172,7 +2589,7 @@ function buildTree() {
     grpDiv.className = 'grp';
     const hd = document.createElement('div');
     hd.className = 'grp-hd open';
-    hd.innerHTML = `<span class="grp-arr">▶</span><span style="color:${g.clr||'#7c3aed'}">${g.grp}</span>`;
+    hd.innerHTML = `<span class="grp-arr">▶</span><span style="color:${g.clr||'#5BA4E6'}">${g.grp}</span>`;
     const body = document.createElement('div');
     body.className = 'grp-body open';
 
@@ -2207,14 +2624,14 @@ function makeItemEl(it, grpClr) {
   if (it.children && it.children.length) return makeFolderEl(it, grpClr);
   const el = document.createElement('div');
   el.className = 'item'; el.id = 'item-'+it.id;
-  el.innerHTML = `<span class="dot" style="background:${grpClr||'#7c3aed'}"></span>
+  el.innerHTML = `<span class="dot" style="background:${grpClr||'#5BA4E6'}"></span>
     <span style="flex:1" onclick="clickItem('${it.id}')">${it.label}</span>
     <input type="checkbox" class="chk" title="Comparar" onchange="toggleCmp('${it.id}',this.checked)" onclick="event.stopPropagation()"/>`;
   return el;
 }
 
 function makeFolderEl(it, grpClr) {
-  const clr = grpClr || '#7c3aed';
+  const clr = grpClr || '#5BA4E6';
   const folder = document.createElement('div');
   folder.className = 'item-folder';
 
@@ -2273,28 +2690,62 @@ function filterTree(q) {
   });
 }
 
+/* ── UI TOGGLES ── */
+function toggleSidebar() {
+  const sb = document.getElementById('sb');
+  const btn = document.getElementById('sb-toggle');
+  sb.classList.toggle('collapsed');
+  btn.textContent = sb.classList.contains('collapsed') ? '▶' : '◀';
+}
+function toggleBBConfig() {
+  const panel = document.getElementById('bb-config');
+  const btn = document.getElementById('bb-config-toggle');
+  const hidden = panel.style.display === 'none';
+  panel.style.display = hidden ? 'grid' : 'none';
+  btn.textContent = hidden ? '▼ Configuración' : '▶ Configuración';
+}
+
 /* ── TAB SWITCH ── */
 function switchTab(t) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.mtab').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
-  document.querySelectorAll('.mtab')[['explorer','simulator','analysis'].indexOf(t)].classList.add('active');
+  document.querySelectorAll('.mtab').forEach(b => {
+    if ((b.getAttribute('onclick') || '').indexOf("switchTab('"+t+"')") !== -1) b.classList.add('active');
+  });
 }
 
 /* ── ANALYSIS TAB ── */
 function populateAnlSelects() {
   const ids = Object.keys(IDX);
-  ['anl-s1','anl-s2'].forEach((sid, si) => {
-    const sel = document.getElementById(sid);
-    const cur = sel.value;
-    sel.innerHTML = si===0 ? '<option value="">— elegir —</option>' : '<option value="">— ninguna —</option>';
+  ['anl-s1','anl-s2'].forEach(sid => {
+    const dl = document.getElementById(sid + '-list');
+    dl.innerHTML = '';
     ids.forEach(id => {
       const opt = document.createElement('option');
-      opt.value = id; opt.textContent = IDX[id].label;
-      sel.appendChild(opt);
+      opt.value = IDX[id].label;
+      opt.dataset.id = id;
+      dl.appendChild(opt);
     });
-    sel.value = cur;
+    const hidden = document.getElementById(sid);
+    const search = document.getElementById(sid + '-search');
+    if (hidden.value && IDX[hidden.value]) search.value = IDX[hidden.value].label;
   });
+}
+function onAnlSeriePick(sid) {
+  const search = document.getElementById(sid + '-search');
+  const hidden = document.getElementById(sid);
+  const q = search.value.trim();
+  let pickedId = '';
+  if (q) {
+    for (const id of Object.keys(IDX)) {
+      if (IDX[id].label === q) { pickedId = id; break; }
+    }
+  }
+  if (hidden.value !== pickedId) {
+    hidden.value = pickedId;
+    if (pickedId || !q) anlUpdate();
+  }
 }
 
 async function anlGetSeries() {
@@ -2313,7 +2764,8 @@ async function anlGetSeries() {
   let dates = raw1.dates, vals = raw1.values;
 
   // Deflate A
-  if (document.getElementById('anl-da-pbi').checked) { await loadPBI(); vals = deflectByPBI(dates, vals); }
+  if (document.getElementById('anl-da-pbi').checked)     { await loadPBI();    vals = deflectByPBI(dates, vals); }
+  if (document.getElementById('anl-da-pbi_usd').checked) { await loadPBIUsd(); vals = deflectByPBIUsd(dates, vals); }
   if (document.getElementById('anl-da-mep').checked) { await loadMEP(); vals = deflectByMEP(dates, vals); }
   if (document.getElementById('anl-da-cer').checked) { await loadCER(); vals = deflectByCER(dates, vals); }
   if (document.getElementById('anl-da-ipc').checked) { await loadTIP(); vals = deflectByTIP(dates, vals); }
@@ -2330,7 +2782,8 @@ async function anlGetSeries() {
     let d2 = raw2.dates, v2 = raw2.values;
     
     // Deflate B
-    if (document.getElementById('anl-db-pbi').checked) { await loadPBI(); v2 = deflectByPBI(d2, v2); }
+    if (document.getElementById('anl-db-pbi').checked)     { await loadPBI();    v2 = deflectByPBI(d2, v2); }
+    if (document.getElementById('anl-db-pbi_usd').checked) { await loadPBIUsd(); v2 = deflectByPBIUsd(d2, v2); }
     if (document.getElementById('anl-db-mep').checked) { await loadMEP(); v2 = deflectByMEP(d2, v2); }
     if (document.getElementById('anl-db-cer').checked) { await loadCER(); v2 = deflectByCER(d2, v2); }
     if (document.getElementById('anl-db-ipc').checked) { await loadTIP(); v2 = deflectByTIP(d2, v2); }
@@ -2359,7 +2812,8 @@ async function anlGetSeries() {
     dates = raw2.dates; vals = raw2.values;
 
     // Deflate B
-    if (document.getElementById('anl-db-pbi').checked) { await loadPBI(); vals = deflectByPBI(dates, vals); }
+    if (document.getElementById('anl-db-pbi').checked)     { await loadPBI();    vals = deflectByPBI(dates, vals); }
+    if (document.getElementById('anl-db-pbi_usd').checked) { await loadPBIUsd(); vals = deflectByPBIUsd(dates, vals); }
     if (document.getElementById('anl-db-mep').checked) { await loadMEP(); vals = deflectByMEP(dates, vals); }
     if (document.getElementById('anl-db-cer').checked) { await loadCER(); vals = deflectByCER(dates, vals); }
     if (document.getElementById('anl-db-ipc').checked) { await loadTIP(); vals = deflectByTIP(dates, vals); }
@@ -2376,10 +2830,14 @@ async function anlGetSeries() {
   // Serie en niveles (post-log) y serie diferenciada N veces
   const nd = parseInt(document.getElementById('anl-diff').value)||0;
   let valsLevels = vals.slice();
-  let valsDiff = vals.slice();
-  for (let d = 0; d < nd; d++) {
+  // Normalizo null -> NaN para que la aritmética propague NaN en vez de tratar null como 0
+  let valsDiff = vals.map(x => (x === null || x === undefined) ? NaN : Number(x));
+  for (let k = 0; k < nd; k++) {
     const nv = new Array(valsDiff.length).fill(NaN);
-    for(let i=1;i<valsDiff.length;i++) nv[i] = valsDiff[i]-valsDiff[i-1];
+    for (let i = 1; i < valsDiff.length; i++) {
+      const a = valsDiff[i], b = valsDiff[i-1];
+      if (!isNaN(a) && !isNaN(b)) nv[i] = a - b;
+    }
     valsDiff = nv;
   }
 
@@ -2416,18 +2874,21 @@ async function anlUpdate() {
   const title = s2 && op!=='A' ? `${s1Label} ${op} ${IDX[s2]?.label}` : s1Label;
 
   // Gráfico 1: niveles
-  Plotly.react('anl-chart', [{ x:dates, y:cleanLev, mode:'lines', line:{color:'#7c3aed',width:1.5},
+  Plotly.react('anl-chart', [{ x:dates, y:cleanLev, mode:'lines', line:{color:'#5BA4E6',width:1.5},
     hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.4g}</b><extra></extra>' }],
     Object.assign(mkLayout(title + (nd>0 ? ' — Niveles' : ''), '', []),{ height:undefined }), CONF);
 
   // Gráfico 2: serie diferenciada (visible solo si diff > 0)
   const diffDiv = document.getElementById('anl-chart-diff');
   if (nd > 0) {
+    // Mostrar ANTES de que Plotly mida el div, si no calcula tamaño 0 y queda en blanco
     diffDiv.style.display = 'block';
-    Plotly.react('anl-chart-diff', [{ x:dates, y:cleanDiff, mode:'lines', line:{color:'#10b981',width:1.5},
+    try { Plotly.purge(diffDiv); } catch(_) {}
+    Plotly.newPlot(diffDiv, [{ x:dates, y:cleanDiff, mode:'lines', line:{color:'#10b981',width:1.5},
       hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.4g}</b><extra></extra>' }],
       Object.assign(mkLayout(title + ` — ${nd}ª Diferencia`, '', []),{ height:undefined }), CONF);
   } else {
+    try { Plotly.purge(diffDiv); } catch(_) {}
     diffDiv.style.display = 'none';
   }
 
@@ -2492,7 +2953,7 @@ async function anlUpdate() {
   layPACF.xaxis = Object.assign({}, LAYOUT_BASE.xaxis, { type: 'linear', title: 'Lags' });
 
   Plotly.react('anl-acf',
-    [ { x:lagX, y:acfVals, type:'bar', marker:{color:'#7c3aed'}, name:'ACF' },
+    [ { x:lagX, y:acfVals, type:'bar', marker:{color:'#5BA4E6'}, name:'ACF' },
       { x:[0,lags], y:[ci,ci],   mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false },
       { x:[0,lags], y:[-ci,-ci], mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false } ],
     layACF, CONF);
@@ -2502,6 +2963,399 @@ async function anlUpdate() {
       { x:[0,lags], y:[ci,ci],   mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false },
       { x:[0,lags], y:[-ci,-ci], mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false } ],
     layPACF, CONF);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ANÁLISIS DESCRIPTIVO / EXPLORATORIO COMPLETO
+   ══════════════════════════════════════════════════════════════ */
+let descActive = false;
+const _PERIOD = { D:7, W:52, M:12, Q:4, A:1 };
+const _PERIOD_LBL = { 12:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
+                      4:['T1','T2','T3','T4'], 7:['L','M','X','J','V','S','D'] };
+function _nf(v, sig){ return Number.isFinite(v) ? v.toLocaleString('es-AR',{maximumSignificantDigits:sig||5}) : '–'; }
+function _pv(p){ return p<0.001 ? '<0.001' : p.toFixed(4); }
+
+// pipeline de una serie individual (deflactores prefijo anl-da-/anl-db-, + log + diff globales)
+async function _anlOneSeries(id, pfx){
+  const raw = await getSeries(id); const it = IDX[id]; const f = raw.nativeFreq || it.freq;
+  let d = raw.dates, v = raw.values;
+  const ck = s => document.getElementById(pfx+s)?.checked;
+  if(ck('pbi')){ await loadPBI(); v=deflectByPBI(d,v); }
+  if(ck('pbi_usd')){ await loadPBIUsd(); v=deflectByPBIUsd(d,v); }
+  if(ck('mep')){ await loadMEP(); v=deflectByMEP(d,v); }
+  if(ck('cer')){ await loadCER(); v=deflectByCER(d,v); }
+  if(ck('ipc')){ await loadTIP(); v=deflectByTIP(d,v); }
+  const fFreq = document.getElementById('anl-freq').value;
+  if(fFreq){ const r=resample(d,v,f,fFreq); d=r.dates; v=r.values; }
+  if(document.getElementById('anl-log').checked) v=v.map(x=>x>0?Math.log(x):NaN);
+  const nd=parseInt(document.getElementById('anl-diff').value)||0;
+  for(let k=0;k<nd;k++){ const nv=new Array(v.length).fill(NaN);
+    for(let i=1;i<v.length;i++){ const a=v[i],b=v[i-1]; if(!isNaN(a)&&!isNaN(b)) nv[i]=a-b; } v=nv; }
+  return { dates:d, values:v };
+}
+
+async function anlDescriptive(){
+  const s1 = document.getElementById('anl-s1').value;
+  if(!s1){ alert('Elegí una Serie A primero.'); return; }
+  descActive = true;
+  const box = document.getElementById('anl-desc');
+  box.style.display='block';
+  box.innerHTML = '<div style="padding:30px;text-align:center;color:#7a7aaa"><span class="spinner"></span> Calculando…</div>';
+
+  const data = await anlGetSeries();
+  if(!data){ box.innerHTML='<div style="padding:20px;color:#ef4444">No se pudo obtener la serie.</div>'; return; }
+  const { dates, valuesLevels, valuesDiff, nd } = data;
+  const vAnl = (nd>0 ? valuesDiff : valuesLevels);          // serie analizada (niveles o diferenciada)
+  const clean = _clean(vAnl);
+  if(clean.length < 8){ box.innerHTML='<div style="padding:20px;color:#fbbf24">Muy pocos datos válidos para el análisis descriptivo.</div>'; return; }
+
+  // frecuencia efectiva y período estacional
+  const fFreq = document.getElementById('anl-freq').value;
+  const effFreq = fFreq || IDX[s1]?.freq || 'M';
+  let period = parseInt(document.getElementById('anl-seasper').value)||0;
+  if(!period) period = _PERIOD[effFreq] || 0;
+  const canSeason = period >= 2 && clean.length >= 2*period;
+
+  // ventana rolling
+  let rollWin = parseInt(document.getElementById('anl-roll').value)||0;
+  if(!rollWin) rollWin = Math.max(4, period||Math.round(clean.length/10));
+
+  const mult = document.getElementById('anl-mult').checked;
+  const sorted = clean.slice().sort((a,b)=>a-b);
+  const s2id = document.getElementById('anl-s2').value;
+  const seriesTitle = IDX[s1]?.label + (nd>0?` (Δ${nd})`:'');
+
+  /* ── 1. Descriptivos básicos (sólo de referencia) ── */
+  const n=clean.length, mean=_mean(clean), sd=_std(clean);
+  const md=_quantile(sorted,0.5);
+  const cv = mean!==0 ? Math.abs(sd/mean)*100 : NaN;
+  const cleanSeq = vAnl.map(x=>(x===null||isNaN(x))?null:Number(x));
+  const seqVals=[], seqDates=[];
+  cleanSeq.forEach((v,i)=>{ if(v!==null&&!isNaN(v)){ seqVals.push(v); seqDates.push(dates[i]); } });
+
+  const statTbl = `<div class="stat-tbl">
+    <span class="k">N</span><b>${n}</b><span class="k">Media</span><b>${_nf(mean)}</b>
+    <span class="k">Mediana</span><b>${_nf(md)}</b><span class="k">Desvío</span><b>${_nf(sd)}</b>
+    <span class="k">Mín</span><b>${_nf(sorted[0])}</b><span class="k">Máx</span><b>${_nf(sorted[n-1])}</b>
+    <span class="k">CV (%)</span><b>${_nf(cv,4)}</b><span class="k">Rango</span><b>${_nf(sorted[n-1]-sorted[0])}</b>
+  </div>`;
+
+  /* ── 2. DINÁMICA de la serie ── */
+  const ar1 = arFit(vAnl, 1);
+  const rho = ar1 ? ar1.phi[0] : NaN;
+  const halfLife = (rho>0 && rho<1) ? Math.log(0.5)/Math.log(rho) : (rho>=1 ? Infinity : NaN);
+  const pAR = Math.max(1, Math.min(8, Math.floor(clean.length/10)));
+  const arp = arFit(vAnl, pAR);
+  const hurst = hurstRS(clean);
+  const vr = varianceRatio(clean, 2);
+  const lb = ljungBox(_clean(vAnl), Math.min(20, Math.floor(n/4)));
+  const al = archLM(_clean(vAnl), Math.min(12, Math.floor(n/5)));
+  const kp = kpssTest(clean, 'c');
+  const brk = baiBreak(seqVals);
+  const cus = cusumOLS(seqVals);
+  const pg  = (clean.length>=8 && clean.length<=3000) ? periodogram(clean) : null;
+
+  // fuerza de tendencia / estacionalidad + serie de residuos para diagnóstico distribucional
+  let FT=NaN, FS=NaN, residDist=clean, residNote='';
+  if(canSeason){
+    const dec = classicalDecompose(cleanSeq, period, mult);
+    const R=dec.resid, T=dec.trend, S=dec.seasonal;
+    const TR=T.map((t,i)=>(t==null||isNaN(t)||R[i]==null||isNaN(R[i]))?null:t+R[i]);
+    const SR=S.map((s,i)=>(s==null||isNaN(s)||R[i]==null||isNaN(R[i]))?null:s+R[i]);
+    FT=strengthTrend(R,TR); FS=strengthTrend(R,SR);
+    residDist=_clean(R);
+    residNote=`Sobre el <b>residuo de la descomposición</b> (período ${period}, ${mult?'multiplicativa':'aditiva'}) — la serie cruda con tendencia daría una distribución no informativa.`;
+  } else {
+    const win=Math.max(3,Math.round(clean.length/10));
+    const trendMA=movingAvg(cleanSeq,win);
+    const R=cleanSeq.map((v,i)=>(v==null||trendMA[i]==null)?null:v-trendMA[i]);
+    FT=strengthTrend(R,cleanSeq);
+    residDist = ar1 ? _clean(ar1.resid) : clean;
+    residNote=`Sobre los <b>residuos AR(1)</b> (la serie en niveles tendría una distribución no informativa).`;
+  }
+
+  const card = (name, statTxt, ok, verdict) => `<div class="test-card">
+    <span class="tc-name">${name}</span><span class="tc-stat">${statTxt}</span>
+    <span class="tc-verdict" style="color:${ok?'#10b981':'#fbbf24'}">${verdict}</span></div>`;
+  const cardN = (name, statTxt, hint) => `<div class="test-card">
+    <span class="tc-name">${name}</span><span class="tc-stat">${statTxt}</span>
+    <span class="tc-verdict" style="color:#9090c0;font-weight:500">${hint}</span></div>`;
+
+  let dyn='';
+  if(ar1) dyn += cardN('Persistencia AR(1)', `ρ=${rho.toFixed(3)} · vida media=${isFinite(halfLife)?halfLife.toFixed(1)+' per.':'∞ (raíz unit.)'}`, rho>0.9?'muy persistente':rho>0.5?'persistencia media':'poco persistente');
+  if(arp) dyn += cardN('Suma AR('+pAR+')', `Σφ=${arp.sumPhi.toFixed(3)}`, arp.sumPhi>0.95?'cerca de raíz unitaria':'estable');
+  if(hurst) dyn += cardN('Hurst (R/S)', `H=${hurst.H.toFixed(3)}`, hurst.H<0.45?'reversión a la media':hurst.H>0.55?'persistente/tendencial':'≈ random walk');
+  if(vr) dyn += cardN('Ratio varianzas (q=2)', `VR=${vr.VR.toFixed(3)} · p=${_pv(vr.pval)}`, vr.VR>1.1?'persistente':vr.VR<0.9?'reversión':'≈ random walk');
+  dyn += cardN('Fuerza de tendencia', `F_T=${isFinite(FT)?FT.toFixed(3):'–'}`, FT>0.6?'tendencia fuerte':FT>0.3?'moderada':'débil');
+  if(canSeason) dyn += cardN('Fuerza estacional', `F_S=${isFinite(FS)?FS.toFixed(3):'–'}`, FS>0.6?'estacionalidad fuerte':FS>0.3?'moderada':'débil');
+  if(kp) dyn += card('KPSS (estacionariedad)', `LM=${kp.stat.toFixed(3)} · VC5%=${kp.cv05}`, kp.stat<=kp.cv05, kp.stat<=kp.cv05?'✓ Estacionaria':'✗ No estacionaria');
+  if(lb) dyn += card('Ljung-Box (autocorr.)', `Q(${lb.df})=${lb.stat.toFixed(2)} · p=${_pv(lb.pval)}`, lb.pval>=0.05, lb.pval>=0.05?'✓ Ruido blanco':'✗ Hay autocorrelación');
+  if(al) dyn += card('ARCH-LM (volatilidad)', `LM(${al.df})=${al.stat.toFixed(2)} · p=${_pv(al.pval)}`, al.pval>=0.05, al.pval>=0.05?'✓ Sin efectos ARCH':'✗ Volatilidad condicional');
+  if(brk) dyn += card('Quiebre estructural (Bai)', `${seqDates[brk.idx]||''} · F=${brk.F.toFixed(1)}`, !brk.sig, brk.sig?'✗ Quiebre significativo':'✓ Sin quiebre claro');
+
+  /* ── 3. Distribución de residuos ── */
+  const jb = jarqueBera(residDist);
+  const rs = residDist.slice().sort((a,b)=>a-b);
+  const resN = rs.length, resMean=_mean(residDist), resSd=_std(residDist);
+  const resSk=_skewness(residDist), resKu=_kurtosisExc(residDist);
+  let distTests='';
+  if(jb) distTests += card('Jarque-Bera (normalidad)', `JB=${jb.stat.toFixed(3)} · p=${_pv(jb.pval)}`, jb.pval>=0.05, jb.pval>=0.05?'✓ No rechaza normalidad':'✗ Rechaza normalidad');
+  distTests += cardN('Asimetría / Curtosis', `S=${_nf(resSk,4)} · K(exc.)=${_nf(resKu,4)}`, '0 / 0 bajo normalidad');
+
+  /* ── construir DOM ── */
+  let h = `<div class="desc-h">📋 Resumen — ${seriesTitle}</div>`;
+  h += statTbl;
+  h += `<div class="desc-h">🔄 Dinámica de la serie</div>`;
+  h += `<div style="margin:0 0 10px">${dyn}</div>`;
+  h += `<div class="desc-grid"><div id="d-perio"></div><div id="d-break"></div></div>`;
+  h += `<div id="d-cusum" style="height:280px;background:#0a0a1a;margin-top:1px"></div>`;
+  h += `<div class="desc-h">⏱ Estructura temporal</div>`;
+  h += `<div class="desc-grid"><div id="d-roll"></div><div id="d-season"></div></div>`;
+  if(canSeason) h += `<div id="d-decomp" style="height:520px;background:#0a0a1a;margin-top:1px"></div>`;
+  h += `<div class="desc-h">📊 Distribución de residuos</div>`;
+  h += `<div style="font-size:10px;color:#7a7aaa;margin:-2px 0 8px">${residNote}</div>`;
+  h += `<div style="margin:0 0 10px">${distTests}</div>`;
+  h += `<div class="desc-grid"><div id="d-hist"></div><div id="d-qq"></div><div id="d-box"></div></div>`;
+  let hasBiv = false;
+  if(s2id){ hasBiv = true;
+    h += `<div class="desc-h">🔗 Bivariado — ${IDX[s1]?.label} vs ${IDX[s2id]?.label}</div>`;
+    h += `<div class="desc-grid g3"><div id="d-ccf"></div><div id="d-scatter"></div><div id="d-rollcorr"></div></div>`;
+  }
+  box.innerHTML = h;
+
+  const L = (t,yt) => Object.assign(mkLayout(t, yt||'', []), { height:undefined, margin:{l:48,r:16,t:30,b:36} });
+
+  /* ── periodograma ── */
+  if(pg){
+    Plotly.newPlot('d-perio', [
+      { x:pg.period, y:pg.power, mode:'lines', line:{color:'#5BA4E6',width:1.4}, fill:'tozeroy', fillcolor:'rgba(124,58,237,0.18)',
+        hovertemplate:'período %{x:.1f}: %{y:.3g}<extra></extra>' }
+    ], Object.assign(L('Periodograma (potencia espectral)','potencia'),{showlegend:false,
+        xaxis:Object.assign({},LAYOUT_BASE.xaxis,{type:'log',title:'período (obs/ciclo)',autorange:'reversed'})}), CONF);
+  } else {
+    Plotly.newPlot('d-perio', [], L('Periodograma','(serie demasiado larga / corta)'), CONF);
+  }
+
+  /* ── quiebre estructural ── */
+  if(brk){
+    const segMean = seqDates.map((_,i)=> i<brk.idx ? brk.mean1 : brk.mean2);
+    Plotly.newPlot('d-break', [
+      { x:seqDates, y:seqVals, mode:'lines', line:{color:'#3a3a6a',width:1}, name:'serie', hovertemplate:'%{x|%Y-%m-%d}: %{y:.3g}<extra></extra>' },
+      { x:seqDates, y:segMean, mode:'lines', line:{color:'#10b981',width:2,shape:'hv'}, name:'media por régimen' }
+    ], Object.assign(L('Quiebre en media (Bai)',''),{showlegend:false,
+        shapes:[{type:'line',xref:'x',x0:seqDates[brk.idx],x1:seqDates[brk.idx],yref:'paper',y0:0,y1:1,line:{color:'#ef4444',width:1.5,dash:'dash'}}],
+        annotations:[{x:seqDates[brk.idx],y:1,yref:'paper',text:seqDates[brk.idx],showarrow:false,font:{size:9,color:'#ef4444'},yanchor:'bottom'}]}), CONF);
+  } else { Plotly.newPlot('d-break', [], L('Quiebre estructural','(datos insuficientes)'), CONF); }
+
+  /* ── CUSUM ── */
+  if(cus){
+    Plotly.newPlot('d-cusum', [
+      { x:seqDates, y:cus.W, mode:'lines', line:{color:'#5BA4E6',width:1.6}, name:'CUSUM', hovertemplate:'%{x|%Y-%m-%d}: %{y:.3f}<extra></extra>' },
+      { x:[seqDates[0],seqDates[seqDates.length-1]], y:[cus.b05,cus.b05], mode:'lines', line:{color:'#ef4444',width:1,dash:'dash'}, showlegend:false },
+      { x:[seqDates[0],seqDates[seqDates.length-1]], y:[-cus.b05,-cus.b05], mode:'lines', line:{color:'#ef4444',width:1,dash:'dash'}, showlegend:false }
+    ], Object.assign(L('CUSUM-OLS (estabilidad; bandas 5%)',''),{showlegend:false}), CONF);
+  } else { Plotly.newPlot('d-cusum', [], L('CUSUM','(datos insuficientes)'), CONF); }
+
+  /* ── Histograma + KDE (residuos) ── */
+  const k = kde(residDist, 128);
+  Plotly.newPlot('d-hist', [
+    { x:residDist, type:'histogram', histnorm:'probability density', marker:{color:'rgba(124,58,237,0.45)'}, name:'Histograma', nbinsx:Math.min(40,Math.ceil(Math.sqrt(resN))) },
+    { x:k.x, y:k.y, mode:'lines', line:{color:'#f59e0b',width:2}, name:'KDE' }
+  ], Object.assign(L('Histograma + KDE (residuos)','densidad'),{showlegend:true, legend:{font:{size:9}}}), CONF);
+
+  /* ── Q-Q plot normal (residuos) ── */
+  const qx=[], qy=[];
+  for(let i=0;i<resN;i++){ qx.push(_normPPF((i+0.5)/resN)); qy.push(resSd>0?(rs[i]-resMean)/resSd:0); }
+  const qmin=Math.min(qx[0],qy[0]), qmax=Math.max(qx[resN-1],qy[resN-1]);
+  Plotly.newPlot('d-qq', [
+    { x:qx, y:qy, mode:'markers', marker:{color:'#5BA4E6',size:5,opacity:0.7},
+      hovertemplate:'teór: %{x:.2f}<br>muestral: %{y:.2f}<extra></extra>' },
+    { x:[qmin,qmax], y:[qmin,qmax], mode:'lines', line:{color:'#ef4444',width:1,dash:'dash'} }
+  ], Object.assign(L('Q-Q Normal (residuos)','cuantiles muestrales (z)'),{showlegend:false, xaxis:Object.assign({},LAYOUT_BASE.xaxis,{type:'linear',title:'cuantiles teóricos'})}), CONF);
+
+  /* ── Boxplot (residuos) ── */
+  Plotly.newPlot('d-box', [
+    { y:residDist, type:'box', boxpoints:'outliers', marker:{color:'#10b981'}, line:{color:'#10b981'}, name:'residuos', boxmean:'sd' }
+  ], Object.assign(L('Boxplot residuos (media ± desvío)',''),{showlegend:false}), CONF);
+
+  /* ── 5. Rolling mean + desvío ── */
+  const rMean = movingAvg(cleanSeq, rollWin);
+  const rStd  = rollingStd(cleanSeq, rollWin);
+  Plotly.newPlot('d-roll', [
+    { x:dates, y:cleanSeq, mode:'lines', line:{color:'#3a3a6a',width:1}, name:'Serie', hovertemplate:'%{x|%Y-%m-%d}: %{y:.3g}<extra></extra>' },
+    { x:dates, y:rMean, mode:'lines', line:{color:'#5BA4E6',width:2}, name:`Media móvil(${rollWin})` },
+    { x:dates, y:rStd, mode:'lines', line:{color:'#f59e0b',width:1.5}, name:`Desvío móvil(${rollWin})`, yaxis:'y2' }
+  ], Object.assign(L(`Estadísticos móviles (ventana ${rollWin})`,''),{showlegend:true, legend:{font:{size:9},orientation:'h',y:1.12},
+       yaxis2:{overlaying:'y',side:'right',title:{text:'desvío',font:{size:9}},gridcolor:'rgba(0,0,0,0)',color:'#f59e0b'}}), CONF);
+
+  /* ── 6. Seasonal boxplot (subseries por posición) ── */
+  if(canSeason){
+    const lbls = _PERIOD_LBL[period] || Array.from({length:period},(_,i)=>String(i+1));
+    const seasX=[], seasY=[];
+    cleanSeq.forEach((v,i)=>{ if(v!==null&&!isNaN(v)){ seasX.push(lbls[i%period]); seasY.push(v); } });
+    Plotly.newPlot('d-season', [
+      { x:seasX, y:seasY, type:'box', marker:{color:'#5BA4E6'}, line:{color:'#5BA4E6'}, name:'estacional', boxpoints:false }
+    ], Object.assign(L(`Estacionalidad (por ${period===12?'mes':period===4?'trimestre':'posición'})`,''),{showlegend:false,
+        xaxis:Object.assign({},LAYOUT_BASE.xaxis,{type:'category'})}), CONF);
+  } else {
+    Plotly.newPlot('d-season', [], Object.assign(L('Estacionalidad','(frecuencia anual / datos insuficientes)'),{}), CONF);
+  }
+
+  /* ── 7. Descomposición clásica ── */
+  if(canSeason){
+    const dec = classicalDecompose(cleanSeq, period, mult);
+    Plotly.newPlot('d-decomp', [
+      { x:dates, y:cleanSeq, mode:'lines', line:{color:'#9090c0',width:1.3}, name:'Observada', xaxis:'x', yaxis:'y' },
+      { x:dates, y:dec.trend, mode:'lines', line:{color:'#5BA4E6',width:1.8}, name:'Tendencia', xaxis:'x', yaxis:'y2' },
+      { x:dates, y:dec.seasonal, mode:'lines', line:{color:'#10b981',width:1.3}, name:'Estacional', xaxis:'x', yaxis:'y3' },
+      { x:dates, y:dec.resid, mode:'lines', line:{color:'#f59e0b',width:1}, name:'Residuo', xaxis:'x', yaxis:'y4' }
+    ], Object.assign({}, LAYOUT_BASE, {
+        height:520, margin:{l:55,r:16,t:30,b:30},
+        title:{text:`Descomposición ${mult?'multiplicativa':'aditiva'} (período ${period})`,font:{size:11,color:'#9090c0'},x:0.5},
+        showlegend:false,
+        xaxis:{gridcolor:'#1a1a38',type:'date',anchor:'y4'},
+        yaxis:{gridcolor:'#1a1a38',title:{text:'Obs.',font:{size:9}},domain:[0.78,1]},
+        yaxis2:{gridcolor:'#1a1a38',title:{text:'Tend.',font:{size:9}},domain:[0.52,0.74]},
+        yaxis3:{gridcolor:'#1a1a38',title:{text:'Estac.',font:{size:9}},domain:[0.26,0.48]},
+        yaxis4:{gridcolor:'#1a1a38',title:{text:'Resid.',font:{size:9}},domain:[0,0.22]},
+        annotations:[]
+      }), CONF);
+  }
+
+  /* ── 8. Bivariado A vs B ── */
+  if(hasBiv){
+    const A = await _anlOneSeries(s1,'anl-da-');
+    const B = await _anlOneSeries(s2id,'anl-db-');
+    // alinear por fecha
+    const mapB={}; B.dates.forEach((d,i)=>mapB[d]=B.values[i]);
+    const xa=[], xb=[], ds=[];
+    A.dates.forEach((d,i)=>{ const a=A.values[i], b=mapB[d];
+      if(a!=null&&b!=null&&!isNaN(a)&&!isNaN(b)){ xa.push(a); xb.push(b); ds.push(d); } });
+
+    if(xa.length>=8){
+      // CCF
+      const maxL=Math.min(24, Math.floor(xa.length/3));
+      const cc=crossCorr(xa,xb,maxL);
+      Plotly.newPlot('d-ccf', [
+        { x:cc.lags, y:cc.vals, type:'bar', marker:{color:cc.vals.map(v=>v>=0?'#5BA4E6':'#ef4444')}, name:'CCF',
+          hovertemplate:'lag %{x}: %{y:.3f}<extra></extra>' },
+        { x:[-maxL,maxL], y:[cc.ci,cc.ci], mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false },
+        { x:[-maxL,maxL], y:[-cc.ci,-cc.ci], mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false }
+      ], Object.assign(L('Correlación cruzada (A lidera si lag<0)',''),{showlegend:false,
+          xaxis:Object.assign({},LAYOUT_BASE.xaxis,{type:'linear',title:'lag'})}), CONF);
+
+      // Scatter A vs B + OLS
+      const Xr=xa.map(a=>[1,a]); const coef=ols(Xr,xb);
+      const ybar=_mean(xb); let ssr=0,sst=0;
+      xb.forEach((y,i)=>{ const f=coef[0]+coef[1]*xa[i]; ssr+=(y-f)**2; sst+=(y-ybar)**2; });
+      const r2=sst>0?1-ssr/sst:0;
+      const ax=[Math.min(...xa),Math.max(...xa)];
+      Plotly.newPlot('d-scatter', [
+        { x:xa, y:xb, mode:'markers', marker:{color:'#10b981',size:5,opacity:0.6}, name:'datos',
+          text:ds, hovertemplate:'%{text}<br>A=%{x:.3g}<br>B=%{y:.3g}<extra></extra>' },
+        { x:ax, y:ax.map(x=>coef[0]+coef[1]*x), mode:'lines', line:{color:'#ef4444',width:1.5}, name:'OLS' }
+      ], Object.assign(L(`Dispersión · R²=${r2.toFixed(3)} · pend.=${_nf(coef[1],4)}`, IDX[s2id]?.label),
+          {showlegend:false, xaxis:Object.assign({},LAYOUT_BASE.xaxis,{type:'linear',title:{text:IDX[s1]?.label,font:{size:9}}})}), CONF);
+
+      // Rolling correlation
+      const rcWin=Math.max(8, rollWin);
+      const rcX=[], rcY=[];
+      for(let i=rcWin-1;i<xa.length;i++){
+        const wa=xa.slice(i-rcWin+1,i+1), wb=xb.slice(i-rcWin+1,i+1);
+        const ma=_mean(wa), mb=_mean(wb);
+        let num=0,da=0,db=0;
+        for(let j=0;j<wa.length;j++){ num+=(wa[j]-ma)*(wb[j]-mb); da+=(wa[j]-ma)**2; db+=(wb[j]-mb)**2; }
+        rcX.push(ds[i]); rcY.push(da>0&&db>0?num/Math.sqrt(da*db):null);
+      }
+      Plotly.newPlot('d-rollcorr', [
+        { x:rcX, y:rcY, mode:'lines', line:{color:'#5BA4E6',width:1.6}, name:'corr',
+          hovertemplate:'%{x|%Y-%m-%d}: %{y:.3f}<extra></extra>' },
+        { x:[rcX[0],rcX[rcX.length-1]], y:[0,0], mode:'lines', line:{color:'#252550',width:1}, showlegend:false }
+      ], Object.assign(L(`Correlación móvil (ventana ${rcWin})`,'ρ'),{showlegend:false, yaxis:Object.assign({},LAYOUT_BASE.yaxis,{range:[-1,1]})}), CONF);
+    } else {
+      ['d-ccf','d-scatter','d-rollcorr'].forEach(id=>Plotly.newPlot(id,[],L('Datos solapados insuficientes',''),CONF));
+    }
+  }
+}
+
+/* ── AUTO-ARIMA: estructura de corto plazo (ARMA sobre la serie diferenciada) ── */
+// orden de diferenciación por KPSS sucesivo (máx 2)
+function autoD(vals){ let y=_clean(vals);
+  for(let d=0;d<=2;d++){ const k=kpssTest(y,'c'); if(!k || k.stat<=k.cv05) return d;
+    const nv=[]; for(let i=1;i<y.length;i++) nv.push(y[i]-y[i-1]); y=nv; if(y.length<12) return d; }
+  return 2;
+}
+
+async function anlAutoArima(){
+  const s1 = document.getElementById('anl-s1').value;
+  if(!s1){ alert('Elegí una Serie A primero.'); return; }
+  const box = document.getElementById('anl-arima');
+  box.style.display='block';
+  box.innerHTML = '<div style="padding:30px;text-align:center;color:#7a7aaa"><span class="spinner"></span> Buscando orden ARIMA…</div>';
+
+  const data = await anlGetSeries();
+  if(!data){ box.innerHTML='<div style="padding:20px;color:#ef4444">No se pudo obtener la serie.</div>'; return; }
+  const { dates, valuesLevels, valuesDiff, nd } = data;
+  const crit = document.getElementById('anl-arima-crit').value || 'aic';
+
+  // Si el usuario fijó Diferencias>0, ARMA va sobre esa serie (d=0); si no, autoD sobre niveles.
+  const base = nd>0 ? _clean(valuesDiff) : _clean(valuesLevels);
+  const dUsed = nd>0 ? 0 : autoD(valuesLevels);
+  const dTot  = nd + dUsed;
+  if(base.length < 16){ box.innerHTML='<div style="padding:20px;color:#fbbf24">Serie demasiado corta para Auto-ARIMA.</div>'; return; }
+
+  const PMAX=4, QMAX=4;
+  const best = autoArima(base, dUsed, PMAX, QMAX, crit);
+  if(!best){ box.innerHTML='<div style="padding:20px;color:#fbbf24">No se encontró un modelo ARMA estable. Probá fijar Diferencias=1.</div>'; return; }
+
+  const seriesTitle = IDX[s1]?.label;
+  // diagnóstico de residuos del modelo elegido
+  const lbRes = ljungBox(best.resid, Math.min(20, Math.floor(best.T/4)));
+  const lags = Math.min(30, Math.floor(best.T/3));
+  const acfRes = computeACF(best.resid, lags);
+  const ciRes = 1.96/Math.sqrt(best.resid.length);
+
+  // coeficientes
+  const fmtC = (arr,sym)=>arr.map((v,i)=>`<span style="color:#9090c0">${sym}${i+1}</span> <b>${v.toFixed(3)}</b>`).join('  ');
+  const arStr = best.ar.length? fmtC(best.ar,'φ') : '—';
+  const maStr = best.ma.length? fmtC(best.ma,'θ') : '—';
+
+  // top-5 por criterio
+  const top = best.grid.slice().sort((a,b)=> (crit==='bic'?a.bic-b.bic:a.aic-b.aic)).slice(0,5);
+  const topRows = top.map(g=>`<tr${(g.p===best.p&&g.q===best.q)?' style="color:#F6B40E;font-weight:700"':''}>
+    <td>ARMA(${g.p},${g.q})</td><td style="text-align:right">${g.aic.toFixed(1)}</td><td style="text-align:right">${g.bic.toFixed(1)}</td></tr>`).join('');
+
+  let h = `<div class="desc-h">🧬 Auto-ARIMA — ${seriesTitle}</div>`;
+  h += `<div style="font-size:10px;color:#7a7aaa;margin:-2px 0 10px">Estructura de corto plazo (ARMA) por Hannan-Rissanen; orden por mín. ${crit.toUpperCase()}. d se eligió ${nd>0?'por la opción Diferencias':'automáticamente (KPSS)'}.</div>`;
+  h += `<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">`;
+  h += `<div class="test-card" style="border-left-color:#7c3aed;min-width:240px">
+      <span class="tc-name">Modelo seleccionado</span>
+      <span class="tc-stat" style="font-size:14px;color:#e4e4f4">ARIMA(${best.p},${dTot},${best.q})</span>
+      <span class="tc-stat">AIC=${best.aic.toFixed(2)} · BIC=${best.bic.toFixed(2)}</span>
+      <span class="tc-stat">σ²=${_nf(best.sigma2,4)} · N=${best.T}</span></div>`;
+  h += `<div class="test-card" style="min-width:260px">
+      <span class="tc-name">Coeficientes</span>
+      <span class="tc-stat">AR: ${arStr}</span>
+      <span class="tc-stat">MA: ${maStr}</span>
+      <span class="tc-stat">const=${_nf(best.c,4)}</span></div>`;
+  if(lbRes) h += `<div class="test-card"><span class="tc-name">Ljung-Box residuos</span>
+      <span class="tc-stat">Q(${lbRes.df})=${lbRes.stat.toFixed(2)} · p=${_pv(lbRes.pval)}</span>
+      <span class="tc-verdict" style="color:${lbRes.pval>=0.05?'#10b981':'#fbbf24'}">${lbRes.pval>=0.05?'✓ Residuos ≈ ruido blanco':'✗ Queda autocorrelación'}</span></div>`;
+  h += `<div style="background:#0e0e26;border:1px solid #1e1e44;border-radius:6px;padding:8px 12px">
+      <div style="font-size:9.5px;color:#F6B40E;font-weight:700;text-transform:uppercase;margin-bottom:4px">Top 5 (${crit.toUpperCase()})</div>
+      <table style="font-size:10px;color:#bbb;border-collapse:collapse"><tr style="color:#7a7aaa"><td>orden</td><td style="text-align:right;padding-left:12px">AIC</td><td style="text-align:right;padding-left:12px">BIC</td></tr>${topRows}</table></div>`;
+  h += `</div>`;
+  h += `<div id="arima-acf" style="height:300px;background:#0a0a1a;margin-top:12px"></div>`;
+  box.innerHTML = h;
+
+  const L = (t,yt) => Object.assign(mkLayout(t, yt||'', []), { height:undefined, margin:{l:48,r:16,t:30,b:40} });
+  const lagX = Array.from({length:lags+1},(_,i)=>i);
+  Plotly.newPlot('arima-acf', [
+    { x:lagX, y:acfRes, type:'bar', marker:{color:'#5BA4E6'}, name:'ACF resid' },
+    { x:[0,lags], y:[ciRes,ciRes], mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false },
+    { x:[0,lags], y:[-ciRes,-ciRes], mode:'lines', line:{color:'#f59e0b',width:1,dash:'dash'}, showlegend:false }
+  ], Object.assign(L('ACF de residuos del modelo (debería ser ruido blanco)',''),{showlegend:false,
+      xaxis:Object.assign({},LAYOUT_BASE.xaxis,{type:'linear',title:'lags'})}), CONF);
 }
 
 function computeACF(vals, maxLag) {
@@ -2538,6 +3392,279 @@ function computePACF(vals, maxLag) {
   return pacf;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   HELPERS ESTADÍSTICOS (análisis descriptivo / exploratorio)
+   ══════════════════════════════════════════════════════════════ */
+function _clean(arr){ return arr.filter(x => x!==null && x!==undefined && !isNaN(x)).map(Number); }
+function _mean(a){ return a.reduce((s,x)=>s+x,0)/a.length; }
+function _varS(a){ const m=_mean(a); return a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1); } // muestral
+function _std(a){ return Math.sqrt(_varS(a)); }
+function _quantile(sorted,p){ // sorted asc, interpolación lineal
+  if(!sorted.length) return NaN;
+  const h=(sorted.length-1)*p, lo=Math.floor(h), hi=Math.ceil(h);
+  return sorted[lo] + (h-lo)*(sorted[hi]-sorted[lo]);
+}
+function _skewness(a){ const m=_mean(a), n=a.length, s=Math.sqrt(a.reduce((q,x)=>q+(x-m)**2,0)/n);
+  return s>0 ? (a.reduce((q,x)=>q+(x-m)**3,0)/n)/s**3 : 0; }
+function _kurtosisExc(a){ const m=_mean(a), n=a.length, s2=a.reduce((q,x)=>q+(x-m)**2,0)/n;
+  return s2>0 ? (a.reduce((q,x)=>q+(x-m)**4,0)/n)/s2**2 - 3 : 0; }
+
+// erf (Abramowitz-Stegun 7.1.26) y normal
+function _erf(x){ const s=x<0?-1:1; x=Math.abs(x);
+  const t=1/(1+0.3275911*x);
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+  return s*y; }
+function _normCDF(z){ return 0.5*(1+_erf(z/Math.SQRT2)); }
+function _normPDF(z){ return Math.exp(-0.5*z*z)/Math.sqrt(2*Math.PI); }
+function _normPPF(p){ // inversa normal (Acklam)
+  if(p<=0) return -Infinity; if(p>=1) return Infinity;
+  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+  const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+  const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+  const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const pl=0.02425;
+  let q,r;
+  if(p<pl){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if(p<=1-pl){ q=p-0.5; r=q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1); }
+  q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+}
+// log-gamma e incompleta gamma regularizada → survival chi-cuadrado
+function _gammln(x){ const c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+  let y=x, t=x+5.5; t-=(x+0.5)*Math.log(t); let s=1.000000000190015;
+  for(let j=0;j<6;j++) s+=c[j]/++y; return -t+Math.log(2.5066282746310005*s/x); }
+function _gammp(a,x){ // P(a,x) regularizada
+  if(x<=0) return 0;
+  if(x<a+1){ let ap=a,sum=1/a,del=sum; for(let n=0;n<200;n++){ ap++; del*=x/ap; sum+=del; if(Math.abs(del)<Math.abs(sum)*1e-12) break; } return sum*Math.exp(-x+a*Math.log(x)-_gammln(a)); }
+  // continued fraction para Q
+  let b=x+1-a,c=1e300,d=1/b,h=d;
+  for(let i=1;i<=200;i++){ const an=-i*(i-a); b+=2; d=an*d+b; if(Math.abs(d)<1e-300)d=1e-300; c=b+an/c; if(Math.abs(c)<1e-300)c=1e-300; d=1/d; const del=d*c; h*=del; if(Math.abs(del-1)<1e-12) break; }
+  return 1-Math.exp(-x+a*Math.log(x)-_gammln(a))*h;
+}
+function _chiSqSF(x,df){ if(x<=0) return 1; return 1-_gammp(df/2,x/2); } // P(X>x)
+
+// Jarque-Bera (normalidad)
+function jarqueBera(vals){ const a=_clean(vals), n=a.length;
+  if(n<8) return null;
+  const S=_skewness(a), K=_kurtosisExc(a);
+  const JB=n/6*(S*S + (K*K)/4);
+  return { stat:JB, pval:_chiSqSF(JB,2), skew:S, kurtExc:K, n };
+}
+// Ljung-Box (autocorrelación hasta h lags)
+function ljungBox(vals,h){ const a=_clean(vals), n=a.length;
+  if(n<h+5) return null;
+  const acf=computeACF(a,h);
+  let Q=0; for(let k=1;k<=h;k++) Q+=acf[k]*acf[k]/(n-k);
+  Q*=n*(n+2);
+  return { stat:Q, df:h, pval:_chiSqSF(Q,h) };
+}
+// ARCH-LM (heterocedasticidad condicional): regresa resid² sobre q lags de resid²
+function archLM(resid,q){ const a=_clean(resid), n=a.length;
+  if(n<q+10) return null;
+  const e2=a.map(x=>x*x);
+  const Y=[],X=[];
+  for(let t=q;t<n;t++){ const row=[1]; for(let l=1;l<=q;l++) row.push(e2[t-l]); X.push(row); Y.push(e2[t]); }
+  const b=ols(X,Y);
+  const ybar=_mean(Y);
+  let ssr=0,sst=0;
+  for(let i=0;i<Y.length;i++){ const fit=X[i].reduce((s,xj,j)=>s+xj*b[j],0); ssr+=(Y[i]-fit)**2; sst+=(Y[i]-ybar)**2; }
+  const R2=sst>0?1-ssr/sst:0, LM=(Y.length)*R2;
+  return { stat:LM, df:q, pval:_chiSqSF(LM,q), r2:R2 };
+}
+// KPSS (H0: estacionariedad). trend: 'c' nivel, 'ct' tendencia
+function kpssTest(y,trend){ const a=_clean(y), n=a.length;
+  if(n<20) return null;
+  let X; if(trend==='ct') X=a.map((_,i)=>[1,i+1]); else X=a.map(()=>[1]);
+  const b=ols(X,a);
+  const e=a.map((yi,i)=>yi-X[i].reduce((s,xj,j)=>s+xj*b[j],0));
+  // suma parcial
+  const S=[]; let acc=0; for(let i=0;i<n;i++){ acc+=e[i]; S.push(acc); }
+  const num=S.reduce((s,v)=>s+v*v,0)/(n*n);
+  // varianza de largo plazo (Bartlett)
+  const l=Math.floor(4*Math.pow(n/100,0.25));
+  let s2=e.reduce((s,v)=>s+v*v,0)/n;
+  for(let j=1;j<=l;j++){ let cov=0; for(let t=j;t<n;t++) cov+=e[t]*e[t-j]; s2+=2*(1-j/(l+1))*cov/n; }
+  const stat=num/s2;
+  const cv = trend==='ct' ? {cv10:0.119,cv05:0.146,cv025:0.176,cv01:0.216}
+                          : {cv10:0.347,cv05:0.463,cv025:0.574,cv01:0.739};
+  return { stat, ...cv, trend };
+}
+// Correlación cruzada x_t vs y_{t+k} para k=-maxLag..maxLag
+function crossCorr(x,y,maxLag){ const n=Math.min(x.length,y.length);
+  const xs=x.slice(0,n), ys=y.slice(0,n);
+  const mx=_mean(xs), my=_mean(ys);
+  const sx=Math.sqrt(xs.reduce((s,v)=>s+(v-mx)**2,0));
+  const sy=Math.sqrt(ys.reduce((s,v)=>s+(v-my)**2,0));
+  const den=sx*sy||1;
+  const lags=[],vals=[];
+  for(let k=-maxLag;k<=maxLag;k++){ let s=0;
+    for(let t=0;t<n;t++){ const tk=t+k; if(tk>=0&&tk<n) s+=(xs[t]-mx)*(ys[tk]-my); }
+    lags.push(k); vals.push(s/den);
+  }
+  return { lags, vals, ci:1.96/Math.sqrt(n) };
+}
+// KDE gaussiano (bandwidth Silverman)
+function kde(vals,gridN){ const a=_clean(vals).slice().sort((p,q)=>p-q), n=a.length;
+  if(n<2) return {x:[],y:[]};
+  const s=_std(a), iqr=_quantile(a,0.75)-_quantile(a,0.25);
+  const bw=0.9*Math.min(s, iqr/1.34 || s)*Math.pow(n,-0.2) || s*0.5 || 1;
+  const lo=a[0]-3*bw, hi=a[n-1]+3*bw, gx=[],gy=[];
+  for(let i=0;i<gridN;i++){ const x=lo+(hi-lo)*i/(gridN-1); let d=0;
+    for(let j=0;j<n;j++) d+=_normPDF((x-a[j])/bw); gy.push(d/(n*bw)); gx.push(x); }
+  return { x:gx, y:gy, bw };
+}
+// Descomposición clásica (aditiva o multiplicativa) con MA centrada de período p
+function classicalDecompose(values, period, mult){
+  const v=values.map(x=>(x===null||isNaN(x))?NaN:Number(x)), n=v.length;
+  // tendencia: MA centrada de orden p (con corrección para p par)
+  const trend=new Array(n).fill(NaN);
+  const half=Math.floor(period/2);
+  for(let t=half;t<n-half;t++){ let s=0,ok=true;
+    if(period%2===0){ s=0.5*v[t-half]+0.5*v[t+half]; for(let j=-half+1;j<=half-1;j++){ if(isNaN(v[t+j])){ok=false;break;} s+=v[t+j]; } s/=period; }
+    else { for(let j=-half;j<=half;j++){ if(isNaN(v[t+j])){ok=false;break;} s+=v[t+j]; } s/=period; }
+    trend[t]=ok?s:NaN;
+  }
+  // detrend
+  const det=v.map((x,i)=>isNaN(x)||isNaN(trend[i])?NaN:(mult?x/trend[i]:x-trend[i]));
+  // estacional: promedio por posición
+  const seasAvg=new Array(period).fill(0), seasCnt=new Array(period).fill(0);
+  for(let i=0;i<n;i++){ if(!isNaN(det[i])){ seasAvg[i%period]+=det[i]; seasCnt[i%period]++; } }
+  for(let k=0;k<period;k++) seasAvg[k]= seasCnt[k]? seasAvg[k]/seasCnt[k] : (mult?1:0);
+  // normalizar (suma 0 aditivo / media 1 multiplicativo)
+  const m=_mean(seasAvg);
+  for(let k=0;k<period;k++) seasAvg[k]= mult? seasAvg[k]/m : seasAvg[k]-m;
+  const seasonal=v.map((_,i)=>seasAvg[i%period]);
+  const resid=v.map((x,i)=>isNaN(x)||isNaN(trend[i])?NaN:(mult?x/(trend[i]*seasonal[i]):x-trend[i]-seasonal[i]));
+  return { trend, seasonal, resid };
+}
+// desvío móvil
+function rollingStd(values,win){ const n=values.length, out=new Array(n).fill(NaN);
+  for(let i=win-1;i<n;i++){ const w=values.slice(i-win+1,i+1).filter(x=>x!==null&&!isNaN(x));
+    if(w.length>=2){ out[i]=_std(w); } }
+  return out;
+}
+
+/* ── DINÁMICA DE LA SERIE ── */
+// Ajuste AR(p) con constante (OLS). Devuelve phi (sin const), residuos, suma de phi.
+function arFit(vals, p){ const y=_clean(vals), n=y.length; if(n<p+5) return null;
+  const Y=[],X=[];
+  for(let t=p;t<n;t++){ const row=[1]; for(let l=1;l<=p;l++) row.push(y[t-l]); X.push(row); Y.push(y[t]); }
+  const b=ols(X,Y);
+  const resid=Y.map((yi,i)=>yi-X[i].reduce((s,xj,j)=>s+xj*b[j],0));
+  const phi=b.slice(1);
+  return { phi, resid, c:b[0], sumPhi:phi.reduce((s,x)=>s+x,0) };
+}
+// Exponente de Hurst por análisis R/S (sobre la serie; mide memoria larga / persistencia)
+function hurstRS(vals){ const x=_clean(vals), N=x.length; if(N<32) return null;
+  const sizes=[]; for(let m=8;m<=Math.floor(N/2);m=Math.floor(m*1.5)) sizes.push(m);
+  const logn=[],logrs=[];
+  for(const m of sizes){ const nb=Math.floor(N/m); let rsSum=0,cnt=0;
+    for(let b=0;b<nb;b++){ const seg=x.slice(b*m,(b+1)*m); const mu=_mean(seg);
+      let acc=0; const dev=[]; for(let i=0;i<m;i++){ acc+=seg[i]-mu; dev.push(acc); }
+      const R=Math.max(...dev)-Math.min(...dev); const S=_std(seg);
+      if(S>0){ rsSum+=R/S; cnt++; } }
+    if(cnt>0){ logn.push(Math.log(m)); logrs.push(Math.log(rsSum/cnt)); } }
+  if(logn.length<3) return null;
+  const b=ols(logn.map(v=>[1,v]), logrs);
+  return { H:b[1] };
+}
+// Ratio de varianzas (Lo-MacKinlay) sobre incrementos. VR>1 persistente, <1 reversión, =1 random walk.
+function varianceRatio(vals,q){ const y=_clean(vals), n=y.length; if(n<3*q+2) return null;
+  const d=[]; for(let i=1;i<n;i++) d.push(y[i]-y[i-1]); const T=d.length, mu=_mean(d);
+  const var1=d.reduce((s,v)=>s+(v-mu)**2,0)/(T-1);
+  if(var1<=0) return null;
+  let varq=0,m=0;
+  for(let t=q-1;t<T;t++){ let s=0; for(let j=0;j<q;j++) s+=d[t-j]-mu; varq+=s*s; m++; }
+  varq=varq/(m*q);
+  const VR=varq/var1;
+  const phi=2*(2*q-1)*(q-1)/(3*q*T);
+  const z=phi>0?(VR-1)/Math.sqrt(phi):NaN;
+  return { VR, z, q, pval:isNaN(z)?NaN:2*(1-_normCDF(Math.abs(z))) };
+}
+// Periodograma (densidad espectral por DFT directa). Devuelve frecuencia, período y potencia.
+function periodogram(vals){ const y=_clean(vals), n=y.length; if(n<8) return null;
+  const mu=_mean(y), yc=y.map(v=>v-mu), half=Math.floor(n/2);
+  const freq=[],power=[],period=[];
+  for(let k=1;k<=half;k++){ let re=0,im=0; const w=2*Math.PI*k/n;
+    for(let t=0;t<n;t++){ re+=yc[t]*Math.cos(w*t); im-=yc[t]*Math.sin(w*t); }
+    freq.push(k/n); power.push((re*re+im*im)/n); period.push(n/k); }
+  return { freq, power, period };
+}
+// Quiebre estructural en media (Bai, 1 quiebre) minimizando SSR.
+function baiBreak(seqVals){ const y=seqVals, n=y.length; if(n<20) return null;
+  const trim=Math.max(3,Math.floor(0.15*n));
+  const csum=[0],csum2=[0]; let cs=0,cs2=0;
+  for(let i=0;i<n;i++){ cs+=y[i]; cs2+=y[i]*y[i]; csum.push(cs); csum2.push(cs2); }
+  const ssr=(a,b)=>{ const c=b-a; if(c<=0) return 0; const s=csum[b]-csum[a]; return (csum2[b]-csum2[a])-s*s/c; };
+  let best=-1,bestSSR=Infinity;
+  for(let tau=trim;tau<=n-trim;tau++){ const v=ssr(0,tau)+ssr(tau,n); if(v<bestSSR){ bestSSR=v; best=tau; } }
+  const full=ssr(0,n);
+  const F=((full-bestSSR))/(bestSSR/(n-2));
+  return { idx:best, mean1:(csum[best]-csum[0])/best, mean2:(csum[n]-csum[best])/(n-best), F, n,
+           sig:F>10.18 }; // ~VC sup-F 5% (1 quiebre, aprox.)
+}
+// OLS-CUSUM (Ploberger-Krämer): proceso → puente browniano. Bandas ±1.358 (5%).
+function cusumOLS(seqVals){ const y=seqVals, T=y.length; if(T<20) return null;
+  const mu=_mean(y); const e=y.map(v=>v-mu); const sig=_std(y);
+  if(sig<=0) return null;
+  const W=[]; let acc=0;
+  for(let t=0;t<T;t++){ acc+=e[t]; W.push(acc/(sig*Math.sqrt(T))); }
+  return { W, b05:1.358, b01:1.628 };
+}
+// Fuerza de tendencia y estacionalidad (features de Hyndman) a partir de componentes
+function _varValid(a){ const c=_clean(a); return c.length>1?_varS(c):0; }
+function strengthTrend(detrendResid, trendPlusResid){
+  const vr=_varValid(detrendResid), vt=_varValid(trendPlusResid);
+  return vt>0?Math.max(0,1-vr/vt):0;
+}
+
+/* ── AUTO-ARIMA (estructura de corto plazo) ──
+   Estimación ARMA(p,q) por Hannan-Rissanen:
+   1) AR largo para aproximar innovaciones; 2) OLS de y sobre p rezagos propios
+   y q rezagos de innovaciones estimadas. Selección de orden por AIC/BIC. */
+function armaFitHR(y, p, q){
+  const n=y.length;
+  // 1) AR(m) largo para residuos proxy
+  const m=Math.min(Math.max(p,q)+Math.floor(Math.sqrt(n)), Math.floor(n/3), 25);
+  let eps=new Array(n).fill(0);
+  if(m>=1){ const arr=arFit(y,m); if(arr){ for(let t=m;t<n;t++) eps[t]=arr.resid[t-m]; } }
+  // 2) regresión HR
+  const start=Math.max(p,q);
+  const Y=[],X=[];
+  for(let t=start;t<n;t++){ const row=[1];
+    for(let i=1;i<=p;i++) row.push(y[t-i]);
+    for(let j=1;j<=q;j++) row.push(eps[t-j]);
+    X.push(row); Y.push(y[t]); }
+  if(Y.length < (p+q+2)) return null;
+  let b; try{ b=ols(X,Y); }catch(_){ return null; }
+  if(!b || b.some(v=>!isFinite(v))) return null;
+  const resid=Y.map((yi,i)=>yi-X[i].reduce((s,xj,k)=>s+xj*b[k],0));
+  const T=resid.length, sse=resid.reduce((s,r)=>s+r*r,0), s2=sse/T;
+  if(!(s2>0)) return null;
+  const kpar=p+q+1;                          // + constante (varianza no cuenta acá)
+  const ll=-0.5*T*(Math.log(2*Math.PI)+Math.log(s2)+1);
+  const aic=-2*ll+2*(kpar+1), bic=-2*ll+Math.log(T)*(kpar+1);
+  return { p, q, coef:b, resid, sigma2:s2, aic, bic, ll, T,
+           ar:b.slice(1,1+p), ma:b.slice(1+p,1+p+q), c:b[0] };
+}
+// Búsqueda de orden sobre la serie ya diferenciada d veces. crit: 'aic'|'bic'
+function autoArima(vals, d, pmax, qmax, crit){
+  let y=_clean(vals);
+  for(let k=0;k<d;k++){ const nv=[]; for(let i=1;i<y.length;i++) nv.push(y[i]-y[i-1]); y=nv; }
+  if(y.length < 12) return null;
+  const mu=_mean(y); const yc=y.map(v=>v-mu);   // centrar para ARMA
+  let best=null; const grid=[];
+  for(let p=0;p<=pmax;p++) for(let q=0;q<=qmax;q++){
+    if(p===0&&q===0) continue;
+    const f=armaFitHR(yc,p,q);
+    if(f){ grid.push({p,q,aic:f.aic,bic:f.bic});
+      const sc=crit==='bic'?f.bic:f.aic;
+      if(!best || sc < (crit==='bic'?best.bic:best.aic)) best={...f, mean:mu};
+    }
+  }
+  if(best) best.grid=grid;
+  return best;
+}
+
 /* ── UNIT ROOT TESTS ── */
 async function runUnitRootTest() {
   const data = await anlGetSeries();
@@ -2545,25 +3672,49 @@ async function runUnitRootTest() {
   const { valuesLevels, valuesDiff, nd } = data;
 
   const testType = document.getElementById('anl-ur-test').value;
-  const trend = document.getElementById('anl-ur-trend').value;
+  let trend = document.getElementById('anl-ur-trend').value;
   const lags = 4;
   const termName = { nc:'Sin Constante', c:'Con Constante', ct:'Constante y Tendencia' }[trend];
+
+  // KPSS: H0 = estacionaria (rechazo ⇒ NO estacionaria). Sólo admite nivel (c) o tendencia (ct).
+  if (testType === 'kpss') {
+    const kTrend = trend === 'ct' ? 'ct' : 'c';
+    const renderKPSS = (titulo, serie) => {
+      const clean = serie.filter(x => x !== null && !isNaN(x));
+      if (clean.length < 20) return `<b style="color:#F6B40E">${titulo}</b>\nDatos insuficientes (< 20 obs).\n`;
+      const r = kpssTest(clean, kTrend);
+      const rej = r.stat > r.cv05; // rechaza H0 de estacionariedad
+      return `<b style="color:#F6B40E">${titulo}</b>\n` +
+        `Estadístico LM: <b style="color:#${rej ? 'ef4444':'10b981'}">${r.stat.toFixed(4)}</b>\n` +
+        `VC 10%/5%/2.5%/1%: <b>${r.cv10} / ${r.cv05} / ${r.cv025} / ${r.cv01}</b>\n` +
+        `N obs: ${clean.length}\n` +
+        `<b style="color:${rej ? '#fbbf24':'#10b981'}">${rej ? '✗ Rechaza H0 (NO estacionaria)' : '✓ No rechaza H0 (estacionaria)'}</b>\n`;
+    };
+    let h = `<b style="color:#F6B40E">KPSS Test — ${kTrend==='ct'?'Tendencia':'Nivel'}</b>\n` +
+      `<i style="color:#94a3b8">H0: la serie es estacionaria (inverso del ADF/PP)</i>\n\n`;
+    h += renderKPSS('🔹 Niveles', valuesLevels);
+    if (nd > 0) h += '\n' + renderKPSS(`🔸 ${nd}ª Diferencia`, valuesDiff);
+    else h += '\n<i style="color:#94a3b8">(Subí "Diferencias" a 1+ para testear la serie diferenciada)</i>';
+    document.getElementById('adf-box').innerHTML = h;
+    return;
+  }
+
   const testLabel = testType === 'adf' ? `ADF Test (${lags} lags)` : 'Phillips-Perron Test';
   const runTest = (y) => testType === 'pp' ? ppTest(y, trend) : adfTest(y, lags, trend);
 
   const renderResult = (titulo, serie) => {
     const clean = serie.filter(x => x !== null && !isNaN(x));
-    if (clean.length < 20) return `<b style="color:#a78bfa">${titulo}</b>\nDatos insuficientes (< 20 obs).\n`;
+    if (clean.length < 20) return `<b style="color:#F6B40E">${titulo}</b>\nDatos insuficientes (< 20 obs).\n`;
     const r = runTest(clean);
     const ok = r.stat < r.cv05;
-    return `<b style="color:#a78bfa">${titulo}</b>\n` +
+    return `<b style="color:#F6B40E">${titulo}</b>\n` +
       `Estadístico t: <b style="color:#${ok ? '10b981':'ef4444'}">${r.stat.toFixed(4)}</b>\n` +
       `VC 1%/5%/10%: <b>${r.cv01.toFixed(2)} / ${r.cv05.toFixed(2)} / ${r.cv10.toFixed(2)}</b>\n` +
       `p-valor ≈: <b>${r.pval.toFixed(4)}</b>  · N obs: ${clean.length}\n` +
       `<b style="color:${ok ? '#10b981':'#fbbf24'}">${ok ? '✓ Rechaza H0 (estacionaria)' : '✗ No rechaza H0 (no estacionaria)'}</b>\n`;
   };
 
-  let html = '<b style="color:#a78bfa">' + testLabel + ' — ' + termName + '</b>\n\n';
+  let html = '<b style="color:#F6B40E">' + testLabel + ' — ' + termName + '</b>\n\n';
   html += renderResult('🔹 Niveles', valuesLevels);
   if (nd > 0) {
     html += '\n' + renderResult(`🔸 ${nd}ª Diferencia`, valuesDiff);
@@ -2764,7 +3915,7 @@ function runSim() {
   const xs=Array.from({length:n},(_,i)=>i);
 
   const cfg={displayModeBar:false,responsive:true};
-  Plotly.react('sc1',[{x:xs,y,mode:'lines',line:{color:'#7c3aed',width:1.5},name:'Serie'}],
+  Plotly.react('sc1',[{x:xs,y,mode:'lines',line:{color:'#5BA4E6',width:1.5},name:'Serie'}],
     Object.assign({},LAYOUT_BASE,{title:{text:'Serie Simulada',font:{size:11,color:'#9090c0'}},margin:{l:50,r:10,t:28,b:30},xaxis:{...LAYOUT_BASE.xaxis,type:'linear'},height:undefined}),cfg);
   Plotly.react('sc2',[{x:xs,y:ep2,mode:'lines',line:{color:'#10b981',width:1},name:'Residuos ε'}],
     Object.assign({},LAYOUT_BASE,{title:{text:'Residuos / Innovaciones',font:{size:11,color:'#9090c0'}},margin:{l:50,r:10,t:28,b:30},xaxis:{...LAYOUT_BASE.xaxis,type:'linear'},height:undefined}),cfg);
@@ -2808,8 +3959,10 @@ window.ANALYSES = [];
 
 function getDeflactorString(prefix) {
   const defl = [];
-  ['pbi','mep','cer','ipc'].forEach(d => {
-    if (document.getElementById('anl-' + prefix + '-' + d).checked) defl.push(d.toUpperCase());
+  const LABELS = { pbi:'PBI ARS', pbi_usd:'PBI USD', mep:'USD', cer:'CER', ipc:'IPC USA' };
+  ['pbi','pbi_usd','mep','cer','ipc'].forEach(d => {
+    const el = document.getElementById('anl-' + prefix + '-' + d);
+    if (el && el.checked) defl.push(LABELS[d]);
   });
   return defl.length > 0 ? defl.join(',') : '—';
 }
@@ -2939,7 +4092,31 @@ function setDependiente(idx) {
   if (typeof actualizarPreviewBasico === 'function') actualizarPreviewBasico();
 }
 
+// Modal de tests
+window.openTestModal = function() {
+  document.getElementById('modal-test').classList.add('open');
+};
+window.closeTestModal = function() {
+  document.getElementById('modal-test').classList.remove('open');
+};
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeTestModal();
+});
+
+// Collapse "Análisis Guardados"
+window.toggleSavedAnalyses = function() {
+  document.getElementById('anl-saved-toggle').classList.toggle('open');
+  document.getElementById('anl-saved-body').classList.toggle('open');
+};
+
+function updateSavedCount() {
+  const n = (window.ANALYSES || []).length;
+  const c = document.getElementById('anl-saved-count');
+  if (c) c.textContent = n;
+}
+
 function renderSavedTable() {
+  updateSavedCount();
   const cols = [
     { k:'id', l:'#' },
     { k:'dep', l:'Dep' },
@@ -3042,7 +4219,7 @@ function renderBasicoVarsList() {
     return;
   }
   let h = '<table style="width:100%;border-collapse:collapse;font-size:10.5px">';
-  h += '<thead><tr style="background:#0f172a;color:#a78bfa">' +
+  h += '<thead><tr style="background:#0f172a;color:#F6B40E">' +
        '<th style="padding:3px 4px;text-align:left">Dep</th>' +
        '<th style="padding:3px 4px;text-align:left">#</th>' +
        '<th style="padding:3px 4px;text-align:left">Variable</th>' +
@@ -3160,8 +4337,8 @@ function actualizarPreviewBasico() {
   const depTxt = (p.dep || '').toString();
   const depShort = depTxt.length > 30 ? depTxt.slice(0, 27) + '…' : depTxt;
   let h = '';
-  h += `<div><b style="color:#a78bfa">Dep:</b> ${depShort} <span style="color:#94a3b8">[I(${p.y_orden})]</span></div>`;
-  h += `<div><b style="color:#a78bfa">X:</b> ${p.n_vars_total} total · ${p.n_vars_est} I(0|1) · ${p.n_vars_i1} I(1)</div>`;
+  h += `<div><b style="color:#F6B40E">Dep:</b> ${depShort} <span style="color:#94a3b8">[I(${p.y_orden})]</span></div>`;
+  h += `<div><b style="color:#F6B40E">X:</b> ${p.n_vars_total} total · ${p.n_vars_est} I(0|1) · ${p.n_vars_i1} I(1)</div>`;
   h += '<div style="border-top:1px solid #334155;margin:4px 0"></div>';
   h += `<div>ARDL: <b>${fmt(p.n_ardl)}</b></div>`;
   h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_est)} subsets de X · enumera ${p.lagArdlDep+1} lags dep (0..${p.lagArdlDep}) × ${p.lagArdlInd+1} lags por cada X (0..${p.lagArdlInd}) · ×2 criterios (AIC, BIC)</div>`;
@@ -3271,5 +4448,155 @@ populateAnlSelects();
 
 // Auto-load first item
 setTimeout(() => { clickItem('res_brutas'); }, 100);
+</script>
+
+<!-- ═══════════ MOTION ANIMATIONS ═══════════ -->
+<script type="module">
+import { animate, stagger, scroll, inView, spring, glide } from 'motion';
+
+/* ── PARTICLE BACKGROUND ── */
+(function(){
+  const c=document.getElementById('particles-canvas');
+  const ctx=c.getContext('2d');
+  let W,H,particles=[];
+  const PARTICLE_COUNT=100;
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight}
+  resize();window.addEventListener('resize',resize);
+  for(let i=0;i<PARTICLE_COUNT;i++){
+    particles.push({
+      x:Math.random()*W,y:Math.random()*H,
+      vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.5,
+      r:Math.random()*2.2+.5,o:Math.random()*.5+.15
+    });
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0)p.x=W;if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(91,164,230,${p.o})`;ctx.fill();
+    });
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<120){
+          ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);
+          ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.strokeStyle=`rgba(91,164,230,${.09*(1-dist/120)})`;
+          ctx.lineWidth=.6;ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ── PAGE ENTRANCE ── */
+await animate(document.body,{opacity:[0,1]},{duration:.4,easing:'ease-out'});
+
+// Sidebar slides in from left
+await animate('#sb',{x:[-60,0],opacity:[0,1]},{duration:.55,easing:[.16,1,.3,1]});
+
+// Main content fades up
+await animate('#main',{opacity:[0,1],y:[16,0]},{duration:.5,easing:'ease-out',delay:.15});
+
+// Tabs stagger in
+const tabs=document.querySelectorAll('.mtab');
+if(tabs.length)await animate(tabs,{opacity:[0,1],y:[-6,0]},{delay:stagger(.04),duration:.35});
+
+// Sidebar items stagger
+setTimeout(async()=>{
+  const items=document.querySelectorAll('#tree .item');
+  if(items.length)await animate(items,{opacity:[0,1],x:[-8,0]},{delay:stagger(.008),duration:.25});
+},300);
+
+/* ── BUTTON HOVER GLOW ── */
+document.querySelectorAll('.mbtn,.vbtn,.axis-btn').forEach(btn=>{
+  btn.addEventListener('mouseenter',()=>{animate(btn,{scale:1.04},{duration:.2})});
+  btn.addEventListener('mouseleave',()=>{animate(btn,{scale:1},{duration:.2})});
+});
+
+/* ── CARD ENTRANCE ON TAB SWITCH ── */
+const origSwitchTab=window.switchTab;
+window.switchTab=function(t){
+  origSwitchTab(t);
+  const activeTab=document.querySelector('.tab-content.active');
+  if(activeTab){
+    animate(activeTab,{opacity:[0,1],y:[8,0]},{duration:.35,easing:'ease-out'});
+    // Stagger children
+    const cards=activeTab.querySelectorAll('.anl-section,.sim-section,.collapser');
+    if(cards.length)animate(cards,{opacity:[0,1],y:[12,0]},{delay:stagger(.06),duration:.4});
+  }
+};
+
+/* ── CHART CONTAINER ENTRANCE ── */
+const chartObserver=new MutationObserver(mutations=>{
+  mutations.forEach(m=>{
+    m.addedNodes.forEach(node=>{
+      if(node.nodeType===1&&node.querySelector&&node.querySelector('.plot-container')){
+        animate(node,{opacity:[0,1],scale:[.98,1]},{duration:.45,easing:'ease-out'});
+      }
+    });
+  });
+});
+['c1','c2','cc','cs','cmp-corr','cmp-scatter','anl-chart','anl-acf','anl-pacf'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)chartObserver.observe(el,{childList:true,subtree:false});
+});
+
+/* ── SCROLL REVEAL ── */
+['#anl-desc','#anl-saved-section','#cmp-corr-list'].forEach(sel=>{
+  const el=document.querySelector(sel);
+  if(el){
+    inView(el,()=>{
+      animate(el,{opacity:[0,1],y:[20,0]},{duration:.5,easing:'ease-out'});
+      return ()=>{};
+    },{margin:'0px 0px -50px 0px'});
+  }
+});
+
+/* ── SIDEBAR TOGGLE ANIMATION ── */
+const origToggleSidebar=window.toggleSidebar;
+window.toggleSidebar=function(){
+  const sb=document.getElementById('sb');
+  const isCollapsed=sb.classList.contains('collapsed');
+  if(isCollapsed){
+    sb.classList.remove('collapsed');
+    animate(sb,{width:[0,'290px'],opacity:[.5,1]},{duration:.35,easing:[.16,1,.3,1]});
+  }else{
+    animate(sb,{width:['290px',0],opacity:[1,.5]},{duration:.3,easing:[.16,1,.3,1]}).finished.then(()=>{
+      sb.classList.add('collapsed');
+    });
+  }
+};
+
+/* ── MODAL BOUNCE ── */
+const origOpenTestModal=window.openTestModal;
+window.openTestModal=function(){
+  origOpenTestModal();
+  const box=document.querySelector('.modal-box');
+  if(box){
+    animate(box,{scale:[.92,1.02,.98,1]},{duration:.45,easing:'ease-out'});
+  }
+};
+
+/* ── INFO BAR PULSE ON DATA LOAD ── */
+const infoEl=document.getElementById('info');
+const infoObserver=new MutationObserver(()=>{
+  const t=infoEl.textContent;
+  if(t&&t!=='Elegí una serie del panel izquierdo'){
+    animate(infoEl,[
+      {opacity:.5,scale:.98},
+      {opacity:1,scale:1}
+    ],{duration:.35,easing:'ease-out'});
+  }
+});
+if(infoEl)infoObserver.observe(infoEl,{characterData:true,subtree:true,childList:true});
+
+console.log('✨ Motion animations loaded — visualizador enhanced');
 </script>
 </body></html>

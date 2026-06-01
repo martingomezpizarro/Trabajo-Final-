@@ -525,25 +525,44 @@ def extraer_ardl(df_m, y_var, x_vars, max_lags_dep, max_lags_ind, criterio,
                   if p == x or (p.startswith('L') and p.split('.', 1)[-1] == x)]
         if px:
             _px_idx   = [list(res.params.index).index(p) for p in px]
-            _coef_sum = float(res.params.iloc[_px_idx].sum())
+            # Suma COMPLETA: necesaria para el multiplicador de largo plazo θ
+            _coef_sum_full = float(res.params.iloc[_px_idx].sum())
+
+            # CORTO PLAZO: solo contemporáneo (lag 0) + lag 1
+            # Identificamos lag 0 (nombre exacto = x) y lag 1 (termina en '.L1')
+            def _lag_of(_name, _xn):
+                if _name == _xn:
+                    return 0
+                if _name.startswith(f'{_xn}.L'):
+                    try:
+                        return int(_name.split('.L', 1)[1])
+                    except Exception:
+                        return -1
+                return -1
+            _sr_idx = [_i for _i, _p in zip(_px_idx, [res.params.index[_j] for _j in _px_idx])
+                       if _lag_of(_p, x) in (0, 1)]
+            _coef_sum_sr = float(res.params.iloc[_sr_idx].sum()) if _sr_idx else float('nan')
             try:
-                _R = np.zeros((len(_px_idx), len(res.params)))
-                for _i, _j in enumerate(_px_idx):
-                    _R[_i, _j] = 1.0
-                _pval_f = float(res.f_test(_R).pvalue)
+                if _sr_idx:
+                    _R = np.zeros((len(_sr_idx), len(res.params)))
+                    for _i, _j in enumerate(_sr_idx):
+                        _R[_i, _j] = 1.0
+                    _pval_f = float(res.f_test(_R).pvalue)
+                else:
+                    _pval_f = float('nan')
             except Exception:
-                _pval_f = float(res.pvalues.iloc[_px_idx].min())
-            coefs[x] = {'coef': _coef_sum, 'pval': _pval_f}
+                _pval_f = float(res.pvalues.iloc[_sr_idx].min()) if _sr_idx else float('nan')
+            coefs[x] = {'coef': _coef_sum_sr, 'pval': _pval_f}
 
             if abs(_denom_lr) < 1e-9 or _cov_mat is None:
                 lr_coefs[x] = {'coef': float('nan'), 'pval': float('nan')}
             else:
-                _theta = _coef_sum / _denom_lr
+                _theta = _coef_sum_full / _denom_lr
                 _grad = np.zeros(len(res.params))
                 for _i in _px_idx:
                     _grad[_i] = 1.0 / _denom_lr
                 for _i in _y_lag_idx:
-                    _grad[_i] = _coef_sum / (_denom_lr ** 2)
+                    _grad[_i] = _coef_sum_full / (_denom_lr ** 2)
                 try:
                     _var_t = float(_grad @ _cov_mat @ _grad)
                     _se_t  = float(np.sqrt(max(_var_t, 0.0)))
@@ -691,41 +710,38 @@ def extraer_vecm(df_m, y_var, x_vars, todas_vars, k_ar_diff, det_order,
     except Exception:
         pass
 
-    # Gamma
+    # Gamma — CORTO PLAZO: solo el primer lag de las diferencias (ΔX_{t-1}),
+    # análogo a la decisión tomada en ARDL (lag 0+1 en niveles ≈ lag 1 de Δ
+    # tras la transformación). Para 1 sola restricción, F = t², por lo que
+    # el p-valor t es equivalente a un Wald F-test.
     gamma_coefs = {}
     for x in x_vars:
         if x not in all_list:
             gamma_coefs[x] = {'coef': np.nan, 'pval': np.nan}
             continue
-        xi   = all_list.index(x)
-        cols = [l * k_vars + xi for l in range(n_short) if l * k_vars + xi < gamma.shape[1]]
-        if cols:
-            c = float(gamma[y_idx, cols].sum())
+        xi  = all_list.index(x)
+        _col_first = xi  # l=0 → primer lag de ΔX
+        if _col_first < gamma.shape[1]:
+            c = float(gamma[y_idx, _col_first])
             if gamma_se is not None:
-                if n_short == 1:
-                    _se = float(gamma_se[y_idx, cols[0]])
-                    pv  = (float(t_dist.sf(abs(c / (_se + 1e-12)),
-                                           df=max(1, res.nobs - k_vars)) * 2)
-                           if _se > 0 else np.nan)
-                else:
-                    pv = float(min(
-                        t_dist.sf(abs(float(gamma[y_idx, ci]) / (float(gamma_se[y_idx, ci]) + 1e-12)),
-                                  df=max(1, res.nobs - k_vars)) * 2
-                        for ci in cols if float(gamma_se[y_idx, ci]) > 0
-                    )) if any(float(gamma_se[y_idx, ci]) > 0 for ci in cols) else np.nan
+                _se = float(gamma_se[y_idx, _col_first])
+                pv  = (float(t_dist.sf(abs(c / (_se + 1e-12)),
+                                       df=max(1, res.nobs - k_vars)) * 2)
+                       if _se > 0 else np.nan)
             else:
                 pv = np.nan
             gamma_coefs[x] = {'coef': c, 'pval': pv}
         else:
             gamma_coefs[x] = {'coef': np.nan, 'pval': np.nan}
 
+    # Coefs genéricos (fallback) — también limitados al primer lag de Δ
     coefs = {}
     for x in x_vars:
         if x not in all_list:
             coefs[x] = {'coef': np.nan, 'pval': np.nan}
             continue
         xi   = all_list.index(x)
-        cols = [l * k_vars + xi for l in range(n_short) if l * k_vars + xi < gamma.shape[1]]
+        cols = [xi] if xi < gamma.shape[1] else []
         if cols:
             c  = float(gamma[y_idx, cols].sum())
             se = (float(np.sqrt(np.sum(gamma_se[y_idx, cols] ** 2)))
@@ -1545,9 +1561,22 @@ def seccion_8_var(ctx, est_ctx, config):
     DUMMY_SAFE = ctx.get('DUMMY_SAFE', [])
     MAX_LAGS_VAR = ctx['MAX_LAGS_VAR']
     LAG_CAP_FREQ = ctx.get('LAG_CAP_FREQ', MAX_LAGS_VAR)
+    FRECUENCIA_USADA = ctx.get('FRECUENCIA_USADA', 'M')
     NIVEL_SIG = config['NIVEL_SIG']
     SEMILLA = config['SEMILLA']
     CRITERIOS_SEL = config['CRITERIOS_SEL']
+
+    # Horizonte para LP estructural: 12 meses según frecuencia.
+    # Debe ser estrictamente mayor que LAG_CAP_FREQ para que la IRF acumulada
+    # capte propagación más allá del polinomio de rezagos estimado — si fueran
+    # iguales, no habría "largo plazo" real distinto de la suma de coefs en
+    # ventana de estimación.
+    _LP_HORIZON_MAP = {'D': 252, 'W': 52, 'M': 12, 'Q': 4}
+    HORIZONTE_LP = _LP_HORIZON_MAP.get(FRECUENCIA_USADA, 12)
+    if HORIZONTE_LP <= LAG_CAP_FREQ:
+        HORIZONTE_LP = LAG_CAP_FREQ * 2
+        print(f'⚠️  HORIZONTE_LP ajustado a {HORIZONTE_LP} (> LAG_CAP_FREQ={LAG_CAP_FREQ})')
+    print(f'📅 Horizonte LP estructural: h={HORIZONTE_LP} (freq={FRECUENCIA_USADA}, LAG_CAP={LAG_CAP_FREQ})')
 
     from statsmodels.tsa.api import VAR as _VAR_est
     from statsmodels.stats.diagnostic import acorr_ljungbox as _lb_var
@@ -1607,7 +1636,7 @@ def seccion_8_var(ctx, est_ctx, config):
     # Iterar lags 1..LAG_CAP_FREQ en lugar de seleccionar por IC
     _LAGS_VAR = list(range(1, max(1, LAG_CAP_FREQ) + 1))
     print(f'Permutaciones SVAR a estimar: {len(_perms_var)} x {len(_LAGS_VAR)} lags')
-    HORIZONTE_IRF = 12
+    HORIZONTE_IRF = max(12, HORIZONTE_LP)
     DIAG_LAGS_LB = 8
 
     _RESULTADOS_VAR = []
@@ -1660,52 +1689,26 @@ def seccion_8_var(ctx, est_ctx, config):
                     _row[f'coef_{_x}'] = _row[f'irf_{_x}_h0']
                     _row[f'pval_{_x}'] = _row[f'irfpval_{_x}_h0']
 
-                # Coeficientes reducidos + Wald F-test
+                # LP estructural: suma acumulada de IRFs ortogonalizadas (Cholesky)
+                # hasta HORIZONTE_LP. Captura el efecto sobre la ecuación estructural
+                # de Y (Y al último en el orden Cholesky), no sobre el VAR reducido.
+                # P-valor: test Wald de 1 g.l. usando el SE acumulado (delta-method
+                # provisto por statsmodels), equivalente al F-test sobre la restricción
+                # lineal "suma estructural = 0".
                 try:
-                    _params_df = _res.params
-                    _pvals_df  = _res.pvalues
-                    _var_pos   = {v: i for i, v in enumerate(_tv_perm)}
-                    _y_col     = Y_SAFE if Y_SAFE in _params_df.columns else _params_df.columns[_y_idx]
-                    _y_coefs   = _params_df[_y_col]
-                    _y_pvals   = _pvals_df[_y_col]
-                    _K_endo    = len(_tv_perm)
-                    for _x in _xv_perm:
-                        _xpos = _var_pos.get(_x)
-                        if _xpos is None:
-                            _row[f'sum_coef_{_x}']  = float('nan')
-                            _row[f'wald_pval_{_x}'] = float('nan')
-                            continue
-                        _names = list(_y_coefs.index)
-                        _idx_x = [_i for _i, _n in enumerate(_names)
-                                  if _n.startswith('L') and _n.endswith(f'.{_x}')]
-                        if not _idx_x:
-                            _idx_x = [_la*_K_endo + _xpos + 1 for _la in range(_k_ar)
-                                      if _la*_K_endo + _xpos + 1 < len(_names)]
-                        if _idx_x:
-                            _sum_c = float(_y_coefs.iloc[_idx_x].sum())
-                            try:
-                                _all_names = list(_res.params.stack().index)
-                                _R_rows = []
-                                for _ii in _idx_x:
-                                    _term = _names[_ii]
-                                    if (_y_col, _term) in _all_names:
-                                        _full_idx = _all_names.index((_y_col, _term))
-                                        _r_row = np.zeros(len(_all_names))
-                                        _r_row[_full_idx] = 1.0
-                                        _R_rows.append(_r_row)
-                                if _R_rows:
-                                    _Rm = np.vstack(_R_rows)
-                                    _wald = _res.wald_test(_Rm, use_f=True, scalar=False)
-                                    _pval_w = float(_wald.pvalue)
-                                else:
-                                    _pval_w = float(_y_pvals.iloc[_idx_x].min())
-                            except Exception:
-                                _pval_w = float(_y_pvals.iloc[_idx_x].min())
+                    _orth_cum    = _irf.orth_cum_effects                  # (H+1, k, k)
+                    _orth_cum_se = _irf.cum_effect_stderr(orth=True)      # (H+1, k, k)
+                    _h_lp        = min(HORIZONTE_LP, _orth_cum.shape[0] - 1)
+                    for _x_idx_lp, _x in enumerate(_xv_perm):
+                        _sum_c = float(_orth_cum[_h_lp, _y_idx, _x_idx_lp])
+                        _se_c  = float(_orth_cum_se[_h_lp, _y_idx, _x_idx_lp])
+                        if _se_c > 0 and not math.isnan(_se_c):
+                            _pval_w = float(2 * (1 - norm.cdf(abs(_sum_c / _se_c))))
                         else:
-                            _sum_c = float('nan')
                             _pval_w = float('nan')
                         _row[f'sum_coef_{_x}']  = _sum_c
                         _row[f'wald_pval_{_x}'] = _pval_w
+                    _row['lp_horizon'] = int(_h_lp)
                 except Exception:
                     for _x in _xv_perm:
                         _row[f'sum_coef_{_x}']  = float('nan')
@@ -2311,7 +2314,236 @@ def seccion_10_consolidacion(ctx, ardl_res, var_res, vecm_res, config):
         for _, r in _sig_glob.sort_values('Pct_Sig', ascending=False).iterrows():
             print(f'    {r["variable"][:50]:<50} {r["Pct_Sig"]:>6.1f}% ({int(r["N_sig"])}/{int(r["N"])})')
 
+    # ── Causalidad de Granger (pairwise + rolling) ───────────────────────────
+    try:
+        _granger_analisis(ctx, NIVEL_SIG)
+    except Exception as _e:
+        print(f'  ⚠️ Granger falló: {_e}')
+
     return df_res, df_largo, df_dum
+
+
+def _granger_analisis(ctx, NIVEL_SIG):
+    """Calcula matriz Granger pairwise + grafo dirigido + rolling.
+
+    Usa el panel ya transformado a forma estacionaria (df_safe_est si está en
+    ctx; si no, df_safe + diff cuando INFO_ESTACIONARIEDAD lo indique). Guarda:
+      - sec10_granger_matrix.png   (heatmap N×N de p-valores)
+      - sec10_granger_grafo.png    (grafo dirigido de aristas significativas)
+      - sec10_granger_rolling.png  (rolling p-valor para pares con dependiente)
+      - granger_results.csv        (causa, efecto, lag_opt, p_value, sig)
+    """
+    from statsmodels.tsa.stattools import grangercausalitytests
+
+    print(f'\n{"="*70}')
+    print('  CAUSALIDAD DE GRANGER (pairwise + rolling)')
+    print('='*70)
+
+    df_safe   = ctx['df_safe']
+    COL_LABEL = ctx['COL_LABEL']
+    Y_SAFE    = ctx['Y_SAFE']
+    DUMMY     = set(ctx.get('DUMMY_SAFE', []))
+    LAG_CAP   = max(1, int(ctx.get('LAG_CAP_FREQ', 3)))
+
+    # Reusar df_safe_est si vino por kwargs (vía closure); si no, transformar acá
+    est_ctx_local = ctx.get('_est_ctx_for_granger', None)
+    INFO_EST = (est_ctx_local or {}).get('INFO_ESTACIONARIEDAD', {})
+
+    # Panel transformado a forma estacionaria
+    df_panel = pd.DataFrame(index=df_safe.index)
+    for _s in df_safe.columns:
+        if _s in DUMMY:
+            continue
+        _info = INFO_EST.get(_s, {})
+        if _info.get('nivel_estacionaria'):
+            df_panel[_s] = df_safe[_s]
+        elif _info.get('diff_estacionaria'):
+            df_panel[_s] = df_safe[_s].diff()
+        else:
+            # Sin info de estacionariedad → usar nivel por defecto
+            df_panel[_s] = df_safe[_s]
+    df_panel = df_panel.dropna(how='any')
+
+    series = list(df_panel.columns)
+    n = len(series)
+    if n < 2:
+        print('  ⚠️ Insuficientes series estacionarias para Granger')
+        return
+
+    max_lag = max(1, min(LAG_CAP, max(1, len(df_panel) // 10)))
+    print(f'  Panel: {len(df_panel)} obs × {n} vars · max_lag={max_lag} · α={NIVEL_SIG}')
+
+    # ── 1) Matriz pairwise (causa = fila, efecto = columna) ──────────────────
+    pmat   = np.full((n, n), np.nan)
+    lagmat = np.zeros((n, n), dtype=int)
+    rows_csv = []
+    for i, causa in enumerate(series):
+        for j, efecto in enumerate(series):
+            if i == j:
+                continue
+            data = df_panel[[efecto, causa]].dropna()
+            if len(data) < max_lag * 4 + 5:
+                continue
+            try:
+                res = grangercausalitytests(data, maxlag=max_lag, verbose=False)
+                pvals = {lag: float(res[lag][0]['ssr_ftest'][1]) for lag in res}
+                best_lag = min(pvals, key=pvals.get)
+                p_min = pvals[best_lag]
+                pmat[i, j]   = p_min
+                lagmat[i, j] = best_lag
+                rows_csv.append({
+                    'causa':         COL_LABEL.get(causa, causa),
+                    'efecto':        COL_LABEL.get(efecto, efecto),
+                    'causa_safe':    causa,
+                    'efecto_safe':   efecto,
+                    'lag_opt':       best_lag,
+                    'p_value':       p_min,
+                    'significativo': p_min < NIVEL_SIG,
+                    **{f'p_lag{lag}': p for lag, p in pvals.items()},
+                })
+            except Exception:
+                continue
+
+    if not rows_csv:
+        print('  ⚠️ Sin tests Granger calculables')
+        return
+
+    df_granger = pd.DataFrame(rows_csv)
+    _csv_path = OUTPUT_DIR / 'granger_results.csv'
+    df_granger.to_csv(_csv_path, index=False)
+    print(f'  💾 CSV: {_csv_path.name} ({len(df_granger)} pares)')
+
+    _n_sig = int(df_granger['significativo'].sum())
+    print(f'  Pares significativos (α={NIVEL_SIG}): {_n_sig}/{len(df_granger)}')
+
+    # ── 2) Heatmap matriz ────────────────────────────────────────────────────
+    _labels = [COL_LABEL.get(s, s)[:30] for s in series]
+    fig, ax = plt.subplots(figsize=(max(7, n * 0.65), max(6, n * 0.6)))
+    score = -np.log10(np.clip(pmat, 1e-6, 1.0))
+    score_plot = np.where(np.isnan(pmat), 0, score)
+    im = ax.imshow(score_plot, cmap='RdYlGn_r', aspect='auto', vmin=0, vmax=4)
+    ax.set_xticks(range(n)); ax.set_yticks(range(n))
+    ax.set_xticklabels(_labels, rotation=45, ha='right', fontsize=8)
+    ax.set_yticklabels(_labels, fontsize=8)
+    ax.set_xlabel('Efecto (Y)')
+    ax.set_ylabel('Causa (X)')
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                ax.text(j, i, '—', ha='center', va='center', color='gray', fontsize=7)
+            elif np.isnan(pmat[i, j]):
+                ax.text(j, i, 'n/a', ha='center', va='center', color='#888', fontsize=6)
+            else:
+                _txt = f'{pmat[i,j]:.2f}\nL{lagmat[i,j]}'
+                _col = 'white' if score_plot[i, j] > 2 else 'black'
+                _fw  = 'bold' if pmat[i, j] < NIVEL_SIG else 'normal'
+                ax.text(j, i, _txt, ha='center', va='center',
+                        fontsize=6.2, color=_col, fontweight=_fw)
+    plt.colorbar(im, ax=ax, label='−log₁₀(p-valor mín.)')
+    ax.set_title(f'Matriz de Causalidad de Granger  ·  fila → columna  ·  '
+                 f'α={NIVEL_SIG}, max_lag={max_lag}', fontsize=10)
+    plt.tight_layout()
+    _save_fig(fig, 'sec10_granger_matrix')
+
+    # ── 3) Grafo dirigido ────────────────────────────────────────────────────
+    fig, ax = plt.subplots(figsize=(10, 8))
+    angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    pos = {s: (float(np.cos(a)), float(np.sin(a))) for s, a in zip(series, angles)}
+    for _s in series:
+        _x, _y = pos[_s]
+        _is_dep = (_s == Y_SAFE)
+        ax.scatter([_x], [_y], s=900 if _is_dep else 600,
+                   c='#dc2626' if _is_dep else '#7c3aed',
+                   alpha=0.65, zorder=3, edgecolors='white', linewidths=1.2)
+        ax.text(_x * 1.22, _y * 1.22, COL_LABEL.get(_s, _s)[:25],
+                ha='center', va='center', fontsize=7.5, fontweight='bold')
+
+    drawn = 0
+    for i, causa in enumerate(series):
+        for j, efecto in enumerate(series):
+            if i == j or np.isnan(pmat[i, j]) or pmat[i, j] >= NIVEL_SIG:
+                continue
+            x0, y0 = pos[causa]
+            x1, y1 = pos[efecto]
+            w = max(0.6, min(4.0, -np.log10(pmat[i, j]) * 0.8))
+            ax.annotate('', xy=(x1 * 0.85, y1 * 0.85),
+                        xytext=(x0 * 0.85, y0 * 0.85),
+                        arrowprops=dict(arrowstyle='->', color='#dc2626',
+                                        lw=w, alpha=0.7,
+                                        connectionstyle='arc3,rad=0.12'))
+            drawn += 1
+    ax.set_xlim(-1.7, 1.7); ax.set_ylim(-1.7, 1.7)
+    ax.set_aspect('equal'); ax.axis('off')
+    ax.set_title(f'Grafo de Causalidad Granger — {drawn} aristas significativas (α={NIVEL_SIG})  ·  '
+                 f'rojo = dependiente · grosor ∝ −log₁₀(p)', fontsize=10)
+    plt.tight_layout()
+    _save_fig(fig, 'sec10_granger_grafo')
+
+    # ── 4) Rolling Granger sobre pares con la dependiente ────────────────────
+    if Y_SAFE not in series:
+        return
+    y_idx = series.index(Y_SAFE)
+    pares_cand = []
+    for j_other, s in enumerate(series):
+        if j_other == y_idx:
+            continue
+        # X → Y: causa=s, efecto=Y → fila=j_other, col=y_idx
+        p_xy = pmat[j_other, y_idx]
+        if not np.isnan(p_xy):
+            pares_cand.append((p_xy, 'X→Y', s, Y_SAFE))
+        # Y → X: causa=Y, efecto=s
+        p_yx = pmat[y_idx, j_other]
+        if not np.isnan(p_yx):
+            pares_cand.append((p_yx, 'Y→X', Y_SAFE, s))
+    pares_cand.sort(key=lambda t: t[0])
+    pares = pares_cand[:6]
+    if not pares:
+        return
+
+    T = len(df_panel)
+    window = max(40, T // 3)
+    step   = max(1, window // 25)
+
+    n_p = len(pares)
+    ncols = 2 if n_p > 1 else 1
+    nrows = (n_p + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols, figsize=(7 * ncols, 3.5 * nrows), squeeze=False)
+    for k, (_, direccion, causa, efecto) in enumerate(pares):
+        ax = axes[k // ncols][k % ncols]
+        centros, pvals_w = [], []
+        for start in range(0, T - window + 1, step):
+            sub = df_panel[[efecto, causa]].iloc[start:start + window].dropna()
+            if len(sub) < max_lag * 4 + 5:
+                continue
+            try:
+                r = grangercausalitytests(sub, maxlag=max_lag, verbose=False)
+                p_min = float(min(r[lag][0]['ssr_ftest'][1] for lag in r))
+                centros.append(sub.index[len(sub) // 2])
+                pvals_w.append(p_min)
+            except Exception:
+                continue
+        if pvals_w:
+            ax.plot(centros, pvals_w, color='#2196F3', linewidth=1.5)
+            ax.fill_between(centros, 0, pvals_w,
+                            where=[p < NIVEL_SIG for p in pvals_w],
+                            color='#22c55e', alpha=0.25,
+                            label=f'p<{NIVEL_SIG} (causa)')
+            ax.axhline(NIVEL_SIG, color='red', linestyle='--', linewidth=1)
+            ax.set_ylim(0, 1)
+            ax.set_title(f'{direccion}:  {COL_LABEL.get(causa, causa)[:28]}  →  '
+                         f'{COL_LABEL.get(efecto, efecto)[:28]}', fontsize=9)
+            ax.set_ylabel('p-valor mín.')
+            ax.grid(alpha=0.25)
+            ax.legend(fontsize=7, loc='upper right')
+        else:
+            ax.text(0.5, 0.5, 'sin datos suficientes',
+                    transform=ax.transAxes, ha='center', va='center', color='gray')
+    for k in range(n_p, nrows * ncols):
+        axes[k // ncols][k % ncols].set_visible(False)
+    fig.suptitle(f'Rolling Granger — ventana={window} obs, paso={step}  ·  '
+                 f'top {n_p} pares con la dependiente', fontsize=11)
+    plt.tight_layout()
+    _save_fig(fig, 'sec10_granger_rolling')
 
 
 def seccion_11_ranking(df_res, df_largo, ctx, est_ctx, config, ardl_res):
@@ -2646,34 +2878,36 @@ def generar_reporte_html(ctx, est_ctx, ardl_res, var_res, vecm_res,
     #           titulo='Top 10 ARDL por AIC')}
     # </section>''')
 
-    # ── Sec 8: VAR ────────────────────────────────────────────────────────────
+    # ── Sec 8: VAR ─── (OCULTA por pedido del usuario; los resultados se ven
+    # consolidados en sec 10, junto con ARDL y VECM) ─────────────────────────
     df_v = var_res.get('df_res_var', pd.DataFrame())
     df_v_ok = var_res.get('df_res_var_ok', pd.DataFrame())
-    secciones.append(f'''
-    <section id="sec8">
-      <h2>8. Modelos VAR (Cholesky)</h2>
-      <p>Total estimados: <b>{len(df_v)}</b> | Con ruido blanco (LB en Y): <b>{len(df_v_ok)}</b></p>
-      {_tabla(df_v.sort_values('aic').head(10) if not df_v.empty else df_v,
-              cols=['modelo','vars_label','k_ar','aic','bic','hq','r2','lb_pval','ruido_blanco','nobs'],
-              titulo='Top 10 VAR por AIC')}
-    </section>''')
+    # secciones.append(f'''
+    # <section id="sec8">
+    #   <h2>8. Modelos VAR (Cholesky)</h2>
+    #   <p>Total estimados: <b>{len(df_v)}</b> | Con ruido blanco (LB en Y): <b>{len(df_v_ok)}</b></p>
+    #   {_tabla(df_v.sort_values('aic').head(10) if not df_v.empty else df_v,
+    #           cols=['modelo','vars_label','k_ar','aic','bic','hq','r2','lb_pval','ruido_blanco','nobs'],
+    #           titulo='Top 10 VAR por AIC')}
+    # </section>''')
 
-    # ── Sec 9: VECM ───────────────────────────────────────────────────────────
+    # ── Sec 9: VECM ─── (OCULTA por pedido del usuario; los resultados se ven
+    # consolidados en sec 10, junto con ARDL y VAR) ──────────────────────────
     df_c = vecm_res.get('df_res_vecm', pd.DataFrame())
     df_c_ok = vecm_res.get('df_res_vecm_ok', pd.DataFrame())
     n_alpha_sig = 0
     if not df_c.empty and 'alpha_pval' in df_c.columns:
         n_alpha_sig = int((df_c['alpha_pval'] < NIVEL_SIG).sum())
-    secciones.append(f'''
-    <section id="sec9">
-      <h2>9. Modelos VECM</h2>
-      <p>Total estimados: <b>{len(df_c)}</b> | Con ruido blanco (LB en Y): <b>{len(df_c_ok)}</b> |
-         α significativo: <b>{n_alpha_sig}/{len(df_c)}</b></p>
-      {_tabla(df_c.sort_values('aic').head(10) if not df_c.empty else df_c,
-              cols=['modelo','vars_label','k_ar_diff','n_coint','aic','bic','hq','r2',
-                    'alpha_coef','alpha_pval','lb_pval','ruido_blanco','nobs'],
-              titulo='Top 10 VECM por AIC')}
-    </section>''')
+    # secciones.append(f'''
+    # <section id="sec9">
+    #   <h2>9. Modelos VECM</h2>
+    #   <p>Total estimados: <b>{len(df_c)}</b> | Con ruido blanco (LB en Y): <b>{len(df_c_ok)}</b> |
+    #      α significativo: <b>{n_alpha_sig}/{len(df_c)}</b></p>
+    #   {_tabla(df_c.sort_values('aic').head(10) if not df_c.empty else df_c,
+    #           cols=['modelo','vars_label','k_ar_diff','n_coint','aic','bic','hq','r2',
+    #                 'alpha_coef','alpha_pval','lb_pval','ruido_blanco','nobs'],
+    #           titulo='Top 10 VECM por AIC')}
+    # </section>''')
 
     # ── Sec 10: Consolidación ─────────────────────────────────────────────────
     sig_html = ''
@@ -2725,6 +2959,33 @@ def generar_reporte_html(ctx, est_ctx, ardl_res, var_res, vecm_res,
                 _pip[['variable','N_aparece','N_top','N_sig_lp','Pct_sig_LP','N_sig_cp','Pct_sig_CP']],
                 max_rows=40,
                 titulo=f'PIP — Frecuencia y significancia de cada variable en los top {_N_PIP} modelos (por AIC)')
+
+            # ── Gráfico de barras: % de modelos en que cada variable es significativa (CP vs LP) ──
+            try:
+                _pp = _pip.sort_values('Pct_sig_LP', ascending=True)   # asc → mayor arriba en barh
+                _names = [str(v)[:42] for v in _pp['variable']]
+                _yc = list(range(len(_names)))
+                _bw = 0.40
+                fig, ax = plt.subplots(figsize=(11, max(3.0, 0.55 * len(_names) + 1.2)))
+                _b_cp = ax.barh([i - _bw/2 for i in _yc], _pp['Pct_sig_CP'], height=_bw,
+                                color='#26A69A', alpha=0.9, label='Corto plazo (γ / impacto h=0)')
+                _b_lp = ax.barh([i + _bw/2 for i in _yc], _pp['Pct_sig_LP'], height=_bw,
+                                color='#5C6BC0', alpha=0.9, label='Largo plazo (β / suma de coefs)')
+                ax.set_yticks(_yc); ax.set_yticklabels(_names, fontsize=9)
+                ax.set_xlabel('% de modelos (de aquellos en que aparece) con la variable significativa')
+                ax.set_xlim(0, 108)
+                ax.set_title(f'PIP — % significativo por variable, CP vs LP (top {_N_PIP} modelos por AIC)', fontsize=11)
+                ax.legend(loc='lower right', fontsize=9, framealpha=0.9)
+                ax.grid(axis='x', alpha=0.25)
+                for _bars in (_b_cp, _b_lp):
+                    for _bar in _bars:
+                        _w = _bar.get_width()
+                        ax.text(_w + 1.2, _bar.get_y() + _bar.get_height()/2,
+                                f'{_w:.0f}%', va='center', fontsize=7, color='#555')
+                plt.tight_layout()
+                _save_fig(fig, 'sec10_pip_pct_sig')
+            except Exception as _e_pip:
+                print(f'  [!] No se pudo generar sec10_pip_pct_sig: {_e_pip}')
 
     # ── 4 dropdowns colapsables con Top-10 por criterio ──────────────────────
     def _top10_drop(df_src, crit, asc, label):
@@ -2805,31 +3066,48 @@ def generar_reporte_html(ctx, est_ctx, ardl_res, var_res, vecm_res,
       <h3>② Coeficientes de LARGO PLAZO (β en VECM, suma de coefs en VAR)</h3>
       {_img('sec10_coef_vs_pval_largo_plazo', 'Coef LARGO PLAZO vs P-valor')}
 
-      <h3>③ Análisis PIP — Relevancia de cada variable en los Top-40 modelos</h3>
+      <h3>③ % significativo por variable — Corto vs Largo plazo</h3>
+      {_img('sec10_pip_pct_sig', '% de modelos en que cada variable resulta significativa, CP vs LP')}
+
+      <h3>④ Análisis PIP — Relevancia de cada variable en los Top-40 modelos</h3>
       {pip_html or '<p class="muted">Sin datos suficientes para PIP.</p>'}
 
-      <h3>④ Top 10 modelos por criterio (clic para expandir)</h3>
+      <h3>⑤ Top 10 modelos por criterio (clic para expandir)</h3>
       {top10_html or '<p class="muted">Sin modelos disponibles.</p>'}
 
-      <h3>⑤ Distribución de criterios y R² por tipo de modelo</h3>
+      <h3>⑥ Distribución de criterios y R² por tipo de modelo</h3>
       {_img('sec11_boxplot_criterios', 'Boxplots de IC y R² (ARDL vs VAR vs VECM)')}
 
-      <h3>⑥ Mejor modelo por criterio — detalle de coeficientes</h3>
+      <h3>⑦ Mejor modelo por criterio — detalle de coeficientes</h3>
       {best_html or '<p class="muted">Sin modelos disponibles.</p>'}
 
-      <h3>⑦ Predicción del mejor modelo vs serie observada</h3>
+      <h3>⑧ Predicción del mejor modelo vs serie observada</h3>
       {_img('sec11_real_vs_ajustado', 'Mejor modelo GLOBAL — Predicción vs Observado')}
       <h4>Mejor por tipo de modelo</h4>
       {_img('sec11_real_vs_ajustado_ardl', 'Mejor ARDL — Predicción vs Observado')}
       {_img('sec11_real_vs_ajustado_var',  'Mejor VAR — Predicción vs Observado')}
       {_img('sec11_real_vs_ajustado_vecm', 'Mejor VECM — Predicción vs Observado')}
 
-      <h3>⑧ VECM — Velocidad de ajuste (α) y γ</h3>
+      <h3>⑨ VECM — Velocidad de ajuste (α) y γ</h3>
       {_img('sec10_vecm_alpha_dep', 'α vs p-valor (variable dependiente)')}
       {_img('sec10_vecm_gamma_pct_segun_alpha', '% γ_x significativo según α_dep')}
 
-      <h3>⑨ Variables DUMMY exógenas (controles fijos)</h3>
+      <h3>⑩ Variables DUMMY exógenas (controles fijos)</h3>
       {dum_html}
+
+      <h3>⑪ Causalidad de Granger (pairwise + rolling)</h3>
+      <p class="muted" style="font-size:12px;margin:4px 0 8px">
+        Test pairwise sobre todas las series del panel (transformadas a su forma estacionaria
+        según el orden de integración detectado). Fila = causa, columna = efecto. El valor
+        reportado es el p-valor mínimo a lo largo de los lags 1..max_lag, junto al lag óptimo (L).
+        En negrita = p&lt;{NIVEL_SIG}. El grafo dibuja solo las aristas significativas; grosor
+        proporcional a −log₁₀(p). El rolling muestra cómo evoluciona la causalidad en ventanas móviles
+        para los pares que involucran a la variable dependiente (zonas verdes = la causalidad
+        es estadísticamente significativa en esa ventana).
+      </p>
+      {_img('sec10_granger_matrix', 'Matriz de Granger (fila → columna)')}
+      {_img('sec10_granger_grafo',  'Grafo dirigido de aristas significativas')}
+      {_img('sec10_granger_rolling','Rolling Granger sobre la dependiente')}
 
       {('<p class="muted" style="margin-top:14px;font-size:12px">'
         '<b>Nota:</b> en VECM las dummies son shocks exógenos de impacto — no entran '
@@ -3217,6 +3495,7 @@ def main():
     df_res = pd.DataFrame(); df_largo = pd.DataFrame(); df_dum = pd.DataFrame()
     cons_cache = _cache_load('consolidado') if REUSE else None
     if should_run('10') and cons_cache is None:
+        ctx['_est_ctx_for_granger'] = est_ctx
         df_res, df_largo, df_dum = seccion_10_consolidacion(ctx, ardl_res, var_res, vecm_res, config)
         _cache_save('consolidado', {'df_res': df_res, 'df_largo': df_largo, 'df_dum': df_dum})
     elif cons_cache is not None:
