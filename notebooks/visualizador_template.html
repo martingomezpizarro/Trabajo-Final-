@@ -1108,6 +1108,19 @@ const CATALOG = [
       { id:'fis_res_eco',  label:'Resultado Económico',             file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'resultado_economico_ahorro_desahorro',          unit:'Mill. ARS', freq:'M' },
       { id:'fis_prima_sf', label:'Resultado Primario s/ rentas',    file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'resultados_primarios_sin_rentas',               unit:'Mill. ARS', freq:'M' }
     ]},
+    { sub:'Resultado Fiscal Estructural (Gay & Escudero 2010)', items:[
+      { id:'fis_se',         label:'SE — Resultado Estructural (% PBI)',  file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SE_pctPIB',         unit:'% del PBI', freq:'Q' },
+      { id:'fis_sca',        label:'SCA — Cíclicamente Ajustado (% PBI)', file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SCA_pctPIB',        unit:'% del PBI', freq:'Q' },
+      { id:'fis_sp_pib',     label:'SP — Primario observado (% PBI)',     file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SP_oficial_pctPIB', unit:'% del PBI', freq:'Q' },
+      { id:'fis_gap',        label:'Brecha del Producto (Y-Y*)/Y*',       file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'GAP',               unit:'ratio',     freq:'Q' },
+      { id:'fis_y_pot',      label:'PBI Potencial (Cobb-Douglas)',        file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'Y_pot',             unit:'Mill. ARS const.', freq:'Q' },
+      { id:'fis_se_nom',     label:'SE — Nivel (Mill. ARS)',              file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SE',                unit:'Mill. ARS', freq:'Q' },
+      { id:'fis_ti',         label:'Términos de Intercambio',             file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'TI',                unit:'Índice 2004=100', freq:'Q' },
+      { id:'fis_ti_star',    label:'TI* (largo plazo, MA10y)',            file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'TI_star',           unit:'Índice 2004=100', freq:'Q' },
+      { id:'fis_nairu',      label:'NAIRU (HP filter)',                   file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'NAIRU',             unit:'%',         freq:'Q' },
+      { id:'fis_k_stock',    label:'Stock de Capital K',                  file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'K',                 unit:'Mill. ARS const.', freq:'Q' },
+      { id:'fis_ptf',        label:'PTF suavizada (Productividad)',       file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'PTF_smooth',        unit:'Índice',    freq:'Q' }
+    ]},
     { sub:'Ingresos', items:[
       { id:'fis_ing', label:'Ingresos Corrientes — Total', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'ing_corr', unit:'Mill. ARS', freq:'M',
         children:[
@@ -1351,6 +1364,28 @@ const CATALOG = [
       { id:'ofr_em',  label:'  ↳ Mercados Emergentes',        file:'ofr_fsi.csv', dateCol:'Date', valCol:'Emerging markets',         unit:'Índice', freq:'D' }
     ]}
   ]},
+  /* ── EXPECTATIVAS ── */
+
+  { grp:'Expectativas', clr:'#ec4899', subs:[
+    { sub:'Índice de Confianza del Consumidor (ICC)', items:[
+      { id:'icc_nac', label:'ICC — Nacional',          file:'ICC.csv', dateCol:'Date', valCol:'Indice de Confianza del Consumidor (ICC) - Nacional',          unit:'Índice', freq:'M' },
+      { id:'icc_cap', label:'ICC — Capital',           file:'ICC.csv', dateCol:'Date', valCol:'Indice de Confianza del Consumidor (ICC) - Capital',           unit:'Índice', freq:'M' },
+      { id:'icc_gba', label:'ICC — Gran Buenos Aires',  file:'ICC.csv', dateCol:'Date', valCol:'Indice de Confianza del Consumidor (ICC) - Gran Buenos Aires', unit:'Índice', freq:'M' },
+      { id:'icc_int', label:'ICC — Interior',          file:'ICC.csv', dateCol:'Date', valCol:'Indice de Confianza del Consumidor (ICC) - Interior',          unit:'Índice', freq:'M' }
+    ]},
+    { sub:'Componentes del ICC', items:[
+      { id:'icc_pers',  label:'Situación Personal',           file:'ICC.csv', dateCol:'Date', valCol:'Indice de Confianza del Consumidor (ICC) - Situación Personal',         unit:'Índice', freq:'M' },
+      { id:'icc_macro', label:'Situación Macroeconómica',     file:'ICC.csv', dateCol:'Date', valCol:'Indice de Confianza del Consumidor (ICC) - Situación Macroeconómica',   unit:'Índice', freq:'M' },
+      { id:'icc_dur',   label:'Bienes Durables e Inmuebles',  file:'ICC.csv', dateCol:'Date', valCol:'Indice de Confianza del Consumidor (ICC) - Bienes Durables e Inmuebles', unit:'Índice', freq:'M' },
+      { id:'icc_corto', label:'Expectativas a corto plazo',   file:'ICC.csv', dateCol:'Date', valCol:'Indice de Confianza del Consumidor (ICC) - Expectativas a corto plazo',  unit:'Índice', freq:'M' },
+      { id:'icc_medio', label:'Expectativas a mediano plazo', file:'ICC.csv', dateCol:'Date', valCol:'Indice de Confianza del Consumidor (ICC) - Expectativas a mediano plazo', unit:'Índice', freq:'M' }
+    ]},
+    { sub:'Índice de Confianza en el Gobierno (ICG)', items:[
+      { id:'icg_gral', label:'ICG — Nivel General (UTDT)', file:'ICG_utdt.csv', dateCol:'Date', valCol:'ICG',            unit:'Índice (0–5)', freq:'M' },
+      { id:'icg_var',  label:'ICG — Variación mensual',     file:'ICG_utdt.csv', dateCol:'Date', valCol:'Variacion_ICG', unit:'Var. m/m',     freq:'M' }
+    ]}
+  ]},
+
   { grp:'Variables Dummy Estructurales', clr:'#f59e0b', items:[
     { id:'dummy_elec_var',         label:'Dummy_elecciones',          file:'dummy_elec.csv', dateCol:'fecha', valCol:'dummy_electoral',       unit:'0/1', freq:'D' },
     { id:'dummy_cepo_var',         label:'Dummy_cepo',                file:'dummy_cepo.csv', dateCol:'fecha', valCol:'dummy_cepo',            unit:'0/1', freq:'D' },
@@ -4275,10 +4310,10 @@ function calcularPreviewBasico() {
   const lagVar     = parseInt(document.getElementById('bb-lag-var').value)      || 3;
   const lagVecm    = parseInt(document.getElementById('bb-lag-vecm').value)     || 3;
 
-  // Criterios ARDL: el script usa AIC+BIC por defecto (2). El optimizador interno
-  // (ardl_select_order) enumera (Pmax+1) lags de dep × (Qmax+1) lags por cada X
-  // y se queda con el mejor según criterio. Cada criterio hace su propia búsqueda.
-  const N_CRIT_ARDL = 2;
+  // Criterios ARDL: el script usa AIC+BIC+HQIC (3, CRITERIOS_SEL). El optimizador
+  // interno (ardl_select_order) enumera (Pmax+1) lags de dep × (Qmax+1) lags por
+  // cada X y se queda con el mejor según criterio. Cada criterio hace su propia búsqueda.
+  const N_CRIT_ARDL = 3;
   const P1 = lagArdlDep + 1;     // 0..Pmax → Pmax+1 valores
   const Q1 = lagArdlInd + 1;     // 0..Qmax → Qmax+1 valores
 
@@ -4308,7 +4343,14 @@ function calcularPreviewBasico() {
 
   const n_ardl = modelos.includes('ARDL') ? Math.round(n_ardl_fits * N_CRIT_ARDL) : 0;
   const n_var  = modelos.includes('VAR')  ? n_perms_var * lagVar : 0;
-  const n_vecm = (modelos.includes('VECM') && y_ord === 1 && X_i1 > 0) ? n_combos_i1 * lagVecm : 0;
+  // VECM (sección 9 del script): los combos NO son las combinaciones completas
+  // de X I(1). El script los deriva de los VAR que pasaron el filtro de ruido
+  // blanco (vars_safe ∩ I(1), deduplicados); sólo cae a combinaciones completas
+  // si VAR no corre. Por eso n_combos_i1 es una COTA SUPERIOR: el número real
+  // es ≤ y depende de cuántos VAR pasen Ljung-Box.
+  const vecm_aplica = modelos.includes('VECM') && y_ord === 1 && X_i1 > 0;
+  const vecm_derivado = vecm_aplica && modelos.includes('VAR');
+  const n_vecm = vecm_aplica ? n_combos_i1 * lagVecm : 0;
 
   return {
     dep: dep.label || dep.s1, y_orden: y_ord,
@@ -4316,7 +4358,8 @@ function calcularPreviewBasico() {
     n_combos_est, n_perms_var, n_combos_i1,
     lagArdlDep, lagArdlInd, lagVar, lagVecm,
     n_ardl_fits: Math.round(n_ardl_fits),
-    n_ardl, n_var, n_vecm, n_total: n_ardl + n_var + n_vecm,
+    n_ardl, n_var, n_vecm, vecm_derivado,
+    n_total: n_ardl + n_var + n_vecm,
     modelos,
   };
 }
@@ -4341,7 +4384,7 @@ function actualizarPreviewBasico() {
   h += `<div><b style="color:#F6B40E">X:</b> ${p.n_vars_total} total · ${p.n_vars_est} I(0|1) · ${p.n_vars_i1} I(1)</div>`;
   h += '<div style="border-top:1px solid #334155;margin:4px 0"></div>';
   h += `<div>ARDL: <b>${fmt(p.n_ardl)}</b></div>`;
-  h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_est)} subsets de X · enumera ${p.lagArdlDep+1} lags dep (0..${p.lagArdlDep}) × ${p.lagArdlInd+1} lags por cada X (0..${p.lagArdlInd}) · ×2 criterios (AIC, BIC)</div>`;
+  h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_est)} subsets de X · enumera ${p.lagArdlDep+1} lags dep (0..${p.lagArdlDep}) × ${p.lagArdlInd+1} lags por cada X (0..${p.lagArdlInd}) · ×3 criterios (AIC, BIC, HQIC)</div>`;
   h += `<div>VAR:&nbsp; <b>${fmt(p.n_var)}</b></div>`;
   h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_est)} subsets · ${fmt(p.n_perms_var)} ordenamientos Cholesky totales (Y siempre al final) · k∈{1..${p.lagVar}}</div>`;
   if (p.y_orden !== 1) {
@@ -4349,11 +4392,15 @@ function actualizarPreviewBasico() {
   } else if (p.n_vars_i1 === 0) {
     h += `<div>VECM: <span style="color:#94a3b8">no aplica (ningún X I(1))</span></div>`;
   } else {
-    h += `<div>VECM: <b>${fmt(p.n_vecm)}</b></div>`;
-    h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_i1)} subsets de X I(1) · k_ar_diff∈{1..${p.lagVecm}}</div>`;
+    h += `<div>VECM: <b>${p.vecm_derivado ? '≤ ' : ''}${fmt(p.n_vecm)}</b></div>`;
+    if (p.vecm_derivado) {
+      h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ≤ ${fmt(p.n_combos_i1)} subsets de X I(1) · k_ar_diff∈{1..${p.lagVecm}} · <b>cota superior</b>: el script deriva los combos de los VAR que pasan ruido blanco (∩ I(1), dedup), no de combinaciones completas</div>`;
+    } else {
+      h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_i1)} subsets de X I(1) · k_ar_diff∈{1..${p.lagVecm}} · combinaciones completas (VAR no seleccionado → fallback)</div>`;
+    }
   }
   h += '<div style="border-top:1px solid #334155;margin:4px 0"></div>';
-  h += `<div style="color:#10b981"><b>Total: ${fmt(p.n_total)} estimaciones</b></div>`;
+  h += `<div style="color:#10b981"><b>Total: ${p.vecm_derivado ? '≤ ' : ''}${fmt(p.n_total)} estimaciones</b></div>`;
   box.innerHTML = h;
 }
 
