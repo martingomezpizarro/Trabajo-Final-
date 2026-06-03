@@ -87,9 +87,12 @@ def read_csv_cols(filepath, needed_cols):
                     data[orig_name].append(val)  # string value (e.g. gobierno_nombre)
     return data
 
+# Estos .csv no existen como tales: los provee el parser de vencimientos xlsx (transpuesto).
+XLSX_SOURCED = {'vencimientos_1y_nuevo.csv', 'vencimientos_2y_nuevo.csv'}
+
 embedded = {}
 for filename, needed_cols in sorted(file_columns.items()):
-    if filename.endswith(('.xlsx', '.xls')):
+    if filename.endswith(('.xlsx', '.xls')) or filename in XLSX_SOURCED:
         continue  # handled after read_xlsx_cols is defined
     filepath = os.path.join(VARS_DIR, filename)
     if not os.path.exists(filepath):
@@ -186,59 +189,65 @@ for filename in sorted(xlsx_files):
         embedded[filename] = data
         print(f"  [OK] {filename:60s} {n:>6} filas, {len(data)} cols")
 
-# ── Vencimientos 2Y desde xlsx transpuesto (filas=categorías, columnas=fechas) ──
-venc_xlsx = os.path.join(VARS_DIR, 'vencimientos_2y_nuevo.xlsx')
-if os.path.exists(venc_xlsx):
+# ── Vencimientos (1Y y 2Y) desde xlsx transpuesto (filas=categorías, columnas=fechas) ──
+def _parse_venc_xlsx(path):
+    import pandas as _pdv
+    from datetime import datetime as _dtv
+    df_v = _pdv.read_excel(path, sheet_name='Por Tipo y Moneda', header=None)
+    raw_dates = [df_v.iloc[5, j] for j in range(1, df_v.shape[1]) if _pdv.notna(df_v.iloc[5, j])]
+    n_d = len(raw_dates)
+
+    def _parse_vdate(d):
+        mm, yy = str(d).strip().split('/')
+        return _dtv(int(yy), int(mm), 1)
+
+    sidx = sorted(range(n_d), key=lambda i: _parse_vdate(str(raw_dates[i])))
+    sdates = [_parse_vdate(str(raw_dates[i])).strftime('%Y-%m-%d') for i in sidx]
+
+    def _venc_col(main, sub=None):
+        t = str.maketrans('ÁÉÍÓÚáéíóúÑñ', 'AEIOUaeiouNn')
+        s = re.sub(r'[^A-Z0-9\s]', ' ', main.strip().translate(t).upper())
+        s = re.sub(r'_+', '_', re.sub(r'\s+', '_', s.strip())).lower()
+        p = f'venc_{s}'
+        if sub:
+            if 'local' in sub.lower():     return f'{p}_local'
+            if 'extranjera' in sub.lower(): return f'{p}_ext'
+        return p
+
+    vd = {'fecha': sdates}
+    cur_main = None
+    for ri in range(6, df_v.shape[0]):
+        cell = df_v.iloc[ri, 0]
+        if _pdv.isna(cell):
+            continue
+        lbl = str(cell)
+        ml = lbl.strip()
+        if not lbl.startswith('  '):
+            cur_main = ml
+            col = _venc_col(cur_main)
+        else:
+            col = _venc_col(cur_main, ml)
+        rv = [df_v.iloc[ri, j + 1] for j in range(n_d)]
+        cleaned = []
+        for v in [rv[i] for i in sidx]:
+            try:
+                cleaned.append(None if _pdv.isna(v) else (round(float(v), 4) if float(v) == float(v) else None))
+            except Exception:
+                cleaned.append(None)
+        vd[col] = cleaned
+    return sdates, vd
+
+for _vx, _vcsv in [('vencimientos_2y_nuevo.xlsx', 'vencimientos_2y_nuevo.csv'),
+                   ('vencimientos_1y_nuevo.xlsx', 'vencimientos_1y_nuevo.csv')]:
+    venc_xlsx = os.path.join(VARS_DIR, _vx)
+    if not os.path.exists(venc_xlsx):
+        continue
     try:
-        import pandas as _pdv
-        from datetime import datetime as _dtv
-        df_v = _pdv.read_excel(venc_xlsx, sheet_name='Por Tipo y Moneda', header=None)
-        raw_dates = [df_v.iloc[5, j] for j in range(1, df_v.shape[1]) if _pdv.notna(df_v.iloc[5, j])]
-        n_d = len(raw_dates)
-
-        def _parse_vdate(d):
-            mm, yy = str(d).strip().split('/')
-            return _dtv(int(yy), int(mm), 1)
-
-        sidx = sorted(range(n_d), key=lambda i: _parse_vdate(str(raw_dates[i])))
-        sdates = [_parse_vdate(str(raw_dates[i])).strftime('%Y-%m-%d') for i in sidx]
-
-        def _venc_col(main, sub=None):
-            t = str.maketrans('ÁÉÍÓÚáéíóúÑñ', 'AEIOUaeiouNn')
-            s = re.sub(r'[^A-Z0-9\s]', ' ', main.strip().translate(t).upper())
-            s = re.sub(r'_+', '_', re.sub(r'\s+', '_', s.strip())).lower()
-            p = f'venc_{s}'
-            if sub:
-                if 'local' in sub.lower():     return f'{p}_local'
-                if 'extranjera' in sub.lower(): return f'{p}_ext'
-            return p
-
-        vd = {'fecha': sdates}
-        cur_main = None
-        for ri in range(6, df_v.shape[0]):
-            cell = df_v.iloc[ri, 0]
-            if _pdv.isna(cell):
-                continue
-            lbl = str(cell)
-            ml = lbl.strip()
-            if not lbl.startswith('  '):
-                cur_main = ml
-                col = _venc_col(cur_main)
-            else:
-                col = _venc_col(cur_main, ml)
-            rv = [df_v.iloc[ri, j + 1] for j in range(n_d)]
-            cleaned = []
-            for v in [rv[i] for i in sidx]:
-                try:
-                    cleaned.append(None if _pdv.isna(v) else (round(float(v), 4) if float(v) == float(v) else None))
-                except Exception:
-                    cleaned.append(None)
-            vd[col] = cleaned
-
-        embedded['vencimientos_2y_nuevo.csv'] = vd
-        print(f"  [OK] {'vencimientos_2y_nuevo.xlsx (transpuesto)':60s} {len(sdates):>6} filas, {len(vd)-1} cols")
+        sdates, vd = _parse_venc_xlsx(venc_xlsx)
+        embedded[_vcsv] = vd
+        print(f"  [OK] {(_vx + ' (transpuesto)'):60s} {len(sdates):>6} filas, {len(vd)-1} cols")
     except Exception as e:
-        print(f"  [!] Error procesando vencimientos_2y_nuevo.xlsx: {e}")
+        print(f"  [!] Error procesando {_vx}: {e}")
 
 print(f"\nTotal: {len(embedded)} archivos embebidos")
 

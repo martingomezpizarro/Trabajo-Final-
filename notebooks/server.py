@@ -126,6 +126,135 @@ def _run_subprocess(args_list):
         return False, _last_log
 
 
+def _run_kalman(payload: dict) -> dict:
+    import pandas as _pd
+    import numpy as _np
+    from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+    target_data = payload.get('target', {})
+    exog_list = payload.get('exog', [])
+    freq = payload.get('freq', 'MS') # e.g. 'MS'
+    is_flow = payload.get('is_flow', False)
+    order_str = payload.get('order', '4,1,4')
+    seasonal_order_str = payload.get('seasonal_order', '1,0,1,12')
+
+    try:
+        order = tuple(map(int, order_str.split(',')))
+        seasonal_order = tuple(map(int, seasonal_order_str.split(',')))
+    except:
+        order = (4,1,4)
+        seasonal_order = (1,0,1,12)
+
+    if not target_data.get('dates'):
+        return {'ok': False, 'error': 'Target dates empty'}
+
+    tdates = _pd.to_datetime(target_data['dates'])
+    tvals = target_data['values']
+    ts = _pd.Series(tvals, index=tdates, name='target').dropna()
+
+    exog_df = None
+    if exog_list:
+        cols = []
+        for i, e in enumerate(exog_list):
+            edates = _pd.to_datetime(e.get('dates', []))
+            evals = e.get('values', [])
+            es = _pd.Series(evals, index=edates, name=e.get('label', f'exog_{i}')).dropna()
+            cols.append(es)
+        if cols:
+            exog_raw = _pd.concat(cols, axis=1)
+            # Forward fill exogenas mensualmente (o promediar). Promediamos.
+            exog_df = exog_raw.resample(freq).mean().ffill().bfill()
+
+    # Mover target a freq destino
+    if freq == 'MS':
+        if exog_df is not None:
+            target_df = _pd.DataFrame(index=exog_df.index, columns=['target'])
+        else:
+            target_df = _pd.DataFrame(index=_pd.date_range(ts.index.min(), ts.index.max(), freq='MS'), columns=['target'])
+
+        for q_date in ts.index:
+            m = q_date.month
+            y = q_date.year
+            # Mover dato al ultimo mes del trimestre
+            if m in [1, 2, 3]: tm = 3
+            elif m in [4, 5, 6]: tm = 6
+            elif m in [7, 8, 9]: tm = 9
+            else: tm = 12
+            
+            target_date = _pd.Timestamp(year=y, month=tm, day=1)
+            val = ts.loc[q_date]
+            if is_flow:
+                val = val / 3.0
+            
+            if target_date in target_df.index:
+                target_df.loc[target_date, 'target'] = val
+    else:
+        target_df = ts.resample(freq).mean().to_frame(name='target')
+
+    if exog_df is not None:
+        common_idx = target_df.index.intersection(exog_df.index)
+        df_model = _pd.concat([target_df.loc[common_idx], exog_df.loc[common_idx]], axis=1)
+        exog_train = df_model[exog_df.columns].astype(float)
+        y_train = df_model['target'].astype(float)
+    else:
+        df_model = target_df
+        exog_train = None
+        y_train = df_model['target'].astype(float)
+
+    # El filtro de Kalman en statsmodels no requiere quitar NaNs de la endogena. 
+    # Solo asegurarse que la exogena no tenga NaNs. (ffill/bfill arriba lo soluciona)
+    
+    modelo = SARIMAX(
+        y_train,
+        exog=exog_train,
+        order=order,
+        seasonal_order=seasonal_order,
+        trend="c",
+        enforce_stationarity=False,
+        enforce_invertibility=False,
+    )
+    try:
+        resultado = modelo.fit(disp=False, maxiter=500, method="powell")
+        import numpy as np
+        if getattr(resultado, "aic", np.nan) != getattr(resultado, "aic", np.nan) or np.isnan(float(getattr(resultado, "aic", np.nan))):
+            raise ValueError("AIC is NaN")
+    except:
+        k = modelo.k_params
+        import numpy as np
+        start_params = np.zeros(k)
+        start_params[-1] = 1.0 # Varianza base
+        resultado = modelo.fit(start_params=start_params, disp=False, maxiter=500, method="powell")
+
+    y_pred_in = resultado.predict()
+    
+    # Errores y Diagnostico
+    residuos = resultado.resid.dropna()
+    try:
+        import statsmodels.api as sm
+        lb = sm.stats.acorr_ljungbox(residuos, lags=[min(12, len(residuos) // 5)], return_df=True)
+        lb_pval = float(lb["lb_pvalue"].values[0])
+    except:
+        lb_pval = None
+
+    mask_obs = ~_np.isnan(y_train.values)
+    rmse_in = float(_np.sqrt(_np.mean((y_train.values[mask_obs] - y_pred_in.values[mask_obs]) ** 2))) if mask_obs.sum() > 0 else None
+
+    # Resultados serializables
+    return {
+        'ok': True,
+        'dates': [d.strftime('%Y-%m-%d') for d in df_model.index],
+        'y_obs': [float(v) if not _pd.isna(v) else None for v in y_train.values],
+        'y_pred': [float(v) if not _pd.isna(v) else None for v in y_pred_in.values],
+        'residuals': [float(v) if not _pd.isna(v) else None for v in residuos.values],
+        'summary': str(resultado.summary()),
+        'params': {str(k): float(v) for k, v in resultado.params.items()},
+        'aic': float(resultado.aic),
+        'bic': float(resultado.bic),
+        'rmse': rmse_in,
+        'ljung_box_pval': lb_pval
+    }
+
+
 def _run_granger(payload: dict) -> dict:
     """Calcula causalidad de Granger pairwise (matriz) y/o rolling.
 
@@ -483,6 +612,17 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 payload = self._read_json_body()
                 out = _run_granger(payload)
+                return self._send(200, json.dumps(out), 'application/json')
+            except Exception as e:
+                import traceback as _tb
+                return self._send(500, json.dumps({
+                    'ok': False, 'error': str(e), 'trace': _tb.format_exc()[-1500:]
+                }), 'application/json')
+
+        if u.path == '/api/kalman':
+            try:
+                payload = self._read_json_body()
+                out = _run_kalman(payload)
                 return self._send(200, json.dumps(out), 'application/json')
             except Exception as e:
                 import traceback as _tb

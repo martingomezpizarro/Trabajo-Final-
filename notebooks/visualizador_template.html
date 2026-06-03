@@ -110,6 +110,8 @@ body{font-family:'Inter',sans-serif;background:#0A1628;color:#d4d4e8;display:fle
 .cmp-lbl{font-weight:600;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cmp-row select{background:rgba(15,40,72,.8);border:1px solid rgba(91,164,230,.12);border-radius:3px;color:#d4d4e8;padding:2px 5px;font-size:9.5px;outline:none}
 .cmp-row input[type="checkbox"]{accent-color:#5BA4E6;width:12px;height:12px}
+.cmp-rm{flex:none;width:16px;height:16px;line-height:14px;text-align:center;padding:0;border:1px solid rgba(230,91,91,.35);border-radius:3px;background:rgba(230,91,91,.12);color:#E68080;font-size:10px;font-weight:700;cursor:pointer;transition:background .12s,color .12s}
+.cmp-rm:hover{background:rgba(230,91,91,.85);color:#fff}
 #cc{height:75vh;min-height:400px}
 #cs{height:35vh;min-height:200px}
 #cmp-corr{height:35vh;min-height:300px;border-top:1px solid rgba(91,164,230,.08)}
@@ -467,6 +469,7 @@ body{font-family:'Inter',sans-serif;background:#0A1628;color:#d4d4e8;display:fle
           <button class="abtn abtn-p" style="margin-top:6px" onclick="anlAutoArima()">🧬 Auto-ARIMA (corto plazo)</button>
         </div>
         <button class="abtn abtn-p" style="margin-top:6px" onclick="openTestModal()">🔬 Tests de Raíz Unitaria</button>
+        <button class="abtn abtn-p" style="margin-top:6px" onclick="openKalmanModal()">🔄 Filtro de Kalman / SARIMAX</button>
         <button class="abtn abtn-amber" style="margin-top:8px" onclick="saveAnalysis()">💾 Guardar Análisis</button>
       </div>
       <div id="anl-right">
@@ -523,6 +526,52 @@ body{font-family:'Inter',sans-serif;background:#0A1628;color:#d4d4e8;display:fle
       </div>
     </div>
   </div>
+
+  <!-- Modal Filtro de Kalman -->
+  <div class="modal-bg" id="modal-kalman" onclick="if(event.target===this)closeKalmanModal()">
+    <div class="modal-box" style="position:relative; min-width: 650px; max-height: 90vh; overflow-y: auto;">
+      <button class="modal-close" onclick="closeKalmanModal()">✕</button>
+      <h3>🔄 Filtro de Kalman / SARIMAX</h3>
+      <div class="anl-section" style="margin-bottom:0;">
+        <div class="anl-row"><label>Endógena (Y)</label>
+          <input type="text" id="kalman-target-search" list="kalman-s-list" placeholder="— buscar serie —" oninput="onKalmanTargetPick()" autocomplete="off"/>
+          <input type="hidden" id="kalman-target"/>
+        </div>
+        <div class="anl-row"><label>Exógenas (X)</label>
+          <input type="text" id="kalman-exog-search" list="kalman-s-list" placeholder="— buscar serie y presionar + —" autocomplete="off"/>
+          <button class="abtn" style="width:auto; padding: 3px 8px; margin-left: 5px; font-size:12px;" onclick="addKalmanExog()">+</button>
+        </div>
+        <div id="kalman-exog-list" style="margin-bottom: 8px; font-size: 10px; color: #B0CCF0; background: rgba(13,31,60,.8); padding: 5px; min-height: 24px; border-radius: 4px; display:flex; flex-wrap:wrap; gap:4px;">
+           <span style="color:#7090B0; font-style:italic">Ninguna (modelo univariado)</span>
+        </div>
+        <div class="anl-row"><label>Frecuencia</label>
+          <select id="kalman-freq">
+            <option value="D">Diaria (D)</option>
+            <option value="W">Semanal (W)</option>
+            <option value="MS" selected>Mensual (MS)</option>
+            <option value="Q">Trimestral (Q)</option>
+          </select>
+        </div>
+        <div class="anl-row">
+            <label>Orden ARIMA</label>
+            <input type="text" id="kalman-order" value="4,1,4" title="p,d,q" style="width:60px; flex:none;"/>
+            <label style="margin-left:10px; min-width:auto;">Estacional</label>
+            <input type="text" id="kalman-seasonal" value="1,0,1,12" title="P,D,Q,s" style="width:80px; flex:none;"/>
+            <label style="margin-left:10px; min-width:auto;" title="Dividir endógena por 3 al mensualizar">Es flujo</label>
+            <input type="checkbox" id="kalman-flow" style="width:auto; flex:none;"/>
+        </div>
+        <button class="abtn abtn-p" id="kalman-run-btn" onclick="runKalmanFilter()" style="margin-top:8px">▶ Ejecutar Filtro</button>
+        
+        <div id="kalman-out" style="display:none; margin-top:10px; border-top:1px solid rgba(91,164,230,.2); padding-top:10px;">
+           <div id="kalman-chart" style="height:250px; background:#0A1628"></div>
+           <div id="kalman-chart-resid" style="height:150px; background:#0A1628; margin-top:5px;"></div>
+           <pre id="kalman-summary" style="font-size:9px; color:#A8D4F8; background:#0e0e26; padding:8px; border-radius:4px; max-height: 180px; overflow: auto; margin-top:5px; line-height:1.2;"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <datalist id="kalman-s-list"></datalist>
 
   <!-- ANÁLISIS BÁSICO (reporte de 02a_analisis_basico.py) -->
   <div id="tab-basico" class="tab-content" style="flex-direction:column">
@@ -665,6 +714,22 @@ const CATALOG = [
       { id:'itcrm_jap', label:'Japón',   file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Japón',   unit:'Índice', freq:'D' },
       { id:'itcrm_ind', label:'India',   file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB India',   unit:'Índice', freq:'D' },
       { id:'itcrm_vie', label:'Vietnam', file:'itcrm_diario.csv', dateCol:'Periodo', valCol:'ITCRB Vietnam', unit:'Índice', freq:'D' }
+    ]}
+  ]},
+
+  /* ── MACROECONOMIA REAL (ACTIVIDAD Y PBI) ── */
+  { grp:'Actividad Economica (PBI)', clr:'#ec4899', items:[
+    { id:'pbi_nominal', label:'PBI Nominal', unit:'Mill. ARS', sources:[
+      {freq:'M', file:'pbi_nominal_kalman.csv', dateCol:'fecha', valCol:'y_pred'},
+      {freq:'Q', file:'pbi_corriente.csv', dateCol:'fecha', valCol:'pbi'}
+    ]},
+    { id:'pbi_constante', label:'PBI Constante (Real)', unit:'Mill. ARS (base 2004)', sources:[
+      {freq:'M', file:'pbi_constante_kalman.csv', dateCol:'fecha', valCol:'y_pred'},
+      {freq:'Q', file:'pbi_constante_2004.csv', dateCol:'fecha', valCol:'pbi'}
+    ]},
+    { id:'pbi_usd', label:'PBI en USD', unit:'Mill. USD', sources:[
+      {freq:'M', file:'pbi_usd_kalman.csv', dateCol:'fecha', valCol:'y_pred'},
+      {freq:'Q', file:'pbi_trimestral_usd_mep.csv', dateCol:'periodo', valCol:'pbi_usd_mm'}
     ]}
   ]},
 
@@ -894,6 +959,7 @@ const CATALOG = [
   { grp:'Balance de Pagos (MBP6)', clr:'#E8A817', subs:[
     { sub:'Cuenta Corriente', items:[
       { id:'bp_cc',    label:'Total Cuenta Corriente',           unit:'Mill. USD', sources:[
+          {freq:'M', file:'total_cuenta_corriente_kalman.csv', dateCol:'fecha', valCol:'y_pred'},
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'total_cuenta_corriente'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'total_cuenta_corriente'}
       ]},
@@ -956,6 +1022,7 @@ const CATALOG = [
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'total_cuenta_capital'}
       ]},
       { id:'bp_cf',    label:'Total Cuenta Financiera',        unit:'Mill. USD', sources:[
+          {freq:'M', file:'total_cuenta_financiera_kalman.csv', dateCol:'fecha', valCol:'y_pred'},
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'total_cuenta_financiera'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'total_cuenta_financiera'}
       ]},
@@ -1109,17 +1176,24 @@ const CATALOG = [
       { id:'fis_prima_sf', label:'Resultado Primario s/ rentas',    file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'resultados_primarios_sin_rentas',               unit:'Mill. ARS', freq:'M' }
     ]},
     { sub:'Resultado Fiscal Estructural (Gay & Escudero 2010)', items:[
-      { id:'fis_se',         label:'SE — Resultado Estructural (% PBI)',  file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SE_pctPIB',         unit:'% del PBI', freq:'Q' },
-      { id:'fis_sca',        label:'SCA — Cíclicamente Ajustado (% PBI)', file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SCA_pctPIB',        unit:'% del PBI', freq:'Q' },
-      { id:'fis_sp_pib',     label:'SP — Primario observado (% PBI)',     file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SP_oficial_pctPIB', unit:'% del PBI', freq:'Q' },
-      { id:'fis_gap',        label:'Brecha del Producto (Y-Y*)/Y*',       file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'GAP',               unit:'ratio',     freq:'Q' },
-      { id:'fis_y_pot',      label:'PBI Potencial (Cobb-Douglas)',        file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'Y_pot',             unit:'Mill. ARS const.', freq:'Q' },
-      { id:'fis_se_nom',     label:'SE — Nivel (Mill. ARS)',              file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SE',                unit:'Mill. ARS', freq:'Q' },
-      { id:'fis_ti',         label:'Términos de Intercambio',             file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'TI',                unit:'Índice 2004=100', freq:'Q' },
-      { id:'fis_ti_star',    label:'TI* (largo plazo, MA10y)',            file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'TI_star',           unit:'Índice 2004=100', freq:'Q' },
-      { id:'fis_nairu',      label:'NAIRU (HP filter)',                   file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'NAIRU',             unit:'%',         freq:'Q' },
-      { id:'fis_k_stock',    label:'Stock de Capital K',                  file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'K',                 unit:'Mill. ARS const.', freq:'Q' },
-      { id:'fis_ptf',        label:'PTF suavizada (Productividad)',       file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'PTF_smooth',        unit:'Índice',    freq:'Q' }
+      { id:'fis_se',          label:'SE — Resultado Estructural (% PBI)',  file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SE_pctPIB',                       unit:'% del PBI', freq:'Q' },
+      { id:'fis_sca',         label:'SCA — Cíclicamente Ajustado (% PBI)', file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SCA_pctPIB',                      unit:'% del PBI', freq:'Q' },
+      { id:'fis_sp_pib',      label:'SP — Primario observado (% PBI)',     file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SP_oficial_pctPIB',               unit:'% del PBI', freq:'Q' },
+      { id:'fis_tx_pib',      label:'Tx — Derechos exportación (% PBI)',   file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'Tx_pctPIB',                       unit:'% del PBI', freq:'Q' },
+      { id:'fis_ccc',         label:'Componente cíclico commodity',        file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'componente_ciclico_commodity',    unit:'Mill. ARS', freq:'Q' },
+      { id:'fis_gap',         label:'Brecha del Producto (Y-Y*)/Y*',       file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'GAP',                             unit:'ratio',     freq:'Q' },
+      { id:'fis_y_pot',       label:'PBI Potencial (Cobb-Douglas)',        file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'Y_pot',                           unit:'Mill. ARS const.', freq:'Q' },
+      { id:'fis_ti',          label:'Términos de Intercambio',             file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'TI',                              unit:'Índice 2004=100', freq:'Q' },
+      { id:'fis_ti_star',     label:'TI* (largo plazo, MA10y)',            file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'TI_star',                         unit:'Índice 2004=100', freq:'Q' },
+      { id:'fis_nairu',       label:'NAIRU (HP filter EPH)',               file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'NAIRU',                           unit:'ratio',     freq:'Q' },
+      { id:'fis_u_eph',       label:'Tasa desempleo EPH',                  file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'u_rate',                          unit:'ratio',     freq:'Q' },
+      { id:'fis_e_eph',       label:'Tasa empleo EPH',                     file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'e_rate',                          unit:'ratio',     freq:'Q' },
+      { id:'fis_ta_eph',      label:'Tasa actividad (derivada)',           file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'TA',                              unit:'ratio',     freq:'Q' },
+      { id:'fis_k_stock',     label:'Stock de Capital K',                  file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'K',                               unit:'Mill. ARS const.', freq:'Q' },
+      { id:'fis_l_ocup',      label:'L — Ocupados',                        file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'L',                               unit:'Personas',  freq:'Q' },
+      { id:'fis_l_pleno',     label:'L — Pleno empleo',                    file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'L_pleno',                         unit:'Personas',  freq:'Q' },
+      { id:'fis_ptf',         label:'PTF suavizada (Productividad)',       file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'PTF_smooth',                      unit:'Índice',    freq:'Q' },
+      { id:'fis_se_nom',      label:'SE — Nivel (Mill. ARS)',              file:'resultado_fiscal_estructural.csv', dateCol:'fecha', valCol:'SE',                              unit:'Mill. ARS', freq:'Q' }
     ]},
     { sub:'Ingresos', items:[
       { id:'fis_ing', label:'Ingresos Corrientes — Total', file:'Resultado fiscal-unificado.xlsx', dateCol:'indice_tiempo', valCol:'ing_corr', unit:'Mill. ARS', freq:'M',
@@ -1156,7 +1230,16 @@ const CATALOG = [
   { grp:'Deuda y Defaults', clr:'#f97316', subs:[
     { sub:'Riesgo Soberano (EMBI)', items:[
       { id:'embi_arg',   label:'Riesgo País ARG (EMBI+)',  file:'riesgo_pais_arg.csv', dateCol:'fecha', valCol:'embi_arg',   unit:'p.b.', freq:'D' },
-      { id:'embi_latam', label:'EMBI+ Latinoamérica',      file:'embi_latam.csv',      dateCol:'fecha', valCol:'embi_latam', unit:'%',    freq:'D' }
+      { id:'embi_latam', label:'EMBI Global Latinoamérica', file:'embi_latam.csv',      dateCol:'fecha', valCol:'embi_latam', unit:'p.b.', freq:'D' },
+      { id:'embig_arg',   label:'EMBIG Argentina',          file:'embig_bcrp.csv', dateCol:'fecha', valCol:'embig_argentina_pbs',  unit:'p.b.', freq:'D' },
+      { id:'embig_bra',   label:'EMBIG Brasil',             file:'embig_bcrp.csv', dateCol:'fecha', valCol:'embig_brasil_pbs',     unit:'p.b.', freq:'D' },
+      { id:'embig_mex',   label:'EMBIG México',             file:'embig_bcrp.csv', dateCol:'fecha', valCol:'embig_mexico_pbs',     unit:'p.b.', freq:'D' },
+      { id:'embig_chi',   label:'EMBIG Chile',              file:'embig_bcrp.csv', dateCol:'fecha', valCol:'embig_chile_pbs',      unit:'p.b.', freq:'D' },
+      { id:'embig_col',   label:'EMBIG Colombia',           file:'embig_bcrp.csv', dateCol:'fecha', valCol:'embig_colombia_pbs',   unit:'p.b.', freq:'D' },
+      { id:'embig_per',   label:'EMBIG Perú',               file:'embig_bcrp.csv', dateCol:'fecha', valCol:'embig_peru_pbs',       unit:'p.b.', freq:'D' },
+      { id:'embig_ecu',   label:'EMBIG Ecuador',            file:'embig_bcrp.csv', dateCol:'fecha', valCol:'embig_ecuador_pbs',    unit:'p.b.', freq:'D' },
+      { id:'embig_ven',   label:'EMBIG Venezuela',          file:'embig_bcrp.csv', dateCol:'fecha', valCol:'embig_venezuela_pbs',  unit:'p.b.', freq:'D' },
+      { id:'embig_emerg', label:'EMBIG Economías Emergentes', file:'embig_bcrp.csv', dateCol:'fecha', valCol:'embig_emergentes_pbs', unit:'p.b.', freq:'D' }
     ]},
     { sub:'Historia Crediticia', items:[
       { id:'def_hist',  label:'Nº de Defaults (histórico)',  file:'defaults_history.csv',    dateCol:'fecha', valCol:'n_defaults',          unit:'count', freq:'D' },
@@ -1196,8 +1279,10 @@ const CATALOG = [
       ]}
     ]},
     { sub:'Vencimientos a 2 años (USD)', items:[
-      { id:'venc_total', label:'Vencimientos Totales', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_total', unit:'Mill. USD', freq:'Q',
-        children:[
+      { id:'venc_total', label:'Vencimientos Totales', unit:'Mill. USD', sources:[
+          {freq:'M', file:'vencimientos_usd_2_anios_kalman.csv', dateCol:'fecha', valCol:'y_pred'},
+          {freq:'Q', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_total'}
+        ], children:[
         { id:'venc_tot_loc', label:'Moneda Local (ARS)',       file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_total_local', unit:'Mill. USD', freq:'Q' },
         { id:'venc_tot_ext', label:'Moneda Extranjera (USD+)', file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_total_ext',   unit:'Mill. USD', freq:'Q' },
         { id:'venc_bcra',    label:'Anticipos BCRA',           file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_anticipos_bcra', unit:'Mill. USD', freq:'Q',
@@ -1336,6 +1421,177 @@ const CATALOG = [
           { id:'venc_tit_bocon_ext', label:'Moneda Extranjera',  file:'vencimientos_2y_nuevo.csv', dateCol:'fecha', valCol:'venc_titulos_publicos_bocon_9_serie_2010_pr16_ext',  unit:'Mill. USD', freq:'Q' }
         ]}
       ]}
+    ]},
+    { sub:'Vencimientos a 1 año (USD)', items:[
+      { id:'venc1y_total', label:'Vencimientos Totales', unit:'Mill. USD', sources:[
+          {freq:'M', file:'vencimientos_usd_1_anio_kalman.csv', dateCol:'fecha', valCol:'y_pred'},
+          {freq:'Q', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_total'}
+        ], children:[
+        { id:'venc1y_tot_loc', label:'Moneda Local (ARS)',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_total_local', unit:'Mill. USD', freq:'Q' },
+        { id:'venc1y_tot_ext', label:'Moneda Extranjera (USD+)', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_total_ext',   unit:'Mill. USD', freq:'Q' },
+        { id:'venc1y_bcra',    label:'Anticipos BCRA',           file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_anticipos_bcra', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_bcra_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_anticipos_bcra_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_bcra_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_anticipos_bcra_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_avales', label:'Avales', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_avales', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_avales_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_avales_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_avales_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_avales_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_banca', label:'Banca Comercial', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_banca_comercial', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_banca_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_banca_comercial_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_banca_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_banca_comercial_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_bcie', label:'BCIE', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bcie', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_bcie_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bcie_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_bcie_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bcie_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_bei', label:'BEI', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bei', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_bei_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bei_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_bei_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bei_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_bid', label:'BID', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bid', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_bid_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bid_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_bid_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bid_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_bilat', label:'Bilaterales', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bilaterales', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_bilat_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bilaterales_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_bilat_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bilaterales_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_birf', label:'BIRF', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_birf', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_birf_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_birf_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_birf_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_birf_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_bocon', label:'BOCON 9ª Serie/2010/PR16', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bocon_9_serie_2010_pr16', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_bocon_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bocon_9_serie_2010_pr16_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_bocon_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bocon_9_serie_2010_pr16_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_bonos', label:'Bonos', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bonos', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_bonos_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bonos_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_bonos_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_bonos_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_caf', label:'CAF', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_caf', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_caf_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_caf_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_caf_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_caf_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_cparis', label:'Club de París', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_club_de_paris', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_cparis_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_club_de_paris_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_cparis_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_club_de_paris_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_dec1579', label:'Decreto 1579', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_1579', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_dec1579_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_1579_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_dec1579_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_1579_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_dec977', label:'Decreto 977', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_977', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_dec977_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_977_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_dec977_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_decreto_977_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_fida', label:'FIDA', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_fida', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_fida_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_fida_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_fida_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_fida_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_fmi', label:'FMI', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_fmi', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_fmi_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_fmi_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_fmi_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_fmi_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_fonplata', label:'FONPLATA', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_fonplata', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_fonplata_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_fonplata_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_fonplata_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_fonplata_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_letras', label:'Letras del Tesoro', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_del_tesoro', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_letras_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_del_tesoro_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_letras_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_del_tesoro_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_l_gar', label:'Letras en Garantía', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_en_garantia', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_l_gar_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_en_garantia_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_l_gar_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_letras_en_garantia_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_ofid', label:'OFID', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_ofid', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_ofid_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_ofid_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_ofid_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_ofid_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_org_bilat', label:'Organ. Ofic. Bilateral Interna', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_organism_oficiales_bilateral_interna', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_org_bilat_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_organism_oficiales_bilateral_interna_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_org_bilat_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_organism_oficiales_bilateral_interna_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_otros', label:'Otros', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_otros_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_otros_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_oa_ext', label:'Otros Acreeds. — Proveed. Externa', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_externa', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_oa_ext_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_externa_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_oa_ext_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_externa_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_oa_int', label:'Otros Acreeds. — Proveed. Interna', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_interna', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_oa_int_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_interna_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_oa_int_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_otros_acreedores_proveedores_interna_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_pag', label:'Pagarés', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_pagares', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_pag_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_pagares_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_pag_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_pagares_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_pg', label:'Préstamos Garantizados', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_prestamos_garantizados', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_pg_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_prestamos_garantizados_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_pg_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_prestamos_garantizados_ext',  unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'venc1y_tit_bocon', label:'Títulos Públicos — BOCON', file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_titulos_publicos_bocon_9_serie_2010_pr16', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'venc1y_tit_bocon_loc', label:'Moneda Local',       file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_titulos_publicos_bocon_9_serie_2010_pr16_local', unit:'Mill. USD', freq:'Q' },
+          { id:'venc1y_tit_bocon_ext', label:'Moneda Extranjera',  file:'vencimientos_1y_nuevo.csv', dateCol:'fecha', valCol:'venc_titulos_publicos_bocon_9_serie_2010_pr16_ext',  unit:'Mill. USD', freq:'Q' }
+        ]}
+      ]}
+    ]},
+    { sub:'Deuda Externa Bruta — Sectores (INDEC)', items:[
+      { id:'dext_total', label:'Deuda Externa Bruta Total', unit:'Mill. USD', sources:[
+          {freq:'M', file:'deuda_externa_bruta_total_kalman.csv', dateCol:'fecha', valCol:'y_pred'},
+          {freq:'Q', file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_total'}
+        ], children:[
+        { id:'dext_gobierno',   label:'Gobierno General',                   file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_gobierno',   unit:'Mill. USD', freq:'Q' },
+        { id:'dext_bcra',       label:'Banco Central',                      file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_bcra',       unit:'Mill. USD', freq:'Q' },
+        { id:'dext_bancos',     label:'Bancos (Soc. captadoras de dep.)',   file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_bancos',     unit:'Mill. USD', freq:'Q' },
+        { id:'dext_otros_sec',  label:'Otros Sectores',                     file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_otros_sectores', unit:'Mill. USD', freq:'Q',
+          children:[
+          { id:'dext_otras_fin', label:'Otras Soc. Financieras', file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_otras_financieras', unit:'Mill. USD', freq:'Q' },
+          { id:'dext_no_fin',    label:'Soc. No Financieras',    file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_no_financieras',    unit:'Mill. USD', freq:'Q' }
+        ]},
+        { id:'dext_inv_dir',    label:'Inversión Directa (crédito entre empresas)', file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_inversion_directa', unit:'Mill. USD', freq:'Q' }
+      ]}
+    ]},
+    { sub:'Deuda Externa Bruta — Plazo (INDEC)', items:[
+      { id:'dextp_corto',  label:'Corto Plazo',        file:'deuda_externa_plazo.csv', dateCol:'fecha', valCol:'dext_corto_plazo',       unit:'Mill. USD', freq:'Q' },
+      { id:'dextp_largo',  label:'Largo Plazo',        file:'deuda_externa_plazo.csv', dateCol:'fecha', valCol:'dext_largo_plazo',       unit:'Mill. USD', freq:'Q' },
+      { id:'dextp_invdir', label:'Inversión Directa',  file:'deuda_externa_plazo.csv', dateCol:'fecha', valCol:'dext_inversion_directa', unit:'Mill. USD', freq:'Q' }
+    ]},
+    { sub:'Calendario Deuda Externa — Vencimientos (INDEC, BPM6)', items:[
+      { id:'dextc_p1y',     label:'Vencimientos próx. 12m — Total',     file:'deuda_externa_calendario_serie.csv', dateCol:'fecha', valCol:'venc_prox_1y',     unit:'Mill. USD', freq:'Q' },
+      { id:'dextc_p2y',     label:'Vencimientos próx. 24m — Total',     file:'deuda_externa_calendario_serie.csv', dateCol:'fecha', valCol:'venc_prox_2y',     unit:'Mill. USD', freq:'Q' },
+      { id:'dextc_gob_p1y', label:'Vencimientos próx. 12m — Gobierno',  file:'deuda_externa_calendario_serie.csv', dateCol:'fecha', valCol:'venc_gob_prox_1y', unit:'Mill. USD', freq:'Q' },
+      { id:'dextc_gob_p2y', label:'Vencimientos próx. 24m — Gobierno',  file:'deuda_externa_calendario_serie.csv', dateCol:'fecha', valCol:'venc_gob_prox_2y', unit:'Mill. USD', freq:'Q' }
     ]}
   ]},
 
@@ -1389,6 +1645,7 @@ const CATALOG = [
   { grp:'Variables Dummy Estructurales', clr:'#f59e0b', items:[
     { id:'dummy_elec_var',         label:'Dummy_elecciones',          file:'dummy_elec.csv', dateCol:'fecha', valCol:'dummy_electoral',       unit:'0/1', freq:'D' },
     { id:'dummy_cepo_var',         label:'Dummy_cepo',                file:'dummy_cepo.csv', dateCol:'fecha', valCol:'dummy_cepo',            unit:'0/1', freq:'D' },
+    { id:'dummy_covid_var',        label:'Dummy_covid',               file:'dummy_covid.csv',    dateCol:'fecha', valCol:'dummy_covid',           unit:'0/1', freq:'M' },
     { id:'dum_gob_menem',          label:'Dummy_Menem',               file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_menem',             unit:'0/1', freq:'D' },
     { id:'dum_gob_de_la_rua',      label:'Dummy_De_la_Rua',           file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_de_la_rua',         unit:'0/1', freq:'D' },
     { id:'dum_gob_transicion',     label:'Dummy_Transicion_2001',     file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_transicion_2001',   unit:'0/1', freq:'D' },
@@ -1405,6 +1662,8 @@ const CATALOG = [
 const DUMMIES = [
   { id:'cepo',  label:'Cepo Cambiario', file:'dummy_cepo.csv', dateCol:'fecha', valCol:'dummy_cepo',
     color:'rgba(239,68,68,0.12)', borderColor:'rgba(239,68,68,0.4)', mode:'binary' },
+  { id:'covid', label:'Pandemia COVID-19', file:'dummy_covid.csv', dateCol:'fecha', valCol:'dummy_covid',
+    color:'rgba(139,92,246,0.12)', borderColor:'rgba(139,92,246,0.4)', mode:'binary' },
   { id:'gob',   label:'Gobierno', file:'dummy_gob.csv', dateCol:'fecha', valCol:'gobierno_nombre',
     mode:'categorical',
     palette:{ Menem:'rgba(251,191,36,0.13)', 'De la Rua':'rgba(59,130,246,0.12)', 'Rodriguez Saa':'rgba(16,185,129,0.12)', Duhalde:'rgba(120,53,15,0.14)', Kirchner:'rgba(236,72,153,0.12)', 'Cristina Fernandez':'rgba(147,51,234,0.12)', Macri:'rgba(234,179,8,0.11)', 'Alberto Fernandez':'rgba(220,38,38,0.12)', Milei:'rgba(20,184,166,0.12)' },
@@ -2054,7 +2313,7 @@ function resetAxes() {
   render();
 }
 
-async function getSeries(id) {
+async function getSeries(id, overrideFreq = null) {
   const item = IDX[id];
   if (!item) throw new Error(`Serie ${id} no encontrada`);
   if (!item.sources) {
@@ -2062,9 +2321,10 @@ async function getSeries(id) {
     return { ...extractSeries(parsed, item.dateCol, item.valCol), nativeFreq: item.freq };
   }
   const order = {D:0,W:1,M:2,Q:3,A:4};
-  const tgt = order[freq];
+  const targetFreq = overrideFreq || freq;
+  const tgt = order[targetFreq];
   const srcs = item.sources;
-  let src = srcs.find(s => s.freq === freq);
+  let src = srcs.find(s => s.freq === targetFreq);
   if (!src) {
     const finer = srcs.filter(s => order[s.freq] < tgt).sort((a,b) => order[b.freq]-order[a.freq]);
     if (finer.length) src = finer[0];
@@ -2265,6 +2525,7 @@ async function renderCmp() {
     const row = document.createElement('div');
     row.className = 'cmp-row';
     row.innerHTML = `
+      <button class="cmp-rm" title="Quitar de la comparación" onclick="removeCmp('${id}')">✕</button>
       <div class="dot" style="background:${it.grpClr||'#5BA4E6'}"></div>
       <div class="cmp-lbl" style="color:${it.grpClr||'#cccce8'};max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${buildTransformLabel(id)}">${buildTransformLabel(id)}</div>
       <label><input type="checkbox" ${cfg.doLog?'checked':''} onchange="getCfg('${id}').doLog=this.checked; renderCmp()"> Log</label>
@@ -2586,6 +2847,17 @@ function toggleCmp(id, checked) {
   if (mode === 'cmp') render();
 }
 
+// Quitar una serie de la comparación desde la propia pestaña Comparar,
+// manteniendo sincronizado el checkbox y el resaltado del panel lateral.
+function removeCmp(id) {
+  cmpSet.delete(id);
+  if (cmpBase === id) cmpBase = '';
+  document.querySelectorAll(`.chk[onchange*="'${id}'"]`).forEach(c => c.checked = false);
+  document.getElementById('item-'+id)?.classList.remove('cmp');
+  document.getElementById('badge').textContent = cmpSet.size;
+  if (mode === 'cmp') render();
+}
+
 async function toggleDummy(did, checked) {
   if (checked) {
     activeDummies.add(did);
@@ -2699,11 +2971,33 @@ function makeFolderEl(it, grpClr) {
 /* ── SEARCH / FILTER ── */
 function filterTree(q) {
   const lq = q.toLowerCase();
+  
   // Filter leaf items
   document.querySelectorAll('.item').forEach(el => {
     const label = el.querySelector('span:nth-child(2)')?.textContent || '';
-    el.style.display = (!lq || label.toLowerCase().includes(lq)) ? '' : 'none';
+    
+    // Recopilar nombres de las categorías superiores
+    let catText = '';
+    let curr = el.parentElement;
+    while(curr && curr.id !== 'tree') {
+      if(curr.classList.contains('item-folder-body')) {
+         const hd = curr.previousElementSibling;
+         if(hd) catText += ' ' + (hd.textContent || '');
+      } else if(curr.classList.contains('sub2-body') || curr.classList.contains('sub-body')) {
+         const hd = curr.previousElementSibling;
+         if(hd) catText += ' ' + (hd.textContent || '');
+      } else if(curr.classList.contains('grp-body')) {
+         const hd = curr.previousElementSibling;
+         if(hd) catText += ' ' + (hd.textContent || '');
+      }
+      curr = curr.parentElement;
+    }
+    
+    const fullSearchText = (label + ' ' + catText).toLowerCase();
+    
+    el.style.display = (!lq || fullSearchText.includes(lq)) ? '' : 'none';
   });
+  
   // Show/hide folder headers based on visible children (innermost first)
   document.querySelectorAll('.item-folder').forEach(folder => {
     const hasVisible = [...folder.querySelectorAll('.item')].some(el => el.style.display !== 'none');
@@ -2793,7 +3087,7 @@ async function anlGetSeries() {
   const fTo = document.getElementById('anl-to').value;
   const fFreq = document.getElementById('anl-freq').value;
 
-  const raw1 = await getSeries(s1);
+  const raw1 = await getSeries(s1, fFreq);
   const it1 = IDX[s1];
   const freq1 = raw1.nativeFreq || it1.freq;
   let dates = raw1.dates, vals = raw1.values;
@@ -2811,7 +3105,7 @@ async function anlGetSeries() {
   }
 
   if (s2 && op !== 'A' && op !== 'B') {
-    const raw2 = await getSeries(s2);
+    const raw2 = await getSeries(s2, fFreq);
     const it2 = IDX[s2];
     const freq2 = raw2.nativeFreq || it2.freq;
     let d2 = raw2.dates, v2 = raw2.values;
@@ -2841,7 +3135,7 @@ async function anlGetSeries() {
     });
     vals = aligned;
   } else if (op === 'B' && s2) {
-    const raw2 = await getSeries(s2);
+    const raw2 = await getSeries(s2, fFreq);
     const it2 = IDX[s2];
     const freq2b = raw2.nativeFreq || it2.freq;
     dates = raw2.dates; vals = raw2.values;
@@ -4128,8 +4422,176 @@ function setDependiente(idx) {
 }
 
 // Modal de tests
+// Modal de tests
 window.openTestModal = function() {
   document.getElementById('modal-test').classList.add('open');
+};
+window.closeTestModal = function() {
+  document.getElementById('modal-test').classList.remove('open');
+};
+
+// Modal de Kalman
+window.kalmanExogSeries = [];
+
+window.openKalmanModal = function() {
+  document.getElementById('modal-kalman').classList.add('open');
+  // Populate datalist
+  let html = '';
+  for(let c of CATALOG) {
+    let items = c.items || [];
+    if(c.subs) {
+      for(let s of c.subs) items = items.concat(s.items);
+    }
+    for(let it of items) {
+      let fv = it.freq ? ` (${it.freq})` : '';
+      html += `<option value="${it.label}${fv}" data-id="${it.id}"></option>`;
+    }
+  }
+  document.getElementById('kalman-s-list').innerHTML = html;
+};
+
+window.closeKalmanModal = function() {
+  document.getElementById('modal-kalman').classList.remove('open');
+};
+
+window.onKalmanTargetPick = function() {
+  const inp = document.getElementById('kalman-target-search');
+  const hdn = document.getElementById('kalman-target');
+  const val = inp.value;
+  const opt = document.querySelector(`#kalman-s-list option[value="${val}"]`);
+  if(opt) {
+    hdn.value = opt.getAttribute('data-id');
+  } else {
+    hdn.value = '';
+  }
+};
+
+window.addKalmanExog = function() {
+  const inp = document.getElementById('kalman-exog-search');
+  const val = inp.value;
+  const opt = document.querySelector(`#kalman-s-list option[value="${val}"]`);
+  if(opt) {
+    const id = opt.getAttribute('data-id');
+    const lbl = val;
+    if(!window.kalmanExogSeries.some(e => e.id === id)) {
+      window.kalmanExogSeries.push({id, lbl});
+      renderKalmanExogList();
+    }
+    inp.value = '';
+  }
+};
+
+window.removeKalmanExog = function(id) {
+  window.kalmanExogSeries = window.kalmanExogSeries.filter(e => e.id !== id);
+  renderKalmanExogList();
+};
+
+function renderKalmanExogList() {
+  const cont = document.getElementById('kalman-exog-list');
+  if(window.kalmanExogSeries.length === 0) {
+    cont.innerHTML = '<span style="color:#7090B0; font-style:italic">Ninguna (modelo univariado)</span>';
+    return;
+  }
+  let html = '';
+  window.kalmanExogSeries.forEach(e => {
+    html += `<div style="display:inline-flex; align-items:center; gap:4px; background:rgba(91,164,230,.15); padding:2px 6px; border-radius:12px; border:1px solid rgba(91,164,230,.2);">${e.lbl} <button onclick="removeKalmanExog('${e.id}')" style="background:transparent; border:0; color:#E68080; cursor:pointer; font-weight:bold; padding:0 2px;">✕</button></div>`;
+  });
+  cont.innerHTML = html;
+}
+
+window.runKalmanFilter = async function() {
+  const targetId = document.getElementById('kalman-target').value;
+  if(!targetId) {
+    alert("Por favor seleccione una serie endógena (target).");
+    return;
+  }
+
+  const btn = document.getElementById('kalman-run-btn');
+  btn.innerHTML = '<span class="spinner" style="margin-right:5px; vertical-align:middle; border-top-color:#fff;"></span> Procesando...';
+  btn.disabled = true;
+
+  try {
+    const freqUI = document.getElementById('kalman-freq').value; // D, W, MS, Q
+    const targetData = getSeriesData(targetId);
+    if(!targetData) throw new Error("Datos de endógena no encontrados.");
+
+    let exogData = [];
+    for(let e of window.kalmanExogSeries) {
+       const ed = getSeriesData(e.id);
+       if(ed) {
+         exogData.push({
+           id: e.id,
+           label: e.lbl,
+           dates: ed.dates,
+           values: ed.values
+         });
+       }
+    }
+
+    const payload = {
+      target: {
+        id: targetId,
+        label: document.getElementById('kalman-target-search').value,
+        dates: targetData.dates,
+        values: targetData.values
+      },
+      exog: exogData,
+      freq: freqUI,
+      order: document.getElementById('kalman-order').value,
+      seasonal_order: document.getElementById('kalman-seasonal').value,
+      is_flow: document.getElementById('kalman-flow').checked
+    };
+
+    const res = await fetch('/api/kalman', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    const out = await res.json();
+    if(!out.ok) throw new Error(out.error || "Error desconocido");
+
+    // Mostrar resultados
+    document.getElementById('kalman-out').style.display = 'block';
+    
+    // Plot principal
+    Plotly.newPlot('kalman-chart', [
+      { x: out.dates, y: out.y_obs, mode: 'markers', name: 'Observado (train)', marker: {color: '#1f77b4', size: 6} },
+      { x: out.dates, y: out.y_pred, mode: 'lines', name: 'Ajuste Kalman (in-sample)', line: {color: '#ff7f0e', dash: 'dash', width: 1.5} }
+    ], {
+      margin: {t:30, b:30, l:40, r:20},
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: 'transparent',
+      font: {color: '#B0CCF0', size: 10},
+      title: {text: 'Ajuste del Modelo', font: {color: '#78C0F0', size: 11}},
+      legend: {orientation: 'h', y: 1.1},
+      xaxis: {gridcolor: 'rgba(91,164,230,.06)'},
+      yaxis: {gridcolor: 'rgba(91,164,230,.06)'}
+    });
+
+    // Plot residuos
+    Plotly.newPlot('kalman-chart-resid', [
+      { x: out.dates, y: out.residuals, mode: 'lines', name: 'Residuos', line: {color: '#d62728', width: 1} }
+    ], {
+      margin: {t:30, b:30, l:40, r:20},
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: 'transparent',
+      font: {color: '#B0CCF0', size: 10},
+      title: {text: 'Residuos', font: {color: '#78C0F0', size: 11}},
+      xaxis: {gridcolor: 'rgba(91,164,230,.06)'},
+      yaxis: {gridcolor: 'rgba(91,164,230,.06)'}
+    });
+
+    // Summary
+    const metrics = `AIC: ${out.aic.toFixed(2)} | BIC: ${out.bic.toFixed(2)} | RMSE: ${out.rmse ? out.rmse.toFixed(4) : 'N/A'}\nLjung-Box p-value: ${out.ljung_box_pval ? out.ljung_box_pval.toFixed(4) : 'N/A'}\n\n`;
+    document.getElementById('kalman-summary').innerText = metrics + out.summary;
+
+  } catch(e) {
+    alert("Error al ejecutar filtro de Kalman:\n" + e.message);
+  } finally {
+    btn.innerHTML = '▶ Ejecutar Filtro';
+    btn.disabled = false;
+  }
 };
 window.closeTestModal = function() {
   document.getElementById('modal-test').classList.remove('open');

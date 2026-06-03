@@ -431,13 +431,8 @@ def main():
         ext   = total - local
         print(f"total={total:,.1f} M  local={local:,.1f} M  ext={ext:,.1f} M")
 
-    # Deduplicate columns (keep first occurrence in order)
-    seen = set()
-    all_cols = []
-    for c in ordered_cols:
-        if c not in seen:
-            all_cols.append(c)
-            seen.add(c)
+    # Deduplicate and sort chronologically (MM/YYYY -> sort by year then month)
+    all_cols = sorted(set(ordered_cols), key=lambda c: (int(c[3:]), int(c[:2])))
 
     # All tipo_deuda labels (sorted)
     all_tipos = sorted({
