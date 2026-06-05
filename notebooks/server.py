@@ -654,13 +654,21 @@ class Handler(BaseHTTPRequestHandler):
             qs = parse_qs(u.query)
             extra = []
             qs_to_cli = {
-                'freq':         '--freq',
-                'lag_ardl_dep': '--max-lag-ardl-dep',
-                'lag_ardl_ind': '--max-lag-ardl-ind',
-                'lag_var':      '--max-lag-var',
-                'lag_vecm':     '--max-lag-vecm',
-                'max_vars':     '--max-vars',
-                'modelos':      '--modelos',
+                'freq':           '--freq',
+                'lag_ardl_dep':   '--max-lag-ardl-dep',
+                'lag_ardl_ind':   '--max-lag-ardl-ind',
+                'lag_var':        '--max-lag-var',
+                'lag_vecm':       '--max-lag-vecm',
+                'max_vars':       '--max-vars',
+                'modelos':        '--modelos',
+                'fecha_inicio':   '--fecha-inicio',
+                'fecha_fin':      '--fecha-fin',
+                'tiempo_max_min': '--tiempo-max-min',
+                'max_corridas':   '--max-corridas',
+                'corridas_ardl':  '--corridas-ardl',
+                'corridas_var':   '--corridas-var',
+                'corridas_vecm':  '--corridas-vecm',
+                'dummy_cap':      '--dummy-cap',
             }
             for k, cli in qs_to_cli.items():
                 v = qs.get(k, [''])[0].strip()

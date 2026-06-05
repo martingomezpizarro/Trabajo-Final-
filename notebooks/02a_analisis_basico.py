@@ -392,6 +392,10 @@ def construir_variable(row: pd.Series, frecuencia: str,
     operacion = str(row.get('Operación', 'Solo A') or 'Solo A').strip()
     log_flag  = str(row.get('Log', 'No') or 'No').strip().lower() not in ('no', '0', 'false', '')
     n_diff    = int(float(str(row.get('Dif.', 0) or 0) or 0))
+    try:
+        ma_win = int(float(str(row.get('MM', 0) or 0) or 0))
+    except (ValueError, TypeError):
+        ma_win = 0
 
     _b_activo  = operacion != 'Solo A' and nombre_b not in ('', '—', '-', 'nan')
     _da_activo = defl_a not in ('', '—', '-', 'nan')
@@ -429,6 +433,12 @@ def construir_variable(row: pd.Series, frecuencia: str,
     for _ in range(n_diff):
         resultado = resultado.diff()
 
+    # Media móvil (columna MM del visualizador): trailing, min_periods=1, ignora
+    # NaN — réplica exacta de movingAvg() del visualizador. Se aplica DESPUÉS del
+    # diff, igual que en la pestaña Análisis.
+    if ma_win >= 2:
+        resultado = resultado.rolling(ma_win, min_periods=1).mean()
+
     resultado = resultado.dropna()
     resultado.name = etiqueta
     return resultado, etiqueta
@@ -463,9 +473,14 @@ def _hqic(llf, k, n):
     return -2 * llf + 2 * k * np.log(np.log(max(n, 3)))
 
 
-def extraer_ardl(df_m, y_var, x_vars, max_lags_dep, max_lags_ind, criterio,
-                 df_dummy=None, bj_proposed_lags=None, bj_ar_y=1):
-    """Estima un modelo ARDL y extrae coeficientes de corto y largo plazo."""
+def extraer_ardl(df_m, y_var, x_vars, p_lag, q_lag, df_dummy=None):
+    """Estima un modelo ARDL con órdenes FIJOS y extrae coeficientes CP/LP.
+
+    Los lags se fijan explícitamente (NO se usa `ardl_select_order` ni ninguna
+    búsqueda por criterio de información): `p_lag` rezagos de la dependiente y
+    `q_lag` rezagos de CADA regresor. La iteración sobre la grilla de lags la hace
+    la sección 7 (combinaciones p×q hasta el tope metodológico, máx 3).
+    """
     from statsmodels.tsa.ardl import ARDL as _ARDL_direct
     from scipy.stats import norm as _norm_ardl
 
@@ -479,24 +494,12 @@ def extraer_ardl(df_m, y_var, x_vars, max_lags_dep, max_lags_ind, criterio,
         _dum_cols = list(_dum.columns)
         Xd = pd.concat([Xd, _dum], axis=1)
 
-    _bj_ok = bj_proposed_lags is not None and len(bj_proposed_lags) > 0
-    if _bj_ok:
-        try:
-            _order_dict = {x: max(bj_proposed_lags.get(x, [0, 1])) for x in x_vars}
-            res = _ARDL_direct(y, lags=bj_ar_y, exog=Xd,
-                               order=_order_dict, trend='c').fit()
-        except Exception:
-            _bj_ok = False
-
-    if not _bj_ok:
-        from statsmodels.tsa.ardl import ardl_select_order
-        _Xd_endo = data[x_vars]
-        sel = ardl_select_order(y, max_lags_dep, _Xd_endo, max_lags_ind,
-                                ic=criterio, trend='c')
-        _sel_p = sel.model.ardl_order[0]
-        _sel_q = {x: sel.model.ardl_order[i + 1] for i, x in enumerate(x_vars)}
-        res = _ARDL_direct(y, lags=_sel_p, exog=Xd,
-                           order=_sel_q, trend='c').fit()
+    # Regresores con q_lag rezagos; las dummies entran como exógenas CONTEMPORÁNEAS
+    # (lag 0, sin rezagos). Hay que incluirlas en el dict `order`; si faltan,
+    # statsmodels las descarta silenciosamente (SpecificationWarning).
+    _order = {x: q_lag for x in x_vars}
+    _order.update({_d: 0 for _d in _dum_cols})
+    res = _ARDL_direct(y, lags=p_lag, exog=Xd, order=_order, trend='c').fit()
 
     n   = res.nobs
     k   = len(res.params)
@@ -580,9 +583,12 @@ def extraer_ardl(df_m, y_var, x_vars, max_lags_dep, max_lags_ind, criterio,
 
     # ── Coeficientes de dummies (exógenas) ───────────────────────────────────
     dummy_coefs = {}
+    _pidx = list(res.params.index)
     for _d in _dum_cols:
-        if _d in res.params.index:
-            _ci = list(res.params.index).index(_d)
+        # statsmodels nombra la exógena contemporánea como '<dummy>.L0' (o '<dummy>')
+        _name = _d if _d in _pidx else (f'{_d}.L0' if f'{_d}.L0' in _pidx else None)
+        if _name is not None:
+            _ci = _pidx.index(_name)
             dummy_coefs[_d] = {
                 'coef': float(res.params.iloc[_ci]),
                 'pval': float(res.pvalues.iloc[_ci]),
@@ -826,6 +832,183 @@ def extraer_vecm(df_m, y_var, x_vars, todas_vars, k_ar_diff, det_order,
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# MUESTREO DE ESPECIFICACIONES (combinatoria series × dummies + presupuesto)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _subsets_dummies(dummy_safe, cap=None):
+    """Todos los subconjuntos de dummies (incluye el vacío ()).
+
+    Las dummies entran como variables EXÓGENAS opcionales: en algunos modelos se
+    usan y en otros no. `cap` limita el tamaño máximo del subconjunto para acotar
+    2^|D| si hay muchas dummies (None = sin límite → todos los subconjuntos)."""
+    ds = list(dummy_safe)
+    out = [()]
+    _max = len(ds) if cap is None else min(int(cap), len(ds))
+    for r in range(1, _max + 1):
+        out.extend(combinations(ds, r))
+    return out
+
+
+def _make_deadline(minutos):
+    """Devuelve un Timestamp límite (now + minutos) o None si no hay presupuesto."""
+    if not minutos or float(minutos) <= 0:
+        return None
+    return pd.Timestamp.now() + pd.Timedelta(minutes=float(minutos))
+
+
+def _eta_calibracion(label, n_done, t0, espacio, deadline=None, hito=40, every=200):
+    """Mide el ritmo real de estimación y proyecta el tiempo del espacio completo.
+
+    Responde "¿cuánto tarda en correr N modelos?" empíricamente: cronometra los
+    primeros fits, calcula seg/fit y extrapola. Se dispara una vez al alcanzar
+    `hito` estimaciones (calibración temprana) y luego cada `every`. Si hay
+    `deadline`, informa cuántas combinaciones entran en el presupuesto. No
+    materializa nada: usa el reloj y el contador que el loop ya lleva."""
+    if n_done != hito and (every <= 0 or n_done % every != 0):
+        return None
+    el = (pd.Timestamp.now() - t0).total_seconds()
+    if n_done <= 0 or el <= 0:
+        return None
+    rate = el / n_done                       # segundos por estimación
+    eta = rate * espacio                     # segundos para recorrer todo el espacio
+    msg = (f'  [{label}] ⏱️  calibración: {n_done} fits en {el:.1f}s → '
+           f'{rate*1000:.0f} ms/fit · espacio={espacio} → ETA completo ≈ {eta/60:.1f} min')
+    if deadline is not None:
+        rest = (deadline - pd.Timestamp.now()).total_seconds()
+        if rest > 0 and rate > 0:
+            n_cubre = int(rest / rate)
+            cobertura = min(100.0, 100.0 * n_cubre / espacio) if espacio > 0 else 100.0
+            msg += f' · presupuesto: ~{n_cubre} fits ({cobertura:.0f}% del espacio)'
+        else:
+            msg += ' · presupuesto agotado'
+    print(msg)
+    return rate
+
+
+def _iter_specs(base_combos, dummy_subsets, deadline=None, max_runs=None, seed=42,
+                base_vars=None, vars_req=None, dums_req=None):
+    """Genera pares (base_combo, dummy_subset) en orden ALEATORIO sin repetición.
+
+    Se detiene al agotar el espacio, alcanzar `max_runs`, o superar `deadline`
+    (wall-clock). Implementa el pedido de "probar aleatoriamente distintas
+    combinaciones hasta una cantidad/tiempo determinado":
+      - Espacio chico  → baraja el producto completo (cobertura exacta aleatoria).
+      - Espacio grande → muestreo aleatorio con deduplicación (sin materializar
+        el producto en memoria).
+
+    COBERTURA: si se pasa `base_vars` (callable item_base→iterable de variables)
+    junto con `vars_req` y/o `dums_req`, primero se EMITEN specs que garantizan
+    que cada variable endógena requerida y cada dummy requerida aparezca en al
+    menos un modelo, y recién después se rellena aleatoriamente. Así, con topes
+    de corridas bajos, no quedan variables/dummies sin usar en ningún modelo."""
+    rng = random.Random(seed)
+    base = list(base_combos)
+    dsub = list(dummy_subsets)
+    total = len(base) * len(dsub)
+    if total == 0:
+        return
+    n = 0
+    seen = set()
+
+    def _budget_ok():
+        if deadline is not None and pd.Timestamp.now() >= deadline:
+            return False
+        if max_runs is not None and n >= max_runs:
+            return False
+        return True
+
+    # ── Fase 1: cobertura obligatoria de variables y dummies ─────────────────
+    if base_vars is not None and (vars_req or dums_req):
+        _order = list(range(len(base)))
+        rng.shuffle(_order)
+        _cov_v, _cov_d = set(), set()
+        # 1a. cada variable endógena requerida → en ≥1 spec
+        for _v in (vars_req or []):
+            if _v in _cov_v:
+                continue
+            for _bi in _order:
+                if _v in base_vars(base[_bi]):
+                    _di = rng.randrange(len(dsub))
+                    if (_bi, _di) in seen:
+                        continue
+                    if not _budget_ok():
+                        return
+                    seen.add((_bi, _di)); n += 1
+                    _cov_v.update(base_vars(base[_bi])); _cov_d.update(dsub[_di])
+                    yield (base[_bi], dsub[_di])
+                    break
+        # 1b. cada dummy requerida → en ≥1 spec
+        for _d in (dums_req or []):
+            if _d in _cov_d:
+                continue
+            _cand = [i for i, s in enumerate(dsub) if _d in s]
+            if not _cand:
+                continue
+            for _try in range(min(20, len(_cand))):
+                _di = rng.choice(_cand)
+                _bi = rng.randrange(len(base))
+                if (_bi, _di) in seen:
+                    continue
+                if not _budget_ok():
+                    return
+                seen.add((_bi, _di)); n += 1
+                _cov_d.update(dsub[_di])
+                yield (base[_bi], dsub[_di])
+                break
+
+    # ── Fase 2: relleno aleatorio (dedup contra lo ya emitido) ───────────────
+    if total <= 300_000:
+        prod = [(bi, di) for bi in range(len(base)) for di in range(len(dsub))]
+        rng.shuffle(prod)
+        for (_bi, _di) in prod:
+            if (_bi, _di) in seen:
+                continue
+            if not _budget_ok():
+                return
+            seen.add((_bi, _di)); n += 1
+            yield (base[_bi], dsub[_di])
+        return
+    while True:
+        if not _budget_ok():
+            return
+        if len(seen) >= total:
+            return
+        _bi = rng.randrange(len(base))
+        _di = rng.randrange(len(dsub))
+        if (_bi, _di) in seen:
+            continue
+        seen.add((_bi, _di)); n += 1
+        yield (base[_bi], dsub[_di])
+
+
+def _corridas_sec(config, modelo):
+    """Tope de corridas para una sección de modelos. Usa el override por modelo
+    (CORRIDAS_ARDL / CORRIDAS_VAR / CORRIDAS_VECM); si no está, cae al global
+    MAX_CORRIDAS. Devuelve None = sin tope (sólo limita el tiempo, si hay)."""
+    v = config.get(f'CORRIDAS_{modelo}')
+    return v if v is not None else config.get('MAX_CORRIDAS')
+
+
+def _section_deadline(config, sec):
+    """Deadline wall-clock para una sección de modelos (7/8/9) repartiendo el
+    presupuesto global restante entre las secciones de modelos que faltan.
+    Reparto con 'rollover': si una sección termina antes (espacio chico), la
+    siguiente hereda el tiempo sobrante. Devuelve None si no hay presupuesto."""
+    tb = config.get('_TB')
+    if not tb or tb.get('global_deadline') is None:
+        return None
+    left = tb.get('left', [])
+    if sec in left:
+        left.remove(sec)
+    now = pd.Timestamp.now()
+    restantes = len(left) + 1  # esta sección + las que quedan
+    span = (tb['global_deadline'] - now) / restantes
+    if span <= pd.Timedelta(0):
+        return now  # presupuesto agotado → no estimar
+    return now + span
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # SECCIONES EJECUTABLES
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -843,6 +1026,12 @@ def seccion_3_configuracion():
         'MAX_LAGS_VAR': 12,
         'MAX_VARS_POR_MODELO': None,
         'MAX_COMBINACIONES': None,
+        'TIEMPO_MAX_MIN': None,   # presupuesto wall-clock total para modelos (min). None = sin límite
+        'MAX_CORRIDAS': None,     # tope global de estimaciones por sección (fallback). None = sin límite
+        'CORRIDAS_ARDL': None,    # tope de corridas SÓLO para ARDL (override de MAX_CORRIDAS)
+        'CORRIDAS_VAR': None,     # tope de corridas SÓLO para VAR
+        'CORRIDAS_VECM': None,    # tope de corridas SÓLO para VECM
+        'DUMMY_CAP': None,        # tamaño máx del subconjunto de dummies por modelo. None = todos
         'SEMILLA': 42,
         'CRITERIOS_SEL': ['aic', 'bic', 'hqic'],
         'NIVEL_SIG': 0.05,
@@ -1037,12 +1226,13 @@ def seccion_45_seleccion_dependiente(df_panel, _LISTA_SERIES, FRECUENCIA_USADA, 
         df_exog_dummy = pd.DataFrame(index=df_safe.index)
         print('ℹ️  Sin variables Dummy_ en el CSV → df_exog_dummy vacío.')
 
-    # MAX_LAGS dinámico — cap metodológico: 3 lags si mensual, 2 si trimestral
+    # MAX_LAGS dinámico — cap metodológico: máx 3 lags (regla general, todas las
+    # frecuencias); anual queda en 1. El min(3, …) garantiza el tope de 3.
     _T_obs  = df_safe.shape[0]
     _K_vars = len(X_SAFE) + 1
     _K_x    = len(X_SAFE)
-    _FREQ_LAG_CAP = {'D': 182, 'W': 25, 'M': 6, 'Q': 2, 'A': 1}
-    _freq_cap = _FREQ_LAG_CAP.get(FRECUENCIA_USADA, 3)
+    _FREQ_LAG_CAP = {'D': 3, 'W': 3, 'M': 3, 'Q': 3, 'A': 1}
+    _freq_cap = min(3, _FREQ_LAG_CAP.get(FRECUENCIA_USADA, 3))
     _dof_var = int((_T_obs - 1) / (_K_vars + 1))
     _dof_ard = int((_T_obs - 1) / (_K_x + 2))
 
@@ -1252,18 +1442,16 @@ def seccion_7_ardl(ctx, est_ctx, config):
     X_SAFE_EST = est_ctx['X_SAFE_EST']
     COL_LABEL = ctx['COL_LABEL']
     df_exog_dummy = ctx['df_exog_dummy']
+    DUMMY_SAFE = ctx.get('DUMMY_SAFE', [])
     MAX_LAGS_DEP = ctx['MAX_LAGS_DEP']
     MAX_LAGS_IND = ctx['MAX_LAGS_IND']
     NIVEL_SIG = config['NIVEL_SIG']
     SEMILLA = config['SEMILLA']
-    CRITERIOS_SEL = config['CRITERIOS_SEL']
 
     # ── 7.1 Box-Jenkins Prewhitening — DESACTIVADO ───────────────────────────
-    # Bloque comentado: no se usa BJ. extraer_ardl cae al fallback con
-    # ardl_select_order (selección de lags por criterio de información).
-    print('── 7.1 Prewhitening Box-Jenkins: DESACTIVADO (fallback ardl_select_order) ──')
-    _BJ_PROPOSED_LAGS = {}   # vacío → _bj_ok = False en extraer_ardl
-    _BJ_AR_Y = 1             # valor por defecto (no se usa con BJ desactivado)
+    # Bloque comentado: no se usa BJ ni selección automática de orden. Los lags
+    # del ARDL se fijan explícitamente iterando una grilla p×q (ver 7.2).
+    print('── 7.1 Prewhitening Box-Jenkins: DESACTIVADO (lags ARDL fijos por grilla) ──')
     _bj_ccf_store = {}       # vacío → no se genera gráfico CCF
 
     # --- Código original comentado (Box-Jenkins prewhitening) ----------------
@@ -1417,69 +1605,98 @@ def seccion_7_ardl(ctx, est_ctx, config):
     # ── 7.2 Estimaciones ARDL ────────────────────────────────────────────────
     print('── 7.2 Estimaciones ARDL ──')
     MAX_VARS_POR_MODELO = config['MAX_VARS_POR_MODELO']
-    MAX_COMBINACIONES = config['MAX_COMBINACIONES']
+    MAX_CORRIDAS = _corridas_sec(config, 'ARDL')
+    DUMMY_CAP = config.get('DUMMY_CAP')
 
+    # Combinaciones de series ENDÓGENAS (sin dummies) × subconjuntos de DUMMIES
+    # exógenas (incluye el vacío → modelos sin dummies). Las dummies entran como
+    # control exógeno opcional: en algunos modelos se usan y en otros no.
     _n_max_ardl  = len(X_SAFE_EST) if MAX_VARS_POR_MODELO is None else MAX_VARS_POR_MODELO
     _combos_ardl = []
     for _r in range(1, _n_max_ardl + 1):
         _combos_ardl.extend(list(combinations(X_SAFE_EST, _r)))
 
-    if MAX_COMBINACIONES is not None and len(_combos_ardl) > MAX_COMBINACIONES:
-        random.seed(SEMILLA)
-        _combos_ardl = random.sample(_combos_ardl, MAX_COMBINACIONES)
+    # Grilla de lags FIJOS (sin auto-selección): p ∈ 1..MAX_LAGS_DEP rezagos de la
+    # dependiente × q ∈ 1..MAX_LAGS_IND rezagos de cada regresor (mismo q para todos).
+    _lag_grid_ardl = [(_p, _q) for _p in range(1, MAX_LAGS_DEP + 1)
+                               for _q in range(1, MAX_LAGS_IND + 1)]
 
-    print(f'Combinaciones ARDL : {len(_combos_ardl)}')
-    print(f'Criterios          : {CRITERIOS_SEL}')
-    print(f'Estimaciones esp.  : {len(_combos_ardl) * len(CRITERIOS_SEL)}')
+    _dsub_ardl = _subsets_dummies(DUMMY_SAFE, DUMMY_CAP)
+    _base_ardl = [(_c, _pq) for _c in _combos_ardl for _pq in _lag_grid_ardl]
+    _deadline_ardl = _section_deadline(config, '7')
+    _espacio_ardl = len(_base_ardl) * len(_dsub_ardl)
+
+    print(f'Combinaciones series : {len(_combos_ardl)}  ·  subconjuntos dummy: {len(_dsub_ardl)}')
+    print(f'Grilla lags p×q      : {len(_lag_grid_ardl)} (p≤{MAX_LAGS_DEP}, q≤{MAX_LAGS_IND})')
+    print(f'Espacio total ARDL   : {_espacio_ardl} estimaciones')
+    if _deadline_ardl is not None:
+        print(f'⏱️  Presupuesto ARDL hasta: {_deadline_ardl:%H:%M:%S} (muestreo aleatorio)')
+    if MAX_CORRIDAS is not None:
+        print(f'🎲 Tope de corridas ARDL: {MAX_CORRIDAS}')
 
     _RESULTADOS_ARDL = []
     _ARDL_RESIDUALS  = {}
     _t0_ardl = pd.Timestamp.now()
     _err_ardl = 0
     _ok_ardl  = 0
-    _PRINT_INT_ARDL = max(1, len(_combos_ardl) // 5)
+    _it_ardl  = 0
 
-    for _criterio in CRITERIOS_SEL:
-        for _ci, _combo in enumerate(_combos_ardl):
-            _xv = list(_combo)
-            _tv = list(_xv) + [Y_SAFE]
-            _df = df_safe_est[_tv].dropna()
-            if len(_df) < 30:
-                continue
-            try:
-                _r = extraer_ardl(_df, Y_SAFE, _xv, MAX_LAGS_DEP, MAX_LAGS_IND, _criterio,
-                                  df_dummy=df_exog_dummy if not df_exog_dummy.empty else None,
-                                  bj_proposed_lags=_BJ_PROPOSED_LAGS, bj_ar_y=_BJ_AR_Y)
-                _row = {
-                    'combo_id': f'{_ci}_{_criterio}', 'criterio': _criterio,
-                    'modelo': 'ARDL', 'n_vars': len(_xv),
-                    'vars_safe': '|'.join(_xv),
-                    'vars_label': '|'.join([COL_LABEL[v] for v in _xv]),
-                    'aic': _r['aic'], 'bic': _r['bic'], 'hq': _r['hq'],
-                    'r2': _r['r2'], 'nobs': _r['nobs'],
-                }
-                for _x in _xv:
-                    _row[f'coef_{_x}']    = _r['coefs'][_x]['coef']
-                    _row[f'pval_{_x}']    = _r['coefs'][_x]['pval']
-                    _row[f'lr_coef_{_x}'] = _r['lr_coefs'][_x]['coef']
-                    _row[f'lr_pval_{_x}'] = _r['lr_coefs'][_x]['pval']
-                for _d, _dc in _r.get('dummy_coefs', {}).items():
-                    _row[f'dum_coef_{_d}'] = _dc['coef']
-                    _row[f'dum_pval_{_d}'] = _dc['pval']
-                _RESULTADOS_ARDL.append(_row)
-                _ARDL_RESIDUALS[_row['combo_id']] = _r['resid']
-                _ok_ardl += 1
-            except Exception:
-                _err_ardl += 1
+    for (_combo, _pq), _dums in _iter_specs(_base_ardl, _dsub_ardl,
+                                            deadline=_deadline_ardl,
+                                            max_runs=MAX_CORRIDAS, seed=SEMILLA,
+                                            base_vars=lambda _it: _it[0],
+                                            vars_req=list(X_SAFE_EST),
+                                            dums_req=list(DUMMY_SAFE)):
+        _it_ardl += 1
+        _eta_calibracion('ARDL', _it_ardl, _t0_ardl, _espacio_ardl, _deadline_ardl)
+        _p_lag, _q_lag = _pq
+        _criterio = f'p{_p_lag}q{_q_lag}'   # etiqueta de la especificación de lags
+        _xv = list(_combo)
+        _tv = list(_xv) + [Y_SAFE]
+        _df = df_safe_est[_tv].dropna()
+        if len(_df) < 30:
+            continue
+        _dl = list(_dums)
+        _dfdum = df_exog_dummy[_dl] if (_dl and not df_exog_dummy.empty) else None
+        try:
+            _r = extraer_ardl(_df, Y_SAFE, _xv, _p_lag, _q_lag, df_dummy=_dfdum)
+            _cid = f'a{_it_ardl}_{_criterio}'
+            _row = {
+                'combo_id': _cid, 'criterio': _criterio,
+                'modelo': 'ARDL', 'n_vars': len(_xv),
+                'vars_safe': '|'.join(_xv),
+                'vars_label': '|'.join([COL_LABEL[v] for v in _xv]),
+                'dums_safe': '|'.join(_dl),
+                'dums_label': '|'.join([COL_LABEL.get(d, d) for d in _dl]),
+                'aic': _r['aic'], 'bic': _r['bic'], 'hq': _r['hq'],
+                'r2': _r['r2'], 'nobs': _r['nobs'],
+            }
+            for _x in _xv:
+                _row[f'coef_{_x}']    = _r['coefs'][_x]['coef']
+                _row[f'pval_{_x}']    = _r['coefs'][_x]['pval']
+                _row[f'lr_coef_{_x}'] = _r['lr_coefs'][_x]['coef']
+                _row[f'lr_pval_{_x}'] = _r['lr_coefs'][_x]['pval']
+            for _d, _dc in _r.get('dummy_coefs', {}).items():
+                _row[f'dum_coef_{_d}'] = _dc['coef']
+                _row[f'dum_pval_{_d}'] = _dc['pval']
+            _RESULTADOS_ARDL.append(_row)
+            _ARDL_RESIDUALS[_cid] = _r['resid']
+            _ok_ardl += 1
+        except Exception:
+            _err_ardl += 1
 
-            if (_ci + 1) % _PRINT_INT_ARDL == 0 or _ci == len(_combos_ardl) - 1:
-                _el = int((pd.Timestamp.now() - _t0_ardl).total_seconds())
-                print(f'  [{_criterio.upper()}] combo {_ci+1:>3}/{len(_combos_ardl)} | ok={_ok_ardl} err={_err_ardl} | {_el}s')
+        if _it_ardl % 200 == 0:
+            _el = int((pd.Timestamp.now() - _t0_ardl).total_seconds())
+            print(f'  [ARDL] estim {_it_ardl}/{_espacio_ardl} | ok={_ok_ardl} err={_err_ardl} | {_el}s')
 
     df_res_ardl = pd.DataFrame(_RESULTADOS_ARDL)
     _tasa_a = f'{_ok_ardl/(_ok_ardl+_err_ardl)*100:.1f}%' if (_ok_ardl+_err_ardl) > 0 else 'n/a'
     print(f'\n{"="*60}')
     print(f'ARDL completado: {_ok_ardl} modelos | {_err_ardl} errores | tasa={_tasa_a}')
+    _el_a = (pd.Timestamp.now() - _t0_ardl).total_seconds()
+    if _it_ardl > 0:
+        print(f'⏱️  ARDL ritmo real: {_it_ardl} estim en {_el_a:.1f}s → {_el_a/_it_ardl*1000:.0f} ms/fit '
+              f'· proyección espacio completo ({_espacio_ardl}): {_el_a/_it_ardl*_espacio_ardl/60:.1f} min')
     print(f'{"="*60}')
 
     # ── 7.3 Control de calidad ARDL ──────────────────────────────────────────
@@ -1542,8 +1759,6 @@ def seccion_7_ardl(ctx, est_ctx, config):
         'df_res_ardl_ok': df_res_ardl_ok,
         'df_ardl_ruido_blanco': df_ardl_ruido_blanco,
         '_ARDL_RESIDUALS': _ARDL_RESIDUALS,
-        '_BJ_PROPOSED_LAGS': _BJ_PROPOSED_LAGS,
-        '_BJ_AR_Y': _BJ_AR_Y,
     }
 
 
@@ -1612,16 +1827,13 @@ def seccion_8_var(ctx, est_ctx, config):
     # ── 8.2 Estimaciones VAR ─────────────────────────────────────────────────
     print('\n── 8.2 Estimaciones VAR (IRF Cholesky) ──')
     MAX_VARS_POR_MODELO = config['MAX_VARS_POR_MODELO']
-    MAX_COMBINACIONES = config['MAX_COMBINACIONES']
+    MAX_CORRIDAS = _corridas_sec(config, 'VAR')
+    DUMMY_CAP = config.get('DUMMY_CAP')
 
     _n_max_var = len(X_SAFE_EST) if MAX_VARS_POR_MODELO is None else MAX_VARS_POR_MODELO
     _subsets_var = []
     for _r in range(1, _n_max_var + 1):
         _subsets_var.extend(list(combinations(X_SAFE_EST, _r)))
-
-    if MAX_COMBINACIONES is not None and len(_subsets_var) > MAX_COMBINACIONES:
-        random.seed(SEMILLA)
-        _subsets_var = random.sample(_subsets_var, MAX_COMBINACIONES)
 
     _perms_var = []
     for _subset in _subsets_var:
@@ -1635,7 +1847,15 @@ def seccion_8_var(ctx, est_ctx, config):
 
     # Iterar lags 1..LAG_CAP_FREQ en lugar de seleccionar por IC
     _LAGS_VAR = list(range(1, max(1, LAG_CAP_FREQ) + 1))
-    print(f'Permutaciones SVAR a estimar: {len(_perms_var)} x {len(_LAGS_VAR)} lags')
+    # base = (permutación Cholesky, lag) ; dummies exógenas opcionales por modelo
+    _base_var = [(tuple(_p), _k) for _p in _perms_var for _k in _LAGS_VAR]
+    _dsub_var = _subsets_dummies(DUMMY_SAFE, DUMMY_CAP)
+    _deadline_var = _section_deadline(config, '8')
+    _espacio_var = len(_base_var) * len(_dsub_var)
+    print(f'Permutaciones SVAR: {len(_perms_var)} × {len(_LAGS_VAR)} lags × {len(_dsub_var)} subconjuntos dummy')
+    print(f'Espacio total VAR : {_espacio_var} estimaciones')
+    if _deadline_var is not None:
+        print(f'⏱️  Presupuesto VAR hasta: {_deadline_var:%H:%M:%S} (muestreo aleatorio)')
     HORIZONTE_IRF = max(12, HORIZONTE_LP)
     DIAG_LAGS_LB = 8
 
@@ -1643,15 +1863,24 @@ def seccion_8_var(ctx, est_ctx, config):
     _t0_var  = pd.Timestamp.now()
     _err_var = 0
     _ok_var  = 0
-    _PRINT_INT_VAR = max(1, len(_perms_var) // 5)
+    _it_var  = 0
 
-    for _k_ar in _LAGS_VAR:
-        for _ci, _xv_perm in enumerate(_perms_var):
+    if True:
+        for (_xv_perm_t, _k_ar), _dums in _iter_specs(_base_var, _dsub_var,
+                                                      deadline=_deadline_var,
+                                                      max_runs=MAX_CORRIDAS, seed=SEMILLA,
+                                                      base_vars=lambda _it: _it[0],
+                                                      vars_req=list(X_SAFE_EST),
+                                                      dums_req=list(DUMMY_SAFE)):
+            _it_var += 1
+            _eta_calibracion('VAR', _it_var, _t0_var, _espacio_var, _deadline_var)
+            _xv_perm = list(_xv_perm_t)
             _tv_perm = list(_xv_perm) + [Y_SAFE]
             _df = df_safe_est[_tv_perm].dropna()
             _nobs = len(_df)
-            _exog_d = (df_exog_dummy.reindex(_df.index).fillna(0)
-                       if not df_exog_dummy.empty else None)
+            _dl = list(_dums)
+            _exog_d = (df_exog_dummy[_dl].reindex(_df.index).fillna(0)
+                       if (_dl and not df_exog_dummy.empty) else None)
             _k_vars = len(_tv_perm)
             _max_p_dinamico = max(1, (_nobs - 10) // _k_vars)
 
@@ -1670,11 +1899,13 @@ def seccion_8_var(ctx, est_ctx, config):
                 _y_idx = _k_vars - 1
 
                 _row = {
-                    'combo_id': f'{_ci}_{_criterio}_{"-".join(_xv_perm)}',
+                    'combo_id': f'v{_it_var}_{_criterio}_{"-".join(_xv_perm)}_{"+".join(_dl)}',
                     'criterio': _criterio, 'modelo': 'VAR',
                     'n_vars': len(_xv_perm),
                     'vars_safe': '|'.join(_xv_perm),
                     'vars_label': '|'.join([COL_LABEL.get(v, v)[:15] for v in _xv_perm]),
+                    'dums_safe': '|'.join(_dl),
+                    'dums_label': '|'.join([COL_LABEL.get(d, d) for d in _dl]),
                     'aic': float(_res.aic), 'bic': float(_res.bic),
                     'hq': float(_res.hqic), 'nobs': int(_res.nobs), 'k_ar': _k_ar,
                 }
@@ -1714,26 +1945,22 @@ def seccion_8_var(ctx, est_ctx, config):
                         _row[f'sum_coef_{_x}']  = float('nan')
                         _row[f'wald_pval_{_x}'] = float('nan')
 
-                # Coeficientes de dummies (exógenas) en ecuación de Y
+                # Coeficientes de dummies (exógenas) en la ecuación de Y.
+                # Sólo las dummies presentes en ESTE modelo (_dl); las ausentes
+                # quedan sin columna → la consolidación las trata como NaN.
                 try:
-                    if DUMMY_SAFE and _exog_d is not None:
-                        _params_y = _res.params[_y_col] if _y_col in _res.params.columns else None
-                        _pvals_y  = _res.pvalues[_y_col] if _y_col in _res.pvalues.columns else None
-                        if _params_y is not None:
-                            for _d in DUMMY_SAFE:
-                                _matches = [_n for _n in _params_y.index
-                                            if _n == _d or _n.endswith(f'.{_d}') or _n == f'exog.{_d}']
-                                if _matches:
-                                    _idx_d = list(_params_y.index).index(_matches[0])
-                                    _row[f'dum_coef_{_d}'] = float(_params_y.iloc[_idx_d])
-                                    _row[f'dum_pval_{_d}'] = float(_pvals_y.iloc[_idx_d])
-                                else:
-                                    _row[f'dum_coef_{_d}'] = float('nan')
-                                    _row[f'dum_pval_{_d}'] = float('nan')
+                    if _dl and _exog_d is not None and Y_SAFE in _res.params.columns:
+                        _params_y = _res.params[Y_SAFE]
+                        _pvals_y  = _res.pvalues[Y_SAFE]
+                        for _d in _dl:
+                            _matches = [_n for _n in _params_y.index
+                                        if _n == _d or _n.endswith(f'.{_d}') or _n == f'exog.{_d}']
+                            if _matches:
+                                _idx_d = list(_params_y.index).index(_matches[0])
+                                _row[f'dum_coef_{_d}'] = float(_params_y.iloc[_idx_d])
+                                _row[f'dum_pval_{_d}'] = float(_pvals_y.iloc[_idx_d])
                 except Exception:
-                    for _d in DUMMY_SAFE:
-                        _row.setdefault(f'dum_coef_{_d}', float('nan'))
-                        _row.setdefault(f'dum_pval_{_d}', float('nan'))
+                    pass
 
                 # R2
                 _y_resid = _res.resid.iloc[:, _y_idx]
@@ -1757,13 +1984,17 @@ def seccion_8_var(ctx, est_ctx, config):
             except Exception:
                 _err_var += 1
 
-            if (_ci + 1) % _PRINT_INT_VAR == 0 or _ci == len(_perms_var) - 1:
+            if _it_var % 200 == 0:
                 _el = int((pd.Timestamp.now() - _t0_var).total_seconds())
-                print(f'  [{_criterio.upper()}] perm {_ci+1:>4}/{len(_perms_var)} | ok={_ok_var} err={_err_var} | {_el}s')
+                print(f'  [VAR] estim {_it_var}/{_espacio_var} | ok={_ok_var} err={_err_var} | {_el}s')
 
     df_res_var = pd.DataFrame(_RESULTADOS_VAR)
     print(f'\n{"="*60}')
     print(f'SVAR (IRF) completado: {_ok_var} modelos | {_err_var} errores')
+    _el_v = (pd.Timestamp.now() - _t0_var).total_seconds()
+    if _it_var > 0:
+        print(f'⏱️  VAR ritmo real: {_it_var} estim en {_el_v:.1f}s → {_el_v/_it_var*1000:.0f} ms/fit '
+              f'· proyección espacio completo ({_espacio_var}): {_el_v/_it_var*_espacio_var/60:.1f} min')
     print(f'{"="*60}')
 
     # VAR_BEST_LAGS — usar lag con menor AIC por combo
@@ -1877,91 +2108,110 @@ def seccion_9_vecm(ctx, est_ctx, config, var_res=None):
             _combos_vecm.extend(list(combinations(_X_VECM, _r)))
         print(f'  Sin VAR OK previo: usando combinaciones completas ({len(_combos_vecm)})')
 
-    MAX_COMBINACIONES = config['MAX_COMBINACIONES']
-    if MAX_COMBINACIONES is not None and len(_combos_vecm) > MAX_COMBINACIONES:
-        random.seed(SEMILLA)
-        _combos_vecm = random.sample(_combos_vecm, MAX_COMBINACIONES)
+    DUMMY_CAP = config.get('DUMMY_CAP')
+    MAX_CORRIDAS = _corridas_sec(config, 'VECM')
 
     # Cap de lags: usa LAG_CAP_FREQ_VECM (override CLI) o LAG_CAP_FREQ. VECM exige k_ar_diff >= 1.
     _kdiff_range = list(range(1, max(1, LAG_CAP_FREQ_VECM) + 1))
-    print(f'Combinaciones: {len(_combos_vecm)} subsets x {len(_kdiff_range)} lags (cap_vecm={LAG_CAP_FREQ_VECM})')
+    # base = (combo I(1) endógeno, k_ar_diff) ; dummies exógenas (det_coef) opcionales
+    _base_vecm = [(tuple(_c), _k) for _c in _combos_vecm for _k in _kdiff_range]
+    _dsub_vecm = _subsets_dummies(DUMMY_SAFE, DUMMY_CAP)
+    _deadline_vecm = _section_deadline(config, '9')
+    _espacio_vecm = len(_base_vecm) * len(_dsub_vecm)
+    print(f'Combinaciones: {len(_combos_vecm)} subsets × {len(_kdiff_range)} lags × {len(_dsub_vecm)} subconjuntos dummy = {_espacio_vecm}')
+    if _deadline_vecm is not None:
+        print(f'⏱️  Presupuesto VECM hasta: {_deadline_vecm:%H:%M:%S} (muestreo aleatorio)')
 
     _RESULTADOS_VECM = []
     _t0_vecm = pd.Timestamp.now()
     _err_vecm = 0
     _ok_vecm  = 0
     _skip_vecm = 0
-    _PRINT_INT_VECM = max(1, len(_combos_vecm) // 5)
+    _it_vecm = 0
 
-    for _ci, _combo in enumerate(_combos_vecm):
+    _vars_req_vecm = sorted({_v for _c in _combos_vecm for _v in _c})
+    for (_combo, _k_ar_diff), _dums in _iter_specs(_base_vecm, _dsub_vecm,
+                                                   deadline=_deadline_vecm,
+                                                   max_runs=MAX_CORRIDAS, seed=SEMILLA,
+                                                   base_vars=lambda _it: _it[0],
+                                                   vars_req=_vars_req_vecm,
+                                                   dums_req=list(DUMMY_SAFE)):
+        _it_vecm += 1
+        _eta_calibracion('VECM', _it_vecm, _t0_vecm, _espacio_vecm, _deadline_vecm)
         _xv = list(_combo)
         _tv = list(_xv) + [Y_SAFE]
         _df = df_safe[_tv].dropna()
         if len(_df) < 30:
-            _skip_vecm += len(_kdiff_range)
+            _skip_vecm += 1
             continue
-
-        for _k_ar_diff in _kdiff_range:
-            try:
-                _r = extraer_vecm(_df, Y_SAFE, _xv, _tv,
-                                  k_ar_diff=_k_ar_diff, det_order=0,
-                                  df_dummy=df_exog_dummy if not df_exog_dummy.empty else None,
-                                  dummy_names=DUMMY_SAFE if DUMMY_SAFE else None)
-                if _r is not None:
-                    _row = {
-                        'combo_id': f'{_ci}_k{_k_ar_diff}_vecm',
-                        'criterio': 'johansen', 'modelo': 'VECM',
-                        'n_vars': len(_xv),
-                        'vars_safe': '|'.join(_xv),
-                        'vars_label': '|'.join([COL_LABEL[v] for v in _xv]),
-                        'aic': _r['aic'], 'bic': _r['bic'], 'hq': _r['hq'],
-                        'r2': _r['r2'], 'nobs': _r['nobs'],
-                        'n_coint': _r['n_coint'], 'k_ar_diff': _k_ar_diff,
-                        'alpha_coef': _r.get('alpha_coef', float('nan')),
-                        'alpha_pval': _r.get('alpha_pval', float('nan')),
-                        'alpha_sig': (abs(_r.get('alpha_pval', 1)) < NIVEL_SIG
-                                      if not pd.isna(_r.get('alpha_pval', float('nan'))) else False),
-                    }
-                    for _x in _xv:
-                        _gc = _r.get('gamma_coefs', {}).get(_x, {})
-                        _row[f'gamma_coef_{_x}'] = _gc.get('coef', float('nan'))
-                        _row[f'gamma_pval_{_x}'] = _gc.get('pval', float('nan'))
-                        _row[f'coef_{_x}'] = _r['coefs'][_x]['coef']
-                        _row[f'pval_{_x}'] = _r['coefs'][_x]['pval']
-                        _bc = _r.get('beta_coefs', {}).get(_x, {})
-                        _row[f'beta_coef_{_x}'] = _bc.get('coef', float('nan'))
-                        _row[f'beta_pval_{_x}'] = _bc.get('pval', float('nan'))
-                    for _d, _dc in _r.get('dummy_coefs', {}).items():
-                        _row[f'dum_coef_{_d}'] = _dc.get('coef', float('nan'))
-                        _row[f'dum_pval_{_d}'] = _dc.get('pval', float('nan'))
-                    # Ljung-Box sobre residuos de la ecuación Y
-                    try:
-                        _ry = _r.get('resid_y')
-                        if _ry is not None and len(_ry) > 10:
-                            _lbv = _lb_vecm(_ry, lags=[8], return_df=True)
-                            _lbp = float(_lbv['lb_pvalue'].iloc[-1])
-                            _row['lb_pval'] = _lbp
-                            _row['ruido_blanco'] = _lbp > NIVEL_SIG
-                        else:
-                            _row['lb_pval'] = float('nan')
-                            _row['ruido_blanco'] = False
-                    except Exception:
+        _dl = list(_dums)
+        _dfdum = df_exog_dummy[_dl] if (_dl and not df_exog_dummy.empty) else None
+        try:
+            _r = extraer_vecm(_df, Y_SAFE, _xv, _tv,
+                              k_ar_diff=_k_ar_diff, det_order=0,
+                              df_dummy=_dfdum,
+                              dummy_names=_dl if _dl else None)
+            if _r is not None:
+                _row = {
+                    'combo_id': f'c{_it_vecm}_k{_k_ar_diff}_vecm',
+                    'criterio': 'johansen', 'modelo': 'VECM',
+                    'n_vars': len(_xv),
+                    'vars_safe': '|'.join(_xv),
+                    'vars_label': '|'.join([COL_LABEL[v] for v in _xv]),
+                    'dums_safe': '|'.join(_dl),
+                    'dums_label': '|'.join([COL_LABEL.get(d, d) for d in _dl]),
+                    'aic': _r['aic'], 'bic': _r['bic'], 'hq': _r['hq'],
+                    'r2': _r['r2'], 'nobs': _r['nobs'],
+                    'n_coint': _r['n_coint'], 'k_ar_diff': _k_ar_diff,
+                    'alpha_coef': _r.get('alpha_coef', float('nan')),
+                    'alpha_pval': _r.get('alpha_pval', float('nan')),
+                    'alpha_sig': (abs(_r.get('alpha_pval', 1)) < NIVEL_SIG
+                                  if not pd.isna(_r.get('alpha_pval', float('nan'))) else False),
+                }
+                for _x in _xv:
+                    _gc = _r.get('gamma_coefs', {}).get(_x, {})
+                    _row[f'gamma_coef_{_x}'] = _gc.get('coef', float('nan'))
+                    _row[f'gamma_pval_{_x}'] = _gc.get('pval', float('nan'))
+                    _row[f'coef_{_x}'] = _r['coefs'][_x]['coef']
+                    _row[f'pval_{_x}'] = _r['coefs'][_x]['pval']
+                    _bc = _r.get('beta_coefs', {}).get(_x, {})
+                    _row[f'beta_coef_{_x}'] = _bc.get('coef', float('nan'))
+                    _row[f'beta_pval_{_x}'] = _bc.get('pval', float('nan'))
+                for _d, _dc in _r.get('dummy_coefs', {}).items():
+                    _row[f'dum_coef_{_d}'] = _dc.get('coef', float('nan'))
+                    _row[f'dum_pval_{_d}'] = _dc.get('pval', float('nan'))
+                # Ljung-Box sobre residuos de la ecuación Y
+                try:
+                    _ry = _r.get('resid_y')
+                    if _ry is not None and len(_ry) > 10:
+                        _lbv = _lb_vecm(_ry, lags=[8], return_df=True)
+                        _lbp = float(_lbv['lb_pvalue'].iloc[-1])
+                        _row['lb_pval'] = _lbp
+                        _row['ruido_blanco'] = _lbp > NIVEL_SIG
+                    else:
                         _row['lb_pval'] = float('nan')
                         _row['ruido_blanco'] = False
-                    _RESULTADOS_VECM.append(_row)
-                    _ok_vecm += 1
-                else:
-                    _skip_vecm += 1
-            except Exception:
-                _err_vecm += 1
+                except Exception:
+                    _row['lb_pval'] = float('nan')
+                    _row['ruido_blanco'] = False
+                _RESULTADOS_VECM.append(_row)
+                _ok_vecm += 1
+            else:
+                _skip_vecm += 1
+        except Exception:
+            _err_vecm += 1
 
-        if (_ci + 1) % _PRINT_INT_VECM == 0 or _ci == len(_combos_vecm) - 1:
+        if _it_vecm % 200 == 0:
             _el = int((pd.Timestamp.now() - _t0_vecm).total_seconds())
-            print(f'  [VECM] combo {_ci+1:>3}/{len(_combos_vecm)} | ok={_ok_vecm} skip={_skip_vecm} err={_err_vecm} | {_el}s')
+            print(f'  [VECM] estim {_it_vecm}/{_espacio_vecm} | ok={_ok_vecm} skip={_skip_vecm} err={_err_vecm} | {_el}s')
 
     df_res_vecm = pd.DataFrame(_RESULTADOS_VECM)
     print(f'\n{"="*60}')
     print(f'VECM completado: {_ok_vecm} modelos | {_skip_vecm} sin coint. | {_err_vecm} errores')
+    _el_c = (pd.Timestamp.now() - _t0_vecm).total_seconds()
+    if _it_vecm > 0:
+        print(f'⏱️  VECM ritmo real: {_it_vecm} estim en {_el_c:.1f}s → {_el_c/_it_vecm*1000:.0f} ms/fit '
+              f'· proyección espacio completo ({_espacio_vecm}): {_el_c/_it_vecm*_espacio_vecm/60:.1f} min')
     print(f'{"="*60}')
 
     # ── 9.3 Control de calidad VECM (Ljung-Box) ──────────────────────────────
@@ -2591,12 +2841,15 @@ def seccion_11_ranking(df_res, df_largo, ctx, est_ctx, config, ardl_res):
         _tv  = [Y_SAFE] + _xv
         _df  = df_safe[_tv].dropna()
         if _mod == 'ARDL':
-            from statsmodels.tsa.ardl import ardl_select_order as _aso, ARDL as _ARDL_plt
+            from statsmodels.tsa.ardl import ARDL as _ARDL_plt
             _df_est = est_ctx['df_safe_est'][_tv].dropna()
-            _sel = _aso(_df_est[Y_SAFE], ctx['MAX_LAGS_DEP'],
-                        _df_est[_xv], ctx['MAX_LAGS_IND'], ic='aic', trend='c')
-            _fit = _sel.model.fit()
-            return _df_est[Y_SAFE], _fit.fittedvalues, 'ARDL ajustado'
+            _pq_m = re.match(r'p(\d+)q(\d+)', str(fila.get('criterio', '')))
+            _p_b = int(_pq_m.group(1)) if _pq_m else 1
+            _q_b = int(_pq_m.group(2)) if _pq_m else 1
+            _order_b = {x: _q_b for x in _xv}
+            _fit = _ARDL_plt(_df_est[Y_SAFE], lags=_p_b, exog=_df_est[_xv],
+                             order=_order_b, trend='c').fit()
+            return _df_est[Y_SAFE], _fit.fittedvalues, f'ARDL(p{_p_b},q{_q_b}) ajustado'
         if _mod == 'VAR':
             from statsmodels.tsa.api import VAR as _VAR_plt2
             _df_est = est_ctx['df_safe_est'][_tv].dropna()
@@ -2718,23 +2971,20 @@ def seccion_B_diagnostico_residuos(df_res, ctx, est_ctx, config, ardl_res):
         try:
             if modelo == 'ARDL':
                 from statsmodels.tsa.ardl import ARDL as _ARDL_r
-                _bj_lp = ardl_res.get('_BJ_PROPOSED_LAGS', {})
-                _bj_ary = ardl_res.get('_BJ_AR_Y', 1)
-                try:
-                    _od = {x: max(_bj_lp.get(x, [0, 1])) for x in xv}
-                    _fit = _ARDL_r(df_m[Y_SAFE], lags=_bj_ary, exog=df_m[xv],
-                                    order=_od, trend='c').fit()
-                except Exception:
-                    from statsmodels.tsa.ardl import ardl_select_order as _aso
-                    _sel = _aso(df_m[Y_SAFE], MAX_LAGS_DEP, df_m[xv],
-                                MAX_LAGS_IND, ic='aic', trend='c')
-                    _fit = _sel.model.fit()
+                # Lags fijos leídos de la fila ('criterio' = 'p{p}q{q}'); sin auto-selección.
+                _pq_m = re.match(r'p(\d+)q(\d+)', str(row.get('criterio', '')))
+                _p_r = int(_pq_m.group(1)) if _pq_m else 1
+                _q_r = int(_pq_m.group(2)) if _pq_m else 1
+                _od = {x: _q_r for x in xv}
+                _fit = _ARDL_r(df_m[Y_SAFE], lags=_p_r, exog=df_m[xv],
+                               order=_od, trend='c').fit()
                 return _fit.resid.dropna().values
             elif modelo == 'VAR':
                 from statsmodels.tsa.api import VAR as _VAR_r
                 df_m_est = est_ctx['df_safe_est'][tv].dropna()
-                _ls = _VAR_r(df_m_est).select_order(maxlags=MAX_LAGS_VAR)
-                _kar = max(1, _ls.selected_orders.get('aic', 1))
+                # Lag fijo leído de la fila ('k_ar'); sin select_order.
+                _kar_raw = row.get('k_ar', 1)
+                _kar = max(1, int(_kar_raw)) if pd.notna(_kar_raw) else 1
                 _fit = _VAR_r(df_m_est).fit(_kar)
                 return _fit.resid[:, list(tv).index(Y_SAFE)]
             elif modelo == 'VECM':
@@ -3344,6 +3594,25 @@ def main():
     parser.add_argument('--modelos', type=str, default=None,
                         help='Comma-list de modelos a correr (ARDL,VAR,VECM). '
                              'Las secciones de modelos no seleccionados se saltan.')
+    parser.add_argument('--fecha-inicio', type=str, default=None,
+                        help='Override global de FECHA_INICIO (YYYY-MM-DD). '
+                             'Las fechas por fila (Desde/Hasta) del CSV tienen prioridad.')
+    parser.add_argument('--fecha-fin', type=str, default=None,
+                        help='Override global de FECHA_FIN (YYYY-MM-DD).')
+    parser.add_argument('--tiempo-max-min', type=float, default=None,
+                        help='Presupuesto wall-clock total (minutos) para las secciones de '
+                             'modelos. Se reparte entre ARDL/VAR/VECM; se muestrean combinaciones '
+                             'al azar hasta agotar el tiempo. Ej: 240 = 4 horas.')
+    parser.add_argument('--max-corridas', type=int, default=None,
+                        help='Tope GLOBAL de estimaciones por sección (fallback para los 3 modelos).')
+    parser.add_argument('--corridas-ardl', type=int, default=None,
+                        help='Tope de corridas SÓLO para ARDL (override de --max-corridas).')
+    parser.add_argument('--corridas-var', type=int, default=None,
+                        help='Tope de corridas SÓLO para VAR (override de --max-corridas).')
+    parser.add_argument('--corridas-vecm', type=int, default=None,
+                        help='Tope de corridas SÓLO para VECM (override de --max-corridas).')
+    parser.add_argument('--dummy-cap', type=int, default=None,
+                        help='Tamaño máximo del subconjunto de dummies por modelo (acota 2^|D|).')
     args = parser.parse_args()
 
     REUSE = args.reuse_cache
@@ -3393,6 +3662,26 @@ def main():
     if args.modelos:
         config['MODELOS_CLI'] = [m.strip().upper() for m in args.modelos.split(',') if m.strip()]
         print(f'  📌 Modelos forzados por CLI: {config["MODELOS_CLI"]}')
+    if args.fecha_inicio:
+        config['FECHA_INICIO'] = args.fecha_inicio
+        print(f'  📌 FECHA_INICIO global forzada por CLI: {args.fecha_inicio}')
+    if args.fecha_fin:
+        config['FECHA_FIN'] = args.fecha_fin
+        print(f'  📌 FECHA_FIN global forzada por CLI: {args.fecha_fin}')
+    if args.tiempo_max_min is not None:
+        config['TIEMPO_MAX_MIN'] = args.tiempo_max_min
+        print(f'  📌 Presupuesto de tiempo (modelos): {args.tiempo_max_min} min')
+    if args.max_corridas is not None:
+        config['MAX_CORRIDAS'] = args.max_corridas
+        print(f'  📌 Tope de corridas por sección (global): {args.max_corridas}')
+    for _mdl, _val in (('ARDL', args.corridas_ardl), ('VAR', args.corridas_var),
+                       ('VECM', args.corridas_vecm)):
+        if _val is not None:
+            config[f'CORRIDAS_{_mdl}'] = _val
+            print(f'  📌 Corridas {_mdl}: {_val}')
+    if args.dummy_cap is not None:
+        config['DUMMY_CAP'] = args.dummy_cap
+        print(f'  📌 Cap de dummies por modelo: {args.dummy_cap}')
 
     def _need(sec, *deps):
         """Sección a correr (la pidió el usuario o la pide una dependencia)."""
@@ -3454,6 +3743,20 @@ def main():
 
     # Filtro de modelos desde CLI (visualizador). Si no se pasa, corre todos los que estén en secciones.
     _MODELOS_OK = set(config.get('MODELOS_CLI') or ['ARDL', 'VAR', 'VECM'])
+
+    # ── Presupuesto de tiempo (muestreo aleatorio) ───────────────────────────
+    # Reparte TIEMPO_MAX_MIN entre las secciones de modelos habilitadas (7/8/9).
+    # Cada sección obtiene su deadline vía _section_deadline() con rollover.
+    _tmax = config.get('TIEMPO_MAX_MIN')
+    _secs_modelo = [s for s, m in [('7', 'ARDL'), ('8', 'VAR'), ('9', 'VECM')]
+                    if m in _MODELOS_OK and should_run(s)]
+    config['_TB'] = {
+        'global_deadline': _make_deadline(_tmax) if _tmax else None,
+        'left': list(_secs_modelo),
+    }
+    if config['_TB']['global_deadline'] is not None:
+        print(f'\n⏱️  Presupuesto total de modelos: {_tmax} min → límite {config["_TB"]["global_deadline"]:%H:%M:%S} '
+              f'· se reparte entre {_secs_modelo}')
 
     # ── ARDL (sec 7) ─────────────────────────────────────────────────────────
     ardl_res = {}

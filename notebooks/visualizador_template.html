@@ -262,7 +262,7 @@ body{font-family:'Inter',sans-serif;background:#0A1628;color:#d4d4e8;display:fle
   </div>
 
   <!-- EXPLORER -->
-  <div id="tab-explorer" class="tab-content active">
+  <div id="tab-explorer" class="tab-content active" data-tab-name="explorer">
     <div id="bar">
       <span id="title">Seleccioná una serie</span>
       <div class="sep"></div>
@@ -614,23 +614,51 @@ body{font-family:'Inter',sans-serif;background:#0A1628;color:#d4d4e8;display:fle
           </label>
           <label style="display:flex;justify-content:space-between;align-items:center">
             <span>Max lags ARDL (dep)</span>
-            <input type="number" id="bb-lag-ardl-dep" value="3" min="1" max="12" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+            <input type="number" id="bb-lag-ardl-dep" value="3" min="1" max="3" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
           </label>
           <label style="display:flex;justify-content:space-between;align-items:center">
             <span>Max lags ARDL (ind)</span>
-            <input type="number" id="bb-lag-ardl-ind" value="3" min="1" max="12" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+            <input type="number" id="bb-lag-ardl-ind" value="3" min="1" max="3" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
           </label>
           <label style="display:flex;justify-content:space-between;align-items:center">
             <span>Max lags VAR</span>
-            <input type="number" id="bb-lag-var" value="3" min="1" max="12" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+            <input type="number" id="bb-lag-var" value="3" min="1" max="3" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
           </label>
           <label style="display:flex;justify-content:space-between;align-items:center">
             <span>Max lags VECM (k_ar_diff)</span>
-            <input type="number" id="bb-lag-vecm" value="3" min="1" max="12" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+            <input type="number" id="bb-lag-vecm" value="3" min="1" max="3" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
           </label>
-          <label style="display:flex;justify-content:space-between;align-items:center" title="Cota superior al número de variables por modelo. Vacío = sin tope.">
+          <label style="display:flex;justify-content:space-between;align-items:center" title="Cota superior al número de variables ENDÓGENAS (series) por modelo. Las dummies no cuentan acá. Vacío = sin tope.">
             <span>Max vars / modelo</span>
             <input type="number" id="bb-maxvars" value="" min="1" max="20" placeholder="todas" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center" title="Tamaño máx del subconjunto de dummies por modelo (acota 2^|D|). Vacío = todos los subconjuntos.">
+            <span>Max dummies / modelo</span>
+            <input type="number" id="bb-dummycap" value="" min="0" max="20" placeholder="todas" style="width:60px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+          </label>
+        </div>
+
+        <h4 style="font-size:11px;font-weight:700;color:#F6B40E;text-transform:uppercase;margin:10px 0 6px;border-bottom:1px solid #334155;padding-bottom:4px">📅 Fechas y presupuesto</h4>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="display:flex;justify-content:space-between;align-items:center" title="Rango GLOBAL de fechas para toda la corrida. Vacío = usa el período por defecto del script. Las fechas por análisis (Desde/Hasta) tienen prioridad sobre esto.">
+            <span>Fecha inicio (global)</span>
+            <input type="date" id="bb-fecha-inicio" style="width:130px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center" title="Rango GLOBAL de fechas para toda la corrida.">
+            <span>Fecha fin (global)</span>
+            <input type="date" id="bb-fecha-fin" style="width:130px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center" title="Presupuesto wall-clock total (minutos) para ARDL+VAR+VECM. Se reparte entre los modelos y se muestrean combinaciones al azar hasta agotar el tiempo. Ej: 240 = 4 horas. Vacío = sin límite.">
+            <span>Tiempo máx (min)</span>
+            <input type="number" id="bb-tiempo-max" value="" min="1" max="1440" placeholder="sin límite" style="width:70px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center" title="Cantidad de modelos a estimar POR TIPO. Muestreo aleatorio CON cobertura: primero garantiza que cada serie y cada dummy aparezca en ≥1 modelo, luego rellena al azar hasta el tope. Vacío = sin tope (corre el espacio completo). Es el control PRINCIPAL; el tiempo estimado se calcula abajo.">
+            <span>Corridas / modelo</span>
+            <span style="display:flex;gap:4px">
+              <input type="number" id="bb-corridas-ardl" value="" min="1" placeholder="ARDL" title="Corridas ARDL (~13 ms c/u)" style="width:52px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+              <input type="number" id="bb-corridas-var" value="" min="1" placeholder="VAR" title="Corridas VAR (~880 ms c/u)" style="width:52px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+              <input type="number" id="bb-corridas-vecm" value="" min="1" placeholder="VECM" title="Corridas VECM (~430 ms c/u)" style="width:52px;padding:2px;background:#1e293b;color:#e5e7eb;border:1px solid #334155;border-radius:3px" onchange="actualizarPreviewBasico()">
+            </span>
           </label>
         </div>
         </div>
@@ -963,11 +991,11 @@ const CATALOG = [
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'total_cuenta_corriente'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'total_cuenta_corriente'}
       ]},
-      { id:'bp_bys',   label:'Bienes y Servicios',              unit:'Mill. USD', sources:[
+      { id:'bp_bys',   label:'Bienes y Servicios',              unit:'Mill. USD', sources:[{freq:'M', file:'bp_bys_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, 
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_total_bienes_servicios'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_total_bienes_servicios'}
         ], children:[
-        { id:'bp_bienes',label:'Bienes (neto)',               unit:'Mill. USD', sources:[
+        { id:'bp_bienes',label:'Bienes (neto)',               unit:'Mill. USD', sources:[{freq:'M', file:'bp_bienes_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, 
             {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_bienes_servicios_total_bienes'},
             {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_bienes_servicios_total_bienes'}
           ], children:[
@@ -980,7 +1008,7 @@ const CATALOG = [
               {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corrientes_bienes_servicios_bienes_importaciones_fob'}
           ]}
         ]},
-        { id:'bp_serv', label:'Servicios (neto)',              unit:'Mill. USD', sources:[
+        { id:'bp_serv', label:'Servicios (neto)',              unit:'Mill. USD', sources:[{freq:'M', file:'bp_serv_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, 
             {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_bienes_servicios_total_servicios'},
             {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_bienes_servicios_total_servicios'}
           ], children:[
@@ -988,7 +1016,7 @@ const CATALOG = [
           { id:'bp_se', label:'Egresos de Servicios',  unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_bienes_servicios_egresos_servicios'}]}
         ]}
       ]},
-      { id:'bp_ip',    label:'Ingresos Primarios',              unit:'Mill. USD', sources:[
+      { id:'bp_ip',    label:'Ingresos Primarios',              unit:'Mill. USD', sources:[{freq:'M', file:'bp_ip_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, 
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_total_ingresos_primarios'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_total_ingresos_primarios'}
         ], children:[
@@ -1011,13 +1039,13 @@ const CATALOG = [
           { id:'bp_ip_oi', label:'Otra Inversión',  unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_ingresos_primarios_rentas_otra_inversion'}]}
         ]}
       ]},
-      { id:'bp_is',    label:'Ingresos Secundarios',           unit:'Mill. USD', sources:[
+      { id:'bp_is',    label:'Ingresos Secundarios',           unit:'Mill. USD', sources:[{freq:'M', file:'bp_is_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, 
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_corriente_ingresos_secundarios'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_corriente_ingresos_secundarios'}
       ]}
     ]},
     { sub:'Cuenta Financiera', items:[
-      { id:'bp_cap',   label:'Cuenta Capital',                 unit:'Mill. USD', sources:[
+      { id:'bp_cap',   label:'Cuenta Capital',                 unit:'Mill. USD', sources:[{freq:'M', file:'bp_cap_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, 
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'total_cuenta_capital'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'total_cuenta_capital'}
       ]},
@@ -1026,7 +1054,7 @@ const CATALOG = [
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'total_cuenta_financiera'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'total_cuenta_financiera'}
       ]},
-      { id:'bp_id',    label:'Inversión Directa',              unit:'Mill. USD', sources:[
+      { id:'bp_id',    label:'Inversión Directa',              unit:'Mill. USD', sources:[{freq:'M', file:'bp_id_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, 
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_inversion_directa'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_inversion_directa'}
         ], children:[
@@ -1034,7 +1062,7 @@ const CATALOG = [
         { id:'bp_id_pp', label:'Pasivos: Particip. Capital', unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cta_fin_inversion_directa_pasivos_participaciones_capital'}]},
         { id:'bp_id_pd', label:'Pasivos: Inst. Deuda',       unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cta_fin_inversion_directa_pasivos_instrumentos_deuda'}]}
       ]},
-      { id:'bp_ic',    label:'Inversión de Cartera',           unit:'Mill. USD', sources:[
+      { id:'bp_ic',    label:'Inversión de Cartera',           unit:'Mill. USD', sources:[{freq:'M', file:'bp_ic_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, 
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_inversion_cartera'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_inversion_cartera'}
         ], children:[
@@ -1044,18 +1072,18 @@ const CATALOG = [
         { id:'bp_ic_pd', label:'Pasivos: Inst. Deuda',     unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financiera_inversion_cartera_pasivos_instrumentosuda'}]}
       ]},
       { id:'bp_df',    label:'Derivados Financieros',          unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financierarivados_financieros'}]},
-      { id:'bp_oi',    label:'Otra Inversión',                 unit:'Mill. USD', sources:[
+      { id:'bp_oi',    label:'Otra Inversión',                 unit:'Mill. USD', sources:[{freq:'M', file:'bp_oi_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, 
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_otra_inversion'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'cuenta_financiera_total_otra_inversion'}
         ], children:[
         { id:'bp_oi_a', label:'Activos (adquisición neta)', unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cta_fin_otra_inversion_adquisicion_neta_activos_financieros'}]},
         { id:'bp_oi_p', label:'Pasivos (emisión neta)',     unit:'Mill. USD', sources:[{freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'cuenta_financieratra_inversion_emision_neta_pasivos'}]}
       ]},
-      { id:'bp_res',   label:'Activos de Reserva',             unit:'Mill. USD', sources:[
+      { id:'bp_res',   label:'Activos de Reserva',             unit:'Mill. USD', sources:[{freq:'M', file:'bp_res_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, 
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'activos_reserva'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'activos_reserva'}
       ]},
-      { id:'bp_err',   label:'Errores y Omisiones',            unit:'Mill. USD', sources:[
+      { id:'bp_err',   label:'Errores y Omisiones',            unit:'Mill. USD', sources:[{freq:'M', file:'bp_err_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, 
           {freq:'Q', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_trimestrales.csv', dateCol:'indice_tiempo', valCol:'errores_omisiones_netos'},
           {freq:'A', file:'balance_pagos_estimaci_n_del_balance_de_pagos_mbp6_valores_anuales.csv',      dateCol:'indice_tiempo', valCol:'errores_omisiones_netos'}
       ]}
@@ -1066,25 +1094,23 @@ const CATALOG = [
 
   { grp:'Cuentas Nacionales (INDEC)', clr:'#a855f7', subs:[
     { sub:'Oferta y Demanda — Constante 2004', items:[
-      { id:'od_c_pbi',          label:'PBI',                file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'pbi',              unit:'Mill. ARS 2004', freq:'Q' },
-      { id:'od_c_impo',         label:'Importaciones FOB',  file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'impo',             unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'od_c_impo',         label:'Importaciones FOB',  unit:'Mill. ARS 2004', sources:[{freq:'M', file:'od_impo_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'impo'}] },
       { id:'od_c_oferta',       label:'Oferta Global',      file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'oferta_global',    unit:'Mill. ARS 2004', freq:'Q' },
       { id:'od_c_demanda',      label:'Demanda Global',     file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'demanda_global',   unit:'Mill. ARS 2004', freq:'Q' },
-      { id:'od_c_cpriv',        label:'Consumo Privado',    file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'consumo_priv',     unit:'Mill. ARS 2004', freq:'Q' },
-      { id:'od_c_cpub',         label:'Consumo Público',    file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'consumo_pub',      unit:'Mill. ARS 2004', freq:'Q' },
-      { id:'od_c_expo',         label:'Exportaciones FOB',  file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'expo',             unit:'Mill. ARS 2004', freq:'Q' },
-      { id:'od_c_fbkf',         label:'FBKF',               file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'fbkf',             unit:'Mill. ARS 2004', freq:'Q' },
+      { id:'od_c_cpriv',        label:'Consumo Privado',    unit:'Mill. ARS 2004', sources:[{freq:'M', file:'od_cpriv_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'consumo_priv'}] },
+      { id:'od_c_cpub',         label:'Consumo Público',    unit:'Mill. ARS 2004', sources:[{freq:'M', file:'od_cpub_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'consumo_pub'}] },
+      { id:'od_c_expo',         label:'Exportaciones FOB',  unit:'Mill. ARS 2004', sources:[{freq:'M', file:'od_expo_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'expo'}] },
+      { id:'od_c_fbkf',         label:'FBKF',               unit:'Mill. ARS 2004', sources:[{freq:'M', file:'od_fbkf_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'fbkf'}] },
       { id:'od_c_varex',        label:'Var. Existencias',   file:'oferta_demanda_constante.csv', dateCol:'fecha', valCol:'var_existencias',  unit:'Mill. ARS 2004', freq:'Q' }
     ]},
     { sub:'Oferta y Demanda — Corriente (nominal)', items:[
-      { id:'od_n_pbi',          label:'PBI nominal',        file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'pbi',              unit:'Mill. ARS', freq:'Q' },
-      { id:'od_n_impo',         label:'Importaciones FOB',  file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'impo',             unit:'Mill. ARS', freq:'Q' },
+      { id:'od_n_impo',         label:'Importaciones FOB',  unit:'Mill. ARS', sources:[{freq:'M', file:'od_impo_nominal_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'impo'}] },
       { id:'od_n_oferta',       label:'Oferta Global',      file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'oferta_global',    unit:'Mill. ARS', freq:'Q' },
       { id:'od_n_demanda',      label:'Demanda Global',     file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'demanda_global',   unit:'Mill. ARS', freq:'Q' },
-      { id:'od_n_cpriv',        label:'Consumo Privado',    file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'consumo_priv',     unit:'Mill. ARS', freq:'Q' },
-      { id:'od_n_cpub',         label:'Consumo Público',    file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'consumo_pub',      unit:'Mill. ARS', freq:'Q' },
-      { id:'od_n_expo',         label:'Exportaciones FOB',  file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'expo',             unit:'Mill. ARS', freq:'Q' },
-      { id:'od_n_fbkf',         label:'FBKF',               file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'fbkf',             unit:'Mill. ARS', freq:'Q' },
+      { id:'od_n_cpriv',        label:'Consumo Privado',    unit:'Mill. ARS', sources:[{freq:'M', file:'od_cpriv_nominal_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'consumo_priv'}] },
+      { id:'od_n_cpub',         label:'Consumo Público',    unit:'Mill. ARS', sources:[{freq:'M', file:'od_cpub_nominal_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'consumo_pub'}] },
+      { id:'od_n_expo',         label:'Exportaciones FOB',  unit:'Mill. ARS', sources:[{freq:'M', file:'od_expo_nominal_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'expo'}] },
+      { id:'od_n_fbkf',         label:'FBKF',               unit:'Mill. ARS', sources:[{freq:'M', file:'od_fbkf_nominal_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'fbkf'}] },
       { id:'od_n_varex',        label:'Var. Existencias',   file:'oferta_demanda_corriente.csv', dateCol:'fecha', valCol:'var_existencias',  unit:'Mill. ARS', freq:'Q' }
     ]},
     { sub:'Oferta y Demanda — Precios Implícitos', items:[
@@ -1246,7 +1272,7 @@ const CATALOG = [
       { id:'yrs_def',   label:'Años desde último Default',   file:'years_since_default.csv', dateCol:'fecha', valCol:'years_since_default', unit:'años',  freq:'D' }
     ]},
     { sub:'Saldo de Deuda Bruta (USD)', items:[
-      { id:'deu_total', label:'Deuda Bruta Total', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_total', unit:'Mill. USD', freq:'Q',
+      { id:'deu_total', label:'Deuda Bruta Total', unit:'Mill. USD', sources:[{freq:'M', file:'deuda_bruta_total_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_total'}],
         children:[
         { id:'deu_normal', label:'En situación de pago normal', file:'saldo_deuda.csv', dateCol:'fecha', valCol:'deuda_pago_normal', unit:'Mill. USD', freq:'Q',
           children:[
@@ -1571,10 +1597,10 @@ const CATALOG = [
           {freq:'M', file:'deuda_externa_bruta_total_kalman.csv', dateCol:'fecha', valCol:'y_pred'},
           {freq:'Q', file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_total'}
         ], children:[
-        { id:'dext_gobierno',   label:'Gobierno General',                   file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_gobierno',   unit:'Mill. USD', freq:'Q' },
-        { id:'dext_bcra',       label:'Banco Central',                      file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_bcra',       unit:'Mill. USD', freq:'Q' },
-        { id:'dext_bancos',     label:'Bancos (Soc. captadoras de dep.)',   file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_bancos',     unit:'Mill. USD', freq:'Q' },
-        { id:'dext_otros_sec',  label:'Otros Sectores',                     file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_otros_sectores', unit:'Mill. USD', freq:'Q',
+        { id:'dext_gobierno',   label:'Gobierno General',                   unit:'Mill. USD', sources:[{freq:'M', file:'dext_gobierno_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_gobierno'}] },
+        { id:'dext_bcra',       label:'Banco Central',                      unit:'Mill. USD', sources:[{freq:'M', file:'dext_bcra_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_bcra'}] },
+        { id:'dext_bancos',     label:'Bancos (Soc. captadoras de dep.)',   unit:'Mill. USD', sources:[{freq:'M', file:'dext_bancos_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_bancos'}] },
+        { id:'dext_otros_sec',  label:'Otros Sectores',                     unit:'Mill. USD', sources:[{freq:'M', file:'dext_otros_sec_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_otros_sectores'}],
           children:[
           { id:'dext_otras_fin', label:'Otras Soc. Financieras', file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_otras_financieras', unit:'Mill. USD', freq:'Q' },
           { id:'dext_no_fin',    label:'Soc. No Financieras',    file:'deuda_externa_sectores.csv', dateCol:'fecha', valCol:'dext_no_financieras',    unit:'Mill. USD', freq:'Q' }
@@ -1583,9 +1609,9 @@ const CATALOG = [
       ]}
     ]},
     { sub:'Deuda Externa Bruta — Plazo (INDEC)', items:[
-      { id:'dextp_corto',  label:'Corto Plazo',        file:'deuda_externa_plazo.csv', dateCol:'fecha', valCol:'dext_corto_plazo',       unit:'Mill. USD', freq:'Q' },
-      { id:'dextp_largo',  label:'Largo Plazo',        file:'deuda_externa_plazo.csv', dateCol:'fecha', valCol:'dext_largo_plazo',       unit:'Mill. USD', freq:'Q' },
-      { id:'dextp_invdir', label:'Inversión Directa',  file:'deuda_externa_plazo.csv', dateCol:'fecha', valCol:'dext_inversion_directa', unit:'Mill. USD', freq:'Q' }
+      { id:'dextp_corto',  label:'Corto Plazo',        unit:'Mill. USD', sources:[{freq:'M', file:'dextp_corto_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'deuda_externa_plazo.csv', dateCol:'fecha', valCol:'dext_corto_plazo'}] },
+      { id:'dextp_largo',  label:'Largo Plazo',        unit:'Mill. USD', sources:[{freq:'M', file:'dextp_largo_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'deuda_externa_plazo.csv', dateCol:'fecha', valCol:'dext_largo_plazo'}] },
+      { id:'dextp_invdir', label:'Inversión Directa',  unit:'Mill. USD', sources:[{freq:'M', file:'dextp_invdir_kalman.csv', dateCol:'fecha', valCol:'y_pred'}, {freq:'Q', file:'deuda_externa_plazo.csv', dateCol:'fecha', valCol:'dext_inversion_directa'}] }
     ]},
     { sub:'Calendario Deuda Externa — Vencimientos (INDEC, BPM6)', items:[
       { id:'dextc_p1y',     label:'Vencimientos próx. 12m — Total',     file:'deuda_externa_calendario_serie.csv', dateCol:'fecha', valCol:'venc_prox_1y',     unit:'Mill. USD', freq:'Q' },
@@ -1639,6 +1665,11 @@ const CATALOG = [
     { sub:'Índice de Confianza en el Gobierno (ICG)', items:[
       { id:'icg_gral', label:'ICG — Nivel General (UTDT)', file:'ICG_utdt.csv', dateCol:'Date', valCol:'ICG',            unit:'Índice (0–5)', freq:'M' },
       { id:'icg_var',  label:'ICG — Variación mensual',     file:'ICG_utdt.csv', dateCol:'Date', valCol:'Variacion_ICG', unit:'Var. m/m',     freq:'M' }
+    ]},
+    { sub:'Sentimiento Ajustado por Ciclo Político', items:[
+      { id:'sent_orient', label:'Orientación de Gobierno (±1)',       file:'sentimiento_ciclo_politico.csv', dateCol:'fecha', valCol:'orientacion_gobierno', unit:'+1 promercado / −1 antimercado', freq:'M' },
+      { id:'sent_icg',    label:'ICG transformado  D·(ICG−2,0)',      file:'sentimiento_ciclo_politico.csv', dateCol:'fecha', valCol:'icg_transformado',     unit:'Índice ajustado',                freq:'M' },
+      { id:'sent_icc',    label:'ICC transformado  D·(ICC−45)',       file:'sentimiento_ciclo_politico.csv', dateCol:'fecha', valCol:'icc_transformado',     unit:'Índice ajustado',                freq:'M' }
     ]}
   ]},
 
@@ -1654,7 +1685,8 @@ const CATALOG = [
     { id:'dum_gob_cristina',       label:'Dummy_Cristina_Kirchner',   file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_cristina_kirchner', unit:'0/1', freq:'D' },
     { id:'dum_gob_macri',          label:'Dummy_Macri',               file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_macri',             unit:'0/1', freq:'D' },
     { id:'dum_gob_alberto',        label:'Dummy_Alberto_Fernandez',   file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_alberto_fernandez', unit:'0/1', freq:'D' },
-    { id:'dum_gob_milei',          label:'Dummy_Milei',               file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_milei',             unit:'0/1', freq:'D' }
+    { id:'dum_gob_milei',          label:'Dummy_Milei',               file:'dummy_gob.csv',  dateCol:'fecha', valCol:'dum_milei',             unit:'0/1', freq:'D' },
+    { id:'dummy_gobiernos_var',    label:'Dummy_Gobiernos',           file:'dummy_gob.csv',  dateCol:'fecha', valCol:'gobierno_nombre',       unit:'Categoria', freq:'D' }
   ]}
 ];
 
@@ -1674,6 +1706,7 @@ const DUMMIES = [
 ];
 
 /* ── STATE ── */
+window.currentTab = 'explorer';
 let selId   = null;   // selected item id
 let cmpSet  = new Set(); // comparison set
 let cmpBase = '';        // selected base variable id for correlation (empty = full matrix)
@@ -1808,11 +1841,20 @@ async function loadFile(filename) {
 }
 
 /* ── EXTRACT SERIES ── */
+// Normaliza fechas a 'YYYY-MM-DD'. Soporta el formato trimestral 'YYYYQN'
+// (p.ej. '2025Q4' → '2025-10-01'), que de otro modo no se grafica.
+function normDate(d) {
+  if (d == null) return d;
+  const s = String(d);
+  const qm = s.match(/^(\d{4})Q([1-4])$/);
+  if (qm) { const mo = String((parseInt(qm[2]) - 1) * 3 + 1).padStart(2, '0'); return `${qm[1]}-${mo}-01`; }
+  return s.substring(0, 10);
+}
 function extractSeries(parsed, dateCol, valCol) {
   const dates = [], values = [];
   parsed.rows.forEach(r => {
     const d = r[dateCol]; const v = parseFloat(r[valCol]);
-    if (d && !isNaN(v)) { dates.push(d.substring(0,10)); values.push(v); }
+    if (d != null && d !== '' && !isNaN(v)) { dates.push(normDate(d)); values.push(v); }
   });
   return { dates, values };
 }
@@ -1935,231 +1977,93 @@ const tipCache  = {}; // date → tip_close value
 let cerLoaded = false;
 let tipLoaded = false;
 
-async function loadPBI() {
-  if (pbiLoaded) return;
-  try {
-    // pbi_corriente.csv = PBI nominal trimestral en M ARS (INDEC cuadro 8, sh_oferta_demanda).
-    // Para deflactar usamos la SUMA MÓVIL DE 4 TRIMESTRES (rolling annual / "año móvil"),
-    // que es el estándar en la literatura para ratios X/PBI: elimina la estacionalidad
-    // intra-anual y mantiene una escala interpretable de "% del PBI anualizado".
-    const d = await loadFile('pbi_corriente.csv');
-    const tmp = {}; // key Y-QN -> trim value
-    d.rows.forEach(r => {
-      if (r.fecha && r.pbi != null) {
-        const [y, m] = r.fecha.split('-').map(Number);
-        const q = Math.ceil(m / 3);
-        tmp[`${y}-Q${q}`] = parseFloat(r.pbi);
-      }
-    });
-    // Construyo rolling sum 4Q. Necesito iterar en orden cronológico.
-    const keys = Object.keys(tmp).sort();
-    const idx = keys.map(k => {
-      const m = k.match(/^(\d{4})-Q([1-4])$/);
-      return { key: k, n: parseInt(m[1])*4 + parseInt(m[2]) }; // índice secuencial
-    }).sort((a,b) => a.n - b.n);
-    for (let i = 0; i < idx.length; i++) {
-      if (i < 3) continue; // necesito al menos 4 trim para la suma
-      // verifico que los 4 trim sean consecutivos (sin huecos)
-      if (idx[i].n - idx[i-3].n !== 3) continue;
-      const sum = tmp[idx[i].key] + tmp[idx[i-1].key] + tmp[idx[i-2].key] + tmp[idx[i-3].key];
-      pbiCache[idx[i].key] = sum;
-    }
-    pbiAnchors = null; // forzar rebuild de anchors con los nuevos valores
-    pbiLoaded = true;
-  } catch(e) { console.warn('PBI no cargado', e); }
-}
+/* ── DEFLACTOR ÷ PBI (frecuencia-consciente) ──────────────────────────────────
+   El PBI trimestral de INDEC viene ANUALIZADO (cada trimestre = tasa anual; el
+   PROMEDIO de los 4 trimestres del año = PBI anual). Por eso el denominador NO se
+   suma: se usa el PBI a la MISMA frecuencia que la serie mostrada:
+     A   → PBI anual (promedio de los 4 trimestres anualizados)
+     Q/T → PBI trimestral (valor anualizado del trimestre)
+     M   → PBI mensual (filtro de Kalman, nivel anualizado)
+     D/W → PBI mensual interpolado linealmente al día
+   Resultado: serie / PBI(misma frec.) * 100 = "% del PBI" coherente entre
+   frecuencias (y PBI ÷ PBI = 100, línea plana). */
+const PBIDEN = {
+  ars: { M:{}, Q:{}, A:{}, anchors:null, loaded:false },
+  usd: { M:{}, Q:{}, A:{}, anchors:null, loaded:false },
+};
 
-async function loadMEP() {
-  if (mepLoaded) return;
+async function loadPBIgen(which) {
+  const P = PBIDEN[which];
+  if (P.loaded) return;
   try {
-    const d = await loadFile('brecha_cambiaria.csv');
-    d.rows.forEach(r => {
-      if (r.fecha && r.mep) mepCache[r.fecha.substring(0,10)] = parseFloat(r.mep);
-    });
-    mepLoaded = true;
-  } catch(e) { console.warn('MEP no cargado', e); }
-}
-
-async function loadCER() {
-  if (cerLoaded) return;
-  try {
-    let parsed;
-    if (typeof EMBEDDED !== 'undefined' && EMBEDDED['__cer__']) {
-      const cols = EMBEDDED['__cer__'];
-      const headers = Object.keys(cols);
-      const n = cols[headers[0]].length;
-      const rows = [];
-      for (let i = 0; i < n; i++) { const row = {}; for (const h of headers) row[h] = cols[h][i]; rows.push(row); }
-      parsed = { headers, rows };
+    if (which === 'ars') {
+      const dq = await loadFile('pbi_corriente.csv');           // trimestral (anualizado), M ARS
+      dq.rows.forEach(r => { const v = parseFloat(r.pbi);
+        if (r.fecha && !isNaN(v)) { const [y,m] = r.fecha.split('-').map(Number); P.Q[`${y}-Q${Math.ceil(m/3)}`] = v; } });
+      const dm = await loadFile('pbi_nominal_kalman.csv');       // mensual (Kalman, nivel anual)
+      dm.rows.forEach(r => { const v = parseFloat(r.y_pred);
+        if (r.fecha && !isNaN(v)) { const [y,m] = r.fecha.split('-').map(Number); P.M[`${y}-${String(m).padStart(2,'0')}`] = v; } });
     } else {
-      parsed = parseCSV(await xhrGet('../data/raw/bcra/cer.csv'));
+      const dq = await loadFile('pbi_trimestral_usd_mep.csv');   // trimestral USD (MEP), anualizado
+      dq.rows.forEach(r => { const v = parseFloat(r.pbi_usd_mm); const p = r.periodo || r.Periodo;
+        if (p && !isNaN(v)) { const mm = String(p).match(/^(\d{4})Q([1-4])$/); if (mm) P.Q[`${mm[1]}-Q${mm[2]}`] = v; } });
+      const dm = await loadFile('pbi_usd_kalman.csv');           // mensual USD (derivado, nivel anual)
+      dm.rows.forEach(r => { const v = parseFloat(r.y_pred);
+        if (r.fecha && !isNaN(v)) { const [y,m] = r.fecha.split('-').map(Number); P.M[`${y}-${String(m).padStart(2,'0')}`] = v; } });
     }
-    parsed.rows.forEach(r => {
-      if (r.fecha && r.cer) cerCache[r.fecha.substring(0,10)] = parseFloat(r.cer);
-    });
-    cerLoaded = true;
-  } catch(e) { console.warn('CER no cargado', e); }
+    // PBI anual = promedio de los trimestres del año (vienen anualizados)
+    const byYear = {};
+    Object.keys(P.Q).forEach(k => { const y = k.slice(0,4); (byYear[y] = byYear[y] || []).push(P.Q[k]); });
+    Object.keys(byYear).forEach(y => { const a = byYear[y]; P.A[y] = a.reduce((s,x)=>s+x,0)/a.length; });
+    // Anchors mensuales (mitad de mes) para interpolar en D/W
+    P.anchors = Object.keys(P.M).map(k => { const [y,m] = k.split('-').map(Number);
+      return { t: new Date(y, m-1, 15).getTime(), v: P.M[k] }; }).sort((a,b) => a.t - b.t);
+    P.loaded = true;
+  } catch(e) { console.warn('PBI ' + which + ' no cargado', e); }
 }
 
-async function loadTIP() {
-  if (tipLoaded) return;
-  try {
-    let parsed;
-    if (typeof EMBEDDED !== 'undefined' && EMBEDDED['__tip__']) {
-      const cols = EMBEDDED['__tip__'];
-      const headers = Object.keys(cols);
-      const n = cols[headers[0]].length;
-      const rows = [];
-      for (let i = 0; i < n; i++) { const row = {}; for (const h of headers) row[h] = cols[h][i]; rows.push(row); }
-      parsed = { headers, rows };
-    } else {
-      parsed = parseCSV(await xhrGet('../data/raw/global/tip_etf.csv'));
-    }
-    parsed.rows.forEach(r => {
-      if (r.fecha && r.tip_close) tipCache[r.fecha.substring(0,10)] = parseFloat(r.tip_close);
-    });
-    tipLoaded = true;
-  } catch(e) { console.warn('TIP ETF no cargado', e); }
-}
-
-// generic nearest-date lookup helper
-function nearestValue(cache, dateStr) {
-  if (cache[dateStr]) return cache[dateStr];
-  const keys = Object.keys(cache).sort();
-  if (!keys.length) return NaN;
-  let best = keys[0], bestDiff = Infinity;
-  keys.forEach(k => { const diff = Math.abs(new Date(k)-new Date(dateStr)); if (diff < bestDiff) { bestDiff=diff; best=k; } });
-  return cache[best];
-}
-
-// Anchors trimestrales [{t: timestamp ms, v: rolling4Q}], se llena al final de loadPBI
-let pbiAnchors = null;
-function buildPBIAnchors() {
-  // Anclo cada rolling-4Q al ÚLTIMO día del trimestre correspondiente
-  const anchors = [];
-  Object.keys(pbiCache).forEach(k => {
-    const m = k.match(/^(\d{4})-Q([1-4])$/);
-    if (!m) return;
-    const y = parseInt(m[1]), q = parseInt(m[2]);
-    const endMonth = q*3;  // 3, 6, 9, 12
-    const endDay   = new Date(y, endMonth, 0).getDate(); // último día del mes
-    anchors.push({ t: new Date(y, endMonth-1, endDay).getTime(), v: pbiCache[k] });
-  });
-  anchors.sort((a,b) => a.t - b.t);
-  pbiAnchors = anchors;
-}
-
-function pbiInterp(dateStr) {
-  // Interpolación lineal entre anchors trimestrales para evitar escalones diarios.
-  if (!pbiAnchors) buildPBIAnchors();
-  if (!pbiAnchors.length) return NaN;
+function pbiInterpAnchors(P, dateStr) {
+  const a = P.anchors;
+  if (!a || !a.length) return NaN;
   const t = new Date(dateStr).getTime();
-  if (t <= pbiAnchors[0].t) return pbiAnchors[0].v;
-  if (t >= pbiAnchors.at(-1).t) return pbiAnchors.at(-1).v;
-  // búsqueda binaria
-  let lo = 0, hi = pbiAnchors.length - 1;
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-    if (pbiAnchors[mid].t <= t) lo = mid; else hi = mid;
-  }
-  const a = pbiAnchors[lo], b = pbiAnchors[hi];
-  const w = (t - a.t) / (b.t - a.t);
-  return a.v + w * (b.v - a.v);
+  if (t < a[0].t) return NaN;            // sin extrapolación hacia atrás (no hay PBI mensual fiable)
+  if (t >= a[a.length-1].t) return a[a.length-1].v;
+  let lo = 0, hi = a.length - 1;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (a[mid].t <= t) lo = mid; else hi = mid; }
+  const x = a[lo], z = a[hi]; const w = (t - x.t) / (z.t - x.t); return x.v + w * (z.v - x.v);
 }
 
-// Compat: algunas partes del código viejo todavía pueden llamar a getPBICacheValue.
-function getPBICacheValue(key) {
-  const m = key && key.match(/^(\d{4})-Q([1-4])$/);
-  if (!m) return NaN;
-  // Interpola al fin de trimestre, equivalente al anchor exacto
-  const y = parseInt(m[1]), q = parseInt(m[2]);
-  return pbiInterp(`${y}-${String(q*3).padStart(2,'0')}-28`);
+// Detecta la frecuencia a partir del espaciado mediano de las fechas (para no
+// depender de la variable global `freq`, que no aplica en la pestaña Análisis).
+function inferFreq(dates) {
+  if (!dates || dates.length < 2) return (typeof freq !== 'undefined' ? freq : 'M');
+  const gaps = [];
+  for (let i = 1; i < dates.length; i++) { const g = (new Date(dates[i]) - new Date(dates[i-1])) / 864e5; if (g > 0) gaps.push(g); }
+  if (!gaps.length) return (typeof freq !== 'undefined' ? freq : 'M');
+  gaps.sort((a,b) => a - b); const med = gaps[Math.floor(gaps.length/2)];
+  if (med <= 3) return 'D'; if (med <= 10) return 'W'; if (med <= 45) return 'M'; if (med <= 130) return 'Q'; return 'A';
 }
 
-function deflectByPBI(dates, values) {
-  // PBI nominal en M ARS — suma móvil de 4 trimestres (año móvil), con interpolación lineal
-  // diaria entre cierres de trimestre. Resultado: serie / PBI_4Q * 100 = ratio "% del PBI anualizado".
-  // Requiere que la serie esté en millones de ARS para que el % sea interpretable.
-  return values.map((v,i) => {
-    const pbi = pbiInterp(dates[i]);
-    return pbi && !isNaN(pbi) && pbi > 0 ? (v / pbi) * 100 : NaN;
-  });
+function pbiDen(which, dateStr, f) {
+  const P = PBIDEN[which];
+  if (!P.loaded || !dateStr) return NaN;
+  const [y,m] = dateStr.split('-').map(Number);
+  if (f === 'A') { const v = P.A[String(y)]; return v == null ? NaN : v; }
+  if (f === 'Q') { const v = P.Q[`${y}-Q${Math.ceil(m/3)}`]; return v == null ? NaN : v; }
+  if (f === 'M') { const v = P.M[`${y}-${String(m).padStart(2,'0')}`]; return v == null ? pbiInterpAnchors(P, dateStr) : v; }
+  return pbiInterpAnchors(P, dateStr); // D, W
 }
 
-/* ── PBI USD (al TC MEP) — para series denominadas en USD ── */
-const pbiUsdCache = {};   // Y-QN → rolling 4Q sum (millones de USD)
-let pbiUsdAnchors = null; // [{t, v}] anchors trimestrales
-let pbiUsdLoaded = false;
+async function loadPBI()    { await loadPBIgen('ars'); }
+async function loadPBIUsd() { await loadPBIgen('usd'); }
 
-async function loadPBIUsd() {
-  if (pbiUsdLoaded) return;
-  try {
-    // pbi_trimestral_usd_mep.csv tiene pbi_usd_mm = pbi_pesos_mm / tc_mep_promedio del trim.
-    // Usar MEP en vez del oficial A3500 evita la sobreestimación del PBI en USD durante el cepo
-    // (cuando el oficial está atrasado el ratio X_USD / PBI_USD_oficial sale artificialmente bajo).
-    const d = await loadFile('pbi_trimestral_usd_mep.csv');
-    const tmp = {};
-    d.rows.forEach(r => {
-      const p = r.periodo || r.Periodo;
-      const v = r.pbi_usd_mm;
-      if (!p || v == null) return;
-      const m = String(p).match(/^(\d{4})Q([1-4])$/);
-      if (m) tmp[`${m[1]}-Q${m[2]}`] = parseFloat(v);
-    });
-    const idx = Object.keys(tmp).map(k => {
-      const m = k.match(/^(\d{4})-Q([1-4])$/);
-      return { key: k, n: parseInt(m[1])*4 + parseInt(m[2]) };
-    }).sort((a,b) => a.n - b.n);
-    for (let i = 0; i < idx.length; i++) {
-      if (i < 3) continue;
-      if (idx[i].n - idx[i-3].n !== 3) continue;
-      pbiUsdCache[idx[i].key] = tmp[idx[i].key] + tmp[idx[i-1].key] + tmp[idx[i-2].key] + tmp[idx[i-3].key];
-    }
-    pbiUsdAnchors = null;
-    pbiUsdLoaded = true;
-  } catch(e) { console.warn('PBI USD no cargado', e); }
+function deflectByPBI(dates, values, fOverride) {
+  const f = fOverride || inferFreq(dates);
+  return values.map((v,i) => { const d = pbiDen('ars', dates[i], f); return d > 0 ? (v / d) * 100 : NaN; });
 }
-
-function buildPBIUsdAnchors() {
-  const anchors = [];
-  Object.keys(pbiUsdCache).forEach(k => {
-    const m = k.match(/^(\d{4})-Q([1-4])$/);
-    if (!m) return;
-    const y = parseInt(m[1]), q = parseInt(m[2]);
-    const endMonth = q*3;
-    const endDay = new Date(y, endMonth, 0).getDate();
-    anchors.push({ t: new Date(y, endMonth-1, endDay).getTime(), v: pbiUsdCache[k] });
-  });
-  anchors.sort((a,b) => a.t - b.t);
-  pbiUsdAnchors = anchors;
-}
-
-function pbiUsdInterp(dateStr) {
-  if (!pbiUsdAnchors) buildPBIUsdAnchors();
-  if (!pbiUsdAnchors.length) return NaN;
-  const t = new Date(dateStr).getTime();
-  // A diferencia del ARS, NO extrapolo: si la fecha es anterior al primer anchor (pre-2010Q4),
-  // devuelvo NaN para señalar que no hay PBI USD MEP fiable.
-  if (t < pbiUsdAnchors[0].t) return NaN;
-  if (t >= pbiUsdAnchors.at(-1).t) return pbiUsdAnchors.at(-1).v;
-  let lo = 0, hi = pbiUsdAnchors.length - 1;
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-    if (pbiUsdAnchors[mid].t <= t) lo = mid; else hi = mid;
-  }
-  const a = pbiUsdAnchors[lo], b = pbiUsdAnchors[hi];
-  const w = (t - a.t) / (b.t - a.t);
-  return a.v + w * (b.v - a.v);
-}
-
-function deflectByPBIUsd(dates, values) {
-  // PBI nominal en M USD valuado al TC MEP — suma móvil de 4 trim, interpolación lineal diaria.
-  // Resultado: serie_USD / PBI_USD_4Q * 100 = "% del PBI USD MEP anualizado".
-  // Pensado para stocks/flujos en USD (reservas, depósitos USD, deuda externa, etc.).
-  return values.map((v,i) => {
-    const pbi = pbiUsdInterp(dates[i]);
-    return pbi && !isNaN(pbi) && pbi > 0 ? (v / pbi) * 100 : NaN;
-  });
+function deflectByPBIUsd(dates, values, fOverride) {
+  const f = fOverride || inferFreq(dates);
+  return values.map((v,i) => { const d = pbiDen('usd', dates[i], f); return d > 0 ? (v / d) * 100 : NaN; });
 }
 
 function deflectByMEP(dates, values) {
@@ -2260,6 +2164,143 @@ function buildDummyShapes(chartDates) {
     }
   });
   return shapes;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DUMMIES COMO FONDO (solo pestaña Explorador)
+   En Análisis / Análisis Básico las dummies siguen siendo series 0/1
+   normales (se grafican como línea y alimentan los modelos).
+   ════════════════════════════════════════════════════════════════ */
+
+// Esquema de color por presidente. Kirchner (Néstor/Cristina) y Fernández
+// en celestes; Macri amarillo; Milei violeta; el resto colores distintos.
+// Clave = nombre plegado a ASCII (ver govKey) para tolerar acentos/encoding.
+const GOV_BANDS = {
+  'menem':             { fill:'rgba(244,114,182,0.15)', border:'rgba(244,114,182,0.55)', label:'Menem' },
+  'de la rua':         { fill:'rgba(251,146,60,0.15)',  border:'rgba(251,146,60,0.55)',  label:'De la Rúa' },
+  'transicion 2001':   { fill:'rgba(148,163,184,0.22)', border:'rgba(148,163,184,0.55)', label:'Transición 2001' },
+  'duhalde':           { fill:'rgba(52,211,153,0.15)',  border:'rgba(52,211,153,0.55)',  label:'Duhalde' },
+  'nestor kirchner':   { fill:'rgba(125,211,252,0.22)', border:'rgba(125,211,252,0.65)', label:'Néstor Kirchner' },
+  'cristina kirchner': { fill:'rgba(56,189,248,0.22)',  border:'rgba(56,189,248,0.65)',  label:'Cristina Kirchner' },
+  'alberto fernandez': { fill:'rgba(2,132,199,0.22)',   border:'rgba(2,132,199,0.65)',   label:'Alberto Fernández' },
+  'macri':             { fill:'rgba(250,204,21,0.18)',  border:'rgba(250,204,21,0.65)',  label:'Macri' },
+  'milei':             { fill:'rgba(139,92,246,0.24)',  border:'rgba(139,92,246,0.7)',   label:'Milei' }
+};
+const DUMMY_BAND_DEFAULT = { fill:'rgba(246,180,14,0.14)', border:'rgba(246,180,14,0.5)', label:'Activa' };
+
+// Mapea cada dummy binaria individual a su color de gobierno (para que
+// "Dummy_Milei" pinte violeta, "Dummy_Macri" amarillo, etc.).
+const DUMMY_ID_TO_GOV = {
+  dum_gob_menem:'menem', dum_gob_de_la_rua:'de la rua', dum_gob_transicion:'transicion 2001',
+  dum_gob_duhalde:'duhalde', dum_gob_nestor:'nestor kirchner', dum_gob_cristina:'cristina kirchner',
+  dum_gob_macri:'macri', dum_gob_alberto:'alberto fernandez', dum_gob_milei:'milei'
+};
+
+// ¿El id de catálogo corresponde a una variable dummy?
+function isDummyItem(id) { return !!id && (id.includes('dummy') || id.includes('dum_gob')); }
+
+// Plega un nombre de gobierno a una clave estable (sin acentos ni mayúsculas).
+function govKey(s) {
+  return (s == null ? '' : String(s))
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')  // quita acentos
+    .replace(/�/g, '')                            // descarta chars de reemplazo
+    .toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+// Lee una dummy desde el archivo crudo, preservando strings y la resolución
+// diaria original (NO pasa por extractSeries/parseFloat ni por resample).
+async function loadDummyRaw(item) {
+  const parsed = await loadFile(item.file);
+  const dates = [], values = [];
+  parsed.rows.forEach(r => {
+    const d = r[item.dateCol];
+    if (d != null && d !== '') { dates.push(String(d).substring(0, 10)); values.push(r[item.valCol]); }
+  });
+  return { dates, values };
+}
+
+// Construye los rectángulos de fondo (y la leyenda) para una dummy.
+//  · Categórica (gobierno_nombre) → un color por presidente.
+//  · Binaria (0/1)                → una sola banda con el color del gobierno.
+function buildDummyBands(item, dates, values) {
+  const shapes = [], legend = new Map();
+  const pushRect = (x0, x1, st) => {
+    shapes.push({ type:'rect', xref:'x', yref:'paper', x0, x1, y0:0, y1:1,
+      fillcolor:st.fill, line:{ color:st.border, width:0.5 }, layer:'below' });
+    legend.set(st.label, st);
+  };
+  if (item.id === 'dummy_gobiernos_var') {
+    let start = null, curKey = null;
+    dates.forEach((d, i) => {
+      const k = govKey(values[i]);
+      if (k !== curKey) {
+        if (curKey && start) pushRect(start, dates[i-1] || d, GOV_BANDS[curKey] || { fill:'rgba(128,128,128,0.12)', border:'rgba(128,128,128,0.4)', label:String(values[i-1]||'—') });
+        curKey = k; start = d;
+      }
+    });
+    if (curKey && start) pushRect(start, dates[dates.length-1], GOV_BANDS[curKey] || { fill:'rgba(128,128,128,0.12)', border:'rgba(128,128,128,0.4)', label:'—' });
+  } else {
+    const st = Object.assign({}, GOV_BANDS[DUMMY_ID_TO_GOV[item.id]] || DUMMY_BAND_DEFAULT, { label:item.label });
+    let start = null;
+    dates.forEach((d, i) => {
+      const on = values[i] == 1 || values[i] === '1' || values[i] === true;
+      if (on && start === null) start = d;
+      if (!on && start !== null) { pushRect(start, dates[i-1] || d, st); start = null; }
+    });
+    if (start !== null) pushRect(start, dates[dates.length-1], st);
+  }
+  return { shapes, legend: [...legend.values()] };
+}
+
+// Trazas invisibles (cuadraditos) para que los colores de las bandas
+// aparezcan en la leyenda de Plotly.
+function bandLegendTraces(legendItems) {
+  return legendItems.map(st => ({
+    x:[null], y:[null], type:'scatter', mode:'markers',
+    marker:{ size:11, symbol:'square', color:st.fill.replace(/[\d.]+\)\s*$/, '0.85)'), line:{ color:st.border, width:1 } },
+    name:st.label, hoverinfo:'skip', showlegend:true
+  }));
+}
+
+// Render de una dummy individual en Explorador: solo bandas de fondo.
+async function renderDummyInd(item) {
+  const ax = getAxisRanges();
+  const raw = await loadDummyRaw(item);
+  const { dates, values } = filterByDateRange(raw.dates, raw.values, null, ax.from, ax.to);
+
+  const shapes = buildDummyShapes(dates);   // overlays del panel inferior, si los hay
+  const { shapes:bandShapes, legend } = buildDummyBands(item, dates, values);
+  shapes.push(...bandShapes);
+
+  // Traza transparente que ancla el eje X de fechas + cuadraditos de leyenda.
+  const traces = [{ x: dates.length ? [dates[0], dates[dates.length-1]] : [], y:[0, 0],
+    mode:'lines', line:{ color:'transparent' }, hoverinfo:'skip', showlegend:false }];
+  traces.push(...bandLegendTraces(legend));
+
+  const layout = Object.assign({}, LAYOUT_BASE, {
+    title:{ text:item.label, font:{size:11,color:'#9090c0'}, x:0.5, xanchor:'center', pad:{t:4} },
+    yaxis: Object.assign({}, LAYOUT_BASE.yaxis, { title:{text:'',font:{size:9}}, showticklabels:false, range:[0,1], fixedrange:true, zeroline:false }),
+    xaxis: Object.assign({}, LAYOUT_BASE.xaxis, { rangeslider:{ visible:true } }),
+    shapes, showlegend:true,
+    legend:{ orientation:'h', x:0, y:1.12, font:{size:9}, bgcolor:'rgba(0,0,0,0)' }
+  });
+  Plotly.react('c1', traces, layout, CONF);
+  document.getElementById('c2').style.display = 'none';
+
+  // Barra de info
+  let info;
+  if (item.id === 'dummy_gobiernos_var') {
+    const nGov = new Set(values.map(govKey).filter(Boolean)).size;
+    const lastV = values.length ? values[values.length-1] : null;
+    const curr = lastV != null ? (GOV_BANDS[govKey(lastV)]?.label || lastV) : '—';
+    info = `<span>Gobiernos: <b style="color:#fbbf24">${nGov}</b></span>` +
+           `<span>Actual: <b style="color:#A8D4F8">${curr}</b></span>`;
+  } else {
+    const onObs = values.filter(v => v == 1 || v === '1').length;
+    info = `<span>Obs. activas: <b style="color:#fbbf24">${onObs}</b> / ${values.length}</span>`;
+  }
+  document.getElementById('info').innerHTML = info +
+    (dates.length ? `<span style="color:#333">${dates[0]} → ${dates[dates.length-1]}</span>` : '');
 }
 
 /* ── APPLY TRANSFORMS ── */
@@ -2366,6 +2407,12 @@ async function renderInd() {
   const item = IDX[selId];
   document.getElementById('title').textContent = item.label;
 
+  // En Explorador, una dummy se dibuja como bandas de fondo (no como serie).
+  if (isDummyItem(selId) && window.currentTab === 'explorer') {
+    await renderDummyInd(item);
+    return;
+  }
+
   const raw = await getSeries(selId);
   let { dates, values, maValues } = await applyTransforms(raw.dates, raw.values, item, raw.nativeFreq);
 
@@ -2405,7 +2452,7 @@ async function renderInd() {
   // Main chart traces
   const mainTraces = [];
   const clr = item.grpClr||'#5BA4E6';
-  
+
   if (cfg.doDiff && varBars) {
     mainTraces.push({ x:dates, y:values, type:'bar', name:item.label, width:barWidthMs(),
       marker:{ color:values.map(v=>v>=0?'rgba(16,185,129,0.75)':'rgba(239,68,68,0.75)'),
@@ -2416,7 +2463,7 @@ async function renderInd() {
       line:{color:clr, width:1.5},
       hovertemplate:'%{x|%Y-%m-%d}: <b>%{y:.3g}</b><extra></extra>' });
   }
-  
+
   // MA overlay
   if (maValues) {
     mainTraces.push({ x:dates, y:maValues, mode:'lines', name:`MM(${parseInt(document.getElementById('ma-win').value)})`,
@@ -2493,15 +2540,34 @@ async function renderInd() {
 
 /* ── RENDER COMPARE ── */
 async function renderCmp() {
-  const ids = [...cmpSet];
-  if (!ids.length) { document.getElementById('cw').style.display='none'; document.getElementById('empty').style.display='flex'; return; }
+  const allIds = [...cmpSet];
+  if (!allIds.length) { document.getElementById('cw').style.display='none'; document.getElementById('empty').style.display='flex'; return; }
   document.getElementById('cw').style.display='flex';
   document.getElementById('empty').style.display='none';
   document.getElementById('charts').style.display='none';
 
+  // En Explorador las dummies van como fondo (bandas); en el resto de las
+  // pestañas siguen siendo series 0/1 normales que entran a la correlación.
+  const inExplorer = window.currentTab === 'explorer';
+  const dummyIds = inExplorer ? allIds.filter(isDummyItem) : [];
+  const ids = inExplorer ? allIds.filter(id => !isDummyItem(id)) : allIds;
+
   // Build UI controls
   const cDiv = document.getElementById('cmp-controls');
   cDiv.innerHTML = '';
+
+  // Filas simples para las dummies de fondo (sólo permitir quitarlas).
+  dummyIds.forEach(id => {
+    const it = IDX[id];
+    const row = document.createElement('div');
+    row.className = 'cmp-row';
+    row.innerHTML = `
+      <button class="cmp-rm" title="Quitar de la comparación" onclick="removeCmp('${id}')">✕</button>
+      <div class="dot" style="background:${it.grpClr||'#f59e0b'}"></div>
+      <div class="cmp-lbl" style="color:#cbd5e1;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${it.label}">${it.label}</div>
+      <span style="color:#f59e0b;font-size:9.5px">▮ fondo (dummy)</span>`;
+    cDiv.appendChild(row);
+  });
 
   // Global "Variable Base" selector (shared across all series)
   if (ids.length >= 2) {
@@ -2544,6 +2610,7 @@ async function renderCmp() {
   const ax = getAxisRanges();
   const seriesData = []; // { dates, values, maValues, item, clr }
   const allDates = [];
+  const dummyBandShapes = [];
 
   for (let i = 0; i < ids.length; i++) {
     const item = IDX[ids[i]];
@@ -2587,10 +2654,23 @@ async function renderCmp() {
     yTitle = `Índice (Base 100 = ${commonStart})`;
   }
 
+  // Bandas de fondo para las dummies seleccionadas (Explorador).
+  const bandLegend = new Map();
+  for (const did of dummyIds) {
+    const item = IDX[did];
+    const rawDum = await loadDummyRaw(item);
+    const fd = filterByDateRange(rawDum.dates, rawDum.values, null, ax.from, ax.to);
+    const { shapes:bs, legend } = buildDummyBands(item, fd.dates, fd.values);
+    dummyBandShapes.push(...bs);
+    legend.forEach(L => bandLegend.set(L.label, L));
+    allDates.push(...fd.dates);
+  }
+
   const uniqDates = [...new Set(allDates)].sort();
   const shapes = buildDummyShapes(uniqDates);
+  shapes.push(...dummyBandShapes);
 
-  // Main chart — all series as lines
+  // Main chart — series numéricas como líneas
   const traces = [];
   seriesData.forEach((s, i) => {
     const tLbl = buildTransformLabel(ids[i]);
@@ -2603,6 +2683,15 @@ async function renderCmp() {
         hovertemplate:`${tLbl} MM: <b>%{y:.3g}</b><extra></extra>` });
     }
   });
+
+  // Cuadraditos de leyenda para las bandas de las dummies.
+  traces.push(...bandLegendTraces([...bandLegend.values()]));
+
+  // Si sólo hay dummies (sin series numéricas), anclamos el eje X de fechas.
+  if (seriesData.length === 0 && uniqDates.length) {
+    traces.unshift({ x:[uniqDates[0], uniqDates[uniqDates.length-1]], y:[0,0],
+      type:'scatter', mode:'lines', line:{color:'transparent'}, showlegend:false, hoverinfo:'skip' });
+  }
 
   const ccLayout = Object.assign(mkLayout('Comparación', yTitle, shapes), {
     height: undefined,
@@ -3036,6 +3125,7 @@ function toggleBBConfig() {
 
 /* ── TAB SWITCH ── */
 function switchTab(t) {
+  window.currentTab = t;
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.mtab').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
@@ -3099,9 +3189,13 @@ async function anlGetSeries() {
   if (document.getElementById('anl-da-cer').checked) { await loadCER(); vals = deflectByCER(dates, vals); }
   if (document.getElementById('anl-da-ipc').checked) { await loadTIP(); vals = deflectByTIP(dates, vals); }
 
+  // Frecuencia efectiva de A tras el resample (resample sólo agrega hacia frecuencias más gruesas).
+  const ordF = {D:0,W:1,M:2,Q:3,A:4};
+  let curFreqA = freq1;
   if (fFreq) {
     const res = resample(dates, vals, freq1, fFreq);
     dates = res.dates; vals = res.values;
+    if (ordF[fFreq] > ordF[freq1]) curFreqA = fFreq;
   }
 
   if (s2 && op !== 'A' && op !== 'B') {
@@ -3117,15 +3211,20 @@ async function anlGetSeries() {
     if (document.getElementById('anl-db-cer').checked) { await loadCER(); v2 = deflectByCER(d2, v2); }
     if (document.getElementById('anl-db-ipc').checked) { await loadTIP(); v2 = deflectByTIP(d2, v2); }
 
-    if (fFreq) {
-      const res2 = resample(d2, v2, freq2, fFreq);
-      d2 = res2.dates; v2 = res2.values;
-    }
-    // align by date
+    // Frecuencia común para alinear A y B: la más gruesa de ambas (o la que fije el usuario).
+    // Sin esto, una serie M y otra Q (o el mismo mes con distinto día) casi nunca calzan por fecha.
+    let commonFreq = (ordF[curFreqA] >= ordF[freq2]) ? curFreqA : freq2;
+    if (fFreq && ordF[fFreq] > ordF[commonFreq]) commonFreq = fFreq;
+
+    // Llevo ambas series a la frecuencia común (resample sólo agrega hacia frecuencias más gruesas).
+    if (commonFreq !== curFreqA) { const r = resample(dates, vals, curFreqA, commonFreq); dates = r.dates; vals = r.values; }
+    if (commonFreq !== freq2)    { const r = resample(d2, v2, freq2, commonFreq);        d2 = r.dates;    v2 = r.values; }
+
+    // Alineo por período (no por fecha exacta) para tolerar distinto día del mes entre series.
     const map2 = {};
-    d2.forEach((d,i) => map2[d] = v2[i]);
+    d2.forEach((d,i) => { if (v2[i] != null && !isNaN(v2[i])) map2[periodKey(d, commonFreq)] = v2[i]; });
     const aligned = dates.map((d,i) => {
-      const v2_val = map2[d];
+      const v2_val = map2[periodKey(d, commonFreq)];
       if (v2_val == null || isNaN(v2_val)) return NaN;
       if (op === 'A-B') return vals[i] - v2_val;
       if (op === 'A+B') return vals[i] + v2_val;
@@ -4642,6 +4741,7 @@ function renderSavedTable() {
 
   let html = '<thead><tr>';
   cols.forEach(c => html += '<th>' + c.l + '</th>');
+  html += '<th title="Quitar esta serie">✕</th>';
   html += '</tr></thead><tbody>';
 
   window.ANALYSES.forEach((a, idx) => {
@@ -4660,10 +4760,36 @@ function renderSavedTable() {
       }
       html += '<td' + cls + '>' + val + '</td>';
     });
+    // Botón para quitar SOLO esta fila
+    const nombreFila = String(a.label || a.s1 || ('#' + a.id)).replace(/'/g, "\\'");
+    html += '<td style="text-align:center"><button title="Quitar «' + nombreFila + '»"'
+          + ' onclick="removeAnalysis(' + idx + ')"'
+          + ' style="background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;border:0;border-radius:3px;'
+          + 'cursor:pointer;font-size:10px;line-height:1;padding:2px 6px">✕</button></td>';
     html += '</tr>';
   });
   html += '</tbody>';
   table.innerHTML = html;
+}
+
+/* Quita UNA sola serie guardada (sin borrar las demás). Re-numera los #,
+   re-asigna la dependiente si se quitó la marcada, y refresca el panel Básico. */
+function removeAnalysis(idx) {
+  if (!window.ANALYSES || idx < 0 || idx >= window.ANALYSES.length) return;
+  const a = window.ANALYSES[idx];
+  const nombre = a.label || a.s1 || ('#' + a.id);
+  if (!confirm('¿Quitar la serie «' + nombre + '»?')) return;
+  const eraDep = !!a.dep;
+  window.ANALYSES.splice(idx, 1);
+  // Re-numerar los # para que queden 1..n
+  window.ANALYSES.forEach((x, i) => { x.id = i + 1; });
+  // Si quité la dependiente y quedan series, marco la primera como dependiente
+  if (eraDep && window.ANALYSES.length > 0 && !window.ANALYSES.some(x => x.dep)) {
+    window.ANALYSES[0].dep = true;
+  }
+  renderSavedTable();
+  if (typeof renderBasicoVarsList === 'function') renderBasicoVarsList();
+  if (typeof actualizarPreviewBasico === 'function') actualizarPreviewBasico();
 }
 
 function downloadAnalysesCSV() {
@@ -4758,26 +4884,36 @@ function calcularPreviewBasico() {
   if (document.getElementById('bb-m-var').checked)  modelos.push('VAR');
   if (document.getElementById('bb-m-vecm').checked) modelos.push('VECM');
 
-  // Vars elegibles (excluyendo la dep): orden <= 1 para ARDL/VAR; orden == 1 para VECM
-  const X = A.filter(a => !a.dep);
+  // Las DUMMIES (label 'Dummy_…') son variables EXÓGENAS opcionales: entran/salen
+  // de cada modelo como subconjunto, NO se combinan como las series endógenas ni
+  // entran en Granger/β. El pool combinatorio endógeno excluye las dummies.
+  const isDum = a => /^Dummy_/.test(String(a.label || a.s1 || ''));
+  const X    = A.filter(a => !a.dep && !isDum(a));   // series endógenas (sin dummies)
+  const Dlist = A.filter(a => !a.dep && isDum(a));    // dummies exógenas
   const X_est = X.filter(a => (a.orden ?? 2) <= 1).length;
   const X_i1  = X.filter(a => (a.orden ?? 2) === 1).length;
+  const nDum  = Dlist.length;
   const y_ord = dep.orden ?? 0;
 
   const maxVarsRaw = document.getElementById('bb-maxvars').value;
   const maxVars = maxVarsRaw ? Math.max(1, parseInt(maxVarsRaw)) : null;
+  const dummyCapRaw = document.getElementById('bb-dummycap').value;
+  const dummyCap = dummyCapRaw !== '' ? Math.max(0, parseInt(dummyCapRaw)) : null;
+  const tiempoMax = parseInt(document.getElementById('bb-tiempo-max').value) || null;
+  const _cr = (id) => { const v = parseInt(document.getElementById(id).value); return (v && v > 0) ? v : null; };
+  const corridasArdl = _cr('bb-corridas-ardl');
+  const corridasVar  = _cr('bb-corridas-var');
+  const corridasVecm = _cr('bb-corridas-vecm');
 
-  const lagArdlDep = parseInt(document.getElementById('bb-lag-ardl-dep').value) || 3;
-  const lagArdlInd = parseInt(document.getElementById('bb-lag-ardl-ind').value) || 3;
-  const lagVar     = parseInt(document.getElementById('bb-lag-var').value)      || 3;
-  const lagVecm    = parseInt(document.getElementById('bb-lag-vecm').value)     || 3;
+  // Tope metodológico: máx 3 lags (el script clampea con min(3, …)). Se replica acá
+  // para que el preview coincida con lo que realmente estima 02a.
+  const _capLag = (v) => Math.min(3, Math.max(1, v || 3));
+  const lagArdlDep = _capLag(parseInt(document.getElementById('bb-lag-ardl-dep').value));
+  const lagArdlInd = _capLag(parseInt(document.getElementById('bb-lag-ardl-ind').value));
+  const lagVar     = _capLag(parseInt(document.getElementById('bb-lag-var').value));
+  const lagVecm    = _capLag(parseInt(document.getElementById('bb-lag-vecm').value));
 
-  // Criterios ARDL: el script usa AIC+BIC+HQIC (3, CRITERIOS_SEL). El optimizador
-  // interno (ardl_select_order) enumera (Pmax+1) lags de dep × (Qmax+1) lags por
-  // cada X y se queda con el mejor según criterio. Cada criterio hace su propia búsqueda.
-  const N_CRIT_ARDL = 3;
-  const P1 = lagArdlDep + 1;     // 0..Pmax → Pmax+1 valores
-  const Q1 = lagArdlInd + 1;     // 0..Qmax → Qmax+1 valores
+  const MAX_PERMS_VAR = 1500;  // tope de permutaciones del script
 
   const _comb = (n, r) => {
     if (r < 0 || r > n) return 0;
@@ -4788,40 +4924,68 @@ function calcularPreviewBasico() {
   };
   const _fact = (n) => { let f = 1; for (let i = 2; i <= n; i++) f *= i; return f; };
 
+  // Subconjuntos de dummies = sum_{r=0}^{capD} C(nDum, r)  (incluye el vacío → sin dummies)
+  const capD = dummyCap == null ? nDum : Math.min(dummyCap, nDum);
+  let n_dsub = 0;
+  for (let r = 0; r <= capD; r++) n_dsub += _comb(nDum, r);
+
   let n_combos_est = 0, n_perms_var = 0, n_combos_i1 = 0;
-  // ARDL internal fits = sum_r C(n,r) * P1 * Q1^r  (× N_CRIT)
-  let n_ardl_fits = 0;
   const cap_est = maxVars == null ? X_est : Math.min(maxVars, X_est);
   const cap_i1  = maxVars == null ? X_i1  : Math.min(maxVars, X_i1);
   for (let r = 1; r <= cap_est; r++) {
     const c = _comb(X_est, r);
     n_combos_est += c;
     n_perms_var  += c * _fact(r);
-    n_ardl_fits  += c * P1 * Math.pow(Q1, r);
   }
   for (let r = 1; r <= cap_i1; r++) {
     n_combos_i1 += _comb(X_i1, r);
   }
+  const perms_var_cap = Math.min(n_perms_var, MAX_PERMS_VAR);
 
-  const n_ardl = modelos.includes('ARDL') ? Math.round(n_ardl_fits * N_CRIT_ARDL) : 0;
-  const n_var  = modelos.includes('VAR')  ? n_perms_var * lagVar : 0;
-  // VECM (sección 9 del script): los combos NO son las combinaciones completas
-  // de X I(1). El script los deriva de los VAR que pasaron el filtro de ruido
-  // blanco (vars_safe ∩ I(1), deduplicados); sólo cae a combinaciones completas
-  // si VAR no corre. Por eso n_combos_i1 es una COTA SUPERIOR: el número real
-  // es ≤ y depende de cuántos VAR pasen Ljung-Box.
+  // Espacio TOTAL de estimaciones (= "espacio total" que imprime el script). El
+  // run real muestrea ALEATORIAMENTE este espacio hasta el presupuesto de tiempo
+  // / máx corridas, así que es una COTA SUPERIOR de lo que se estima.
+  // ARDL: grilla de lags FIJOS p×q (p∈1..lagArdlDep × q∈1..lagArdlInd), sin auto-selección.
+  const n_ardl = modelos.includes('ARDL') ? n_combos_est * lagArdlDep * lagArdlInd * n_dsub : 0;
+  const n_var  = modelos.includes('VAR')  ? perms_var_cap * lagVar * n_dsub : 0;
   const vecm_aplica = modelos.includes('VECM') && y_ord === 1 && X_i1 > 0;
   const vecm_derivado = vecm_aplica && modelos.includes('VAR');
-  const n_vecm = vecm_aplica ? n_combos_i1 * lagVecm : 0;
+  const n_vecm = vecm_aplica ? n_combos_i1 * lagVecm * n_dsub : 0;
+
+  // ── Estimación de tiempo ────────────────────────────────────────────────
+  // ms/fit MEDIDOS empíricamente (02a, esta máquina). VAR domina por el cálculo
+  // de IRF Cholesky + efectos acumulados; ARDL es OLS barato.
+  const MSFIT = { ARDL: 13, VAR: 880, VECM: 430 };
+  // Corridas EFECTIVAS por modelo = min(tope definido, espacio). Sin tope → espacio completo.
+  const _run = (cor, esp) => cor != null ? Math.min(cor, esp) : esp;
+  const run_ardl = modelos.includes('ARDL') ? _run(corridasArdl, n_ardl) : 0;
+  const run_var  = modelos.includes('VAR')  ? _run(corridasVar,  n_var)  : 0;
+  const run_vecm = vecm_aplica ? _run(corridasVecm, n_vecm) : 0;
+  const seg_ardl = run_ardl * MSFIT.ARDL / 1000;
+  const seg_var  = run_var  * MSFIT.VAR  / 1000;
+  const seg_vecm = run_vecm * MSFIT.VECM / 1000;
+  const seg_total = seg_ardl + seg_var + seg_vecm;
+  // Mínimo para cobertura completa (cada serie + cada dummy en ≥1 modelo).
+  const covMinArdl = modelos.includes('ARDL') ? (X_est + nDum) : 0;
+  const covMinVar  = modelos.includes('VAR')  ? (X_est + nDum) : 0;
+  const covMinVecm = vecm_aplica ? (X_i1 + nDum) : 0;
+
+  const muestreado = (tiempoMax != null) || (corridasArdl != null)
+                     || (corridasVar != null) || (corridasVecm != null);
 
   return {
     dep: dep.label || dep.s1, y_orden: y_ord,
     n_vars_total: X.length, n_vars_est: X_est, n_vars_i1: X_i1,
-    n_combos_est, n_perms_var, n_combos_i1,
+    nDum, capD, n_dsub,
+    n_combos_est, n_perms_var, perms_var_cap, n_combos_i1,
     lagArdlDep, lagArdlInd, lagVar, lagVecm,
-    n_ardl_fits: Math.round(n_ardl_fits),
+    tiempoMax, corridasArdl, corridasVar, corridasVecm, muestreado,
     n_ardl, n_var, n_vecm, vecm_derivado,
+    run_ardl, run_var, run_vecm,
+    seg_ardl, seg_var, seg_vecm, seg_total,
+    covMinArdl, covMinVar, covMinVecm, MSFIT,
     n_total: n_ardl + n_var + n_vecm,
+    n_run_total: run_ardl + run_var + run_vecm,
     modelos,
   };
 }
@@ -4838,31 +5002,54 @@ function actualizarPreviewBasico() {
     box.innerHTML = '<span style="color:#fbbf24">⚠️ ' + p.error + '</span>';
     return;
   }
-  const fmt = (n) => n.toLocaleString();
+  const fmt = (n) => Math.round(n).toLocaleString();
   const depTxt = (p.dep || '').toString();
   const depShort = depTxt.length > 30 ? depTxt.slice(0, 27) + '…' : depTxt;
+  const dumTxt = p.nDum > 0
+    ? `<span style="color:#f59e0b"> · ${p.nDum} dummy → ${fmt(p.n_dsub)} subconj.${p.capD < p.nDum ? ` (cap ${p.capD})` : ''}</span>`
+    : '';
   let h = '';
   h += `<div><b style="color:#F6B40E">Dep:</b> ${depShort} <span style="color:#94a3b8">[I(${p.y_orden})]</span></div>`;
-  h += `<div><b style="color:#F6B40E">X:</b> ${p.n_vars_total} total · ${p.n_vars_est} I(0|1) · ${p.n_vars_i1} I(1)</div>`;
+  h += `<div><b style="color:#F6B40E">X:</b> ${p.n_vars_total} series · ${p.n_vars_est} I(0|1) · ${p.n_vars_i1} I(1)${dumTxt}</div>`;
+  if (p.nDum > 0) {
+    h += `<div style="color:#f59e0b;font-size:10px;margin-left:8px">↳ dummies = controles EXÓGENOS opcionales (en algunos modelos sí, en otros no); no se combinan como series ni entran en Granger/β</div>`;
+  }
   h += '<div style="border-top:1px solid #334155;margin:4px 0"></div>';
-  h += `<div>ARDL: <b>${fmt(p.n_ardl)}</b></div>`;
-  h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_est)} subsets de X · enumera ${p.lagArdlDep+1} lags dep (0..${p.lagArdlDep}) × ${p.lagArdlInd+1} lags por cada X (0..${p.lagArdlInd}) · ×3 criterios (AIC, BIC, HQIC)</div>`;
-  h += `<div>VAR:&nbsp; <b>${fmt(p.n_var)}</b></div>`;
-  h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_est)} subsets · ${fmt(p.n_perms_var)} ordenamientos Cholesky totales (Y siempre al final) · k∈{1..${p.lagVar}}</div>`;
+  const fmtT = (s) => s <= 0 ? '0 s' : s < 1 ? '<1 s' : s < 90 ? `${Math.round(s)} s`
+                    : s < 5400 ? `${(s/60).toFixed(1)} min` : `${(s/3600).toFixed(2)} h`;
+  const _ejec = (cor, esp, run) => (cor != null && cor < esp) ? `${fmt(run)} de ${fmt(esp)}` : `${fmt(esp)}`;
+  const _tope = (cor) => cor != null ? `tope ${fmt(cor)}` : 'sin tope';
+  const _warnCov = (cor, covMin, vars) => (cor != null && covMin > 0 && cor < covMin)
+    ? `<div style="color:#fbbf24;font-size:10px;margin-left:8px">⚠️ tope ${fmt(cor)} &lt; ${fmt(covMin)} necesarios para cubrir todo (${vars} series + ${p.nDum} dummies) → podrían quedar variables sin aparecer</div>` : '';
+  h += `<div>ARDL: <b>${_ejec(p.corridasArdl,p.n_ardl,p.run_ardl)}</b> <span style="color:#94a3b8">(${_tope(p.corridasArdl)})</span> · <span style="color:#38bdf8">~${fmtT(p.seg_ardl)}</span></div>`;
+  h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_est)} subsets de series × ${fmt(p.n_dsub)} subconj. dummy × grilla p×q (p∈1..${p.lagArdlDep} × q∈1..${p.lagArdlInd}, lags fijos)</div>`;
+  h += _warnCov(p.corridasArdl, p.covMinArdl, p.n_vars_est);
+  h += `<div>VAR:&nbsp; <b>${_ejec(p.corridasVar,p.n_var,p.run_var)}</b> <span style="color:#94a3b8">(${_tope(p.corridasVar)})</span> · <span style="color:#38bdf8">~${fmtT(p.seg_var)}</span></div>`;
+  h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.perms_var_cap)} ordenamientos Cholesky${p.n_perms_var > p.perms_var_cap ? ` (cap 1500 de ${fmt(p.n_perms_var)})` : ''} × k∈{1..${p.lagVar}} × ${fmt(p.n_dsub)} subconj. dummy</div>`;
+  h += _warnCov(p.corridasVar, p.covMinVar, p.n_vars_est);
   if (p.y_orden !== 1) {
     h += `<div>VECM: <span style="color:#94a3b8">no aplica (Y no I(1))</span></div>`;
   } else if (p.n_vars_i1 === 0) {
     h += `<div>VECM: <span style="color:#94a3b8">no aplica (ningún X I(1))</span></div>`;
   } else {
-    h += `<div>VECM: <b>${p.vecm_derivado ? '≤ ' : ''}${fmt(p.n_vecm)}</b></div>`;
-    if (p.vecm_derivado) {
-      h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ≤ ${fmt(p.n_combos_i1)} subsets de X I(1) · k_ar_diff∈{1..${p.lagVecm}} · <b>cota superior</b>: el script deriva los combos de los VAR que pasan ruido blanco (∩ I(1), dedup), no de combinaciones completas</div>`;
-    } else {
-      h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ${fmt(p.n_combos_i1)} subsets de X I(1) · k_ar_diff∈{1..${p.lagVecm}} · combinaciones completas (VAR no seleccionado → fallback)</div>`;
-    }
+    h += `<div>VECM: <b>${_ejec(p.corridasVecm,p.n_vecm,p.run_vecm)}</b> <span style="color:#94a3b8">(${_tope(p.corridasVecm)})</span> · <span style="color:#38bdf8">~${fmtT(p.seg_vecm)}</span></div>`;
+    h += `<div style="color:#94a3b8;font-size:10px;margin-left:8px">↳ ≤ ${fmt(p.n_combos_i1)} subsets de X I(1) × k_ar_diff∈{1..${p.lagVecm}} × ${fmt(p.n_dsub)} subconj. dummy · cota sup.: combos derivados de VAR ruido-blanco</div>`;
+    h += _warnCov(p.corridasVecm, p.covMinVecm, p.n_vars_i1);
   }
   h += '<div style="border-top:1px solid #334155;margin:4px 0"></div>';
-  h += `<div style="color:#10b981"><b>Total: ${p.vecm_derivado ? '≤ ' : ''}${fmt(p.n_total)} estimaciones</b></div>`;
+  h += `<div style="color:#10b981"><b>Total a estimar: ${fmt(p.n_run_total)} modelos</b> <span style="color:#94a3b8">(espacio completo: ${fmt(p.n_total)})</span></div>`;
+  h += `<div style="color:#38bdf8;font-weight:700;font-size:13px;margin-top:2px">⏱️ Tiempo estimado: ~${fmtT(p.seg_total)}</div>`;
+  h += `<div style="color:#64748b;font-size:9px;margin-top:1px">ms/fit medidos: ARDL ${p.MSFIT.ARDL} · VECM ${p.MSFIT.VECM} · VAR ${p.MSFIT.VAR} ms (esta máquina, aprox.)</div>`;
+  if (p.tiempoMax != null) {
+    const presup = p.tiempoMax * 60;
+    if (p.seg_total > presup) {
+      h += `<div style="color:#f87171;font-size:10px;margin-top:2px">⚠️ El estimado (~${fmtT(p.seg_total)}) supera el Tiempo máx (${p.tiempoMax} min) → el run se cortará por tiempo y quedarán combinaciones sin estimar. Bajá las corridas o subí el tiempo.</div>`;
+    } else {
+      h += `<div style="color:#94a3b8;font-size:10px;margin-top:2px">✓ Entra dentro del Tiempo máx (${p.tiempoMax} min) como cota de seguridad.</div>`;
+    }
+  } else if (!p.muestreado) {
+    h += `<div style="color:#94a3b8;font-size:10px;margin-top:3px">Sin topes → corre el espacio completo. Definí "Corridas / modelo" para acotar y muestrear con cobertura.</div>`;
+  }
   box.innerHTML = h;
 }
 
@@ -4893,15 +5080,22 @@ function ejecutarAnalisisBasico() {
   const freqEl = document.getElementById('bb-freq');
   if (freqEl && freqEl.value && freqEl.value !== 'auto') qs.set('freq', freqEl.value);
   const lagPairs = [
-    ['lag_ardl_dep', 'bb-lag-ardl-dep'],
-    ['lag_ardl_ind', 'bb-lag-ardl-ind'],
-    ['lag_var',      'bb-lag-var'],
-    ['lag_vecm',     'bb-lag-vecm'],
-    ['max_vars',     'bb-maxvars'],
+    ['lag_ardl_dep',   'bb-lag-ardl-dep'],
+    ['lag_ardl_ind',   'bb-lag-ardl-ind'],
+    ['lag_var',        'bb-lag-var'],
+    ['lag_vecm',       'bb-lag-vecm'],
+    ['max_vars',       'bb-maxvars'],
+    ['dummy_cap',      'bb-dummycap'],
+    ['fecha_inicio',   'bb-fecha-inicio'],
+    ['fecha_fin',      'bb-fecha-fin'],
+    ['tiempo_max_min', 'bb-tiempo-max'],
+    ['corridas_ardl',  'bb-corridas-ardl'],
+    ['corridas_var',   'bb-corridas-var'],
+    ['corridas_vecm',  'bb-corridas-vecm'],
   ];
   lagPairs.forEach(([k, id]) => {
     const el = document.getElementById(id);
-    if (el && el.value) qs.set(k, el.value);
+    if (el && el.value !== '' && el.value != null) qs.set(k, el.value);
   });
   const modelos = [];
   if (document.getElementById('bb-m-ardl')?.checked) modelos.push('ARDL');

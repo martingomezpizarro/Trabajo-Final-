@@ -1,0 +1,664 @@
+======================================================================
+FILTRO DE KALMAN - Variables Macroeconomicas Argentinas
+======================================================================
+Cargando datos...
+Mensualizando series trimestrales con NaNs...
+  se: 240 obs, 2006-01-01 --> 2025-12-01
+  pbi_constante: 264 obs, 2004-01-01 --> 2025-12-01
+  cuenta_corriente: 240 obs, 2006-01-01 --> 2025-12-01
+  cuenta_financiera: 240 obs, 2006-01-01 --> 2025-12-01
+  deuda_externa: 240 obs, 2006-01-01 --> 2025-12-01
+  venc_1y: 225 obs, 2007-04-01 --> 2025-12-01
+  venc_2y: 225 obs, 2007-04-01 --> 2025-12-01
+  deuda_bruta_total: 223 obs, 2007-06-01 --> 2025-12-01
+  bp_bys: 240 obs, 2006-01-01 --> 2025-12-01
+  bp_bienes: 240 obs, 2006-01-01 --> 2025-12-01
+  bp_serv: 240 obs, 2006-01-01 --> 2025-12-01
+  bp_ip: 240 obs, 2006-01-01 --> 2025-12-01
+  bp_is: 240 obs, 2006-01-01 --> 2025-12-01
+  bp_cap: 240 obs, 2006-01-01 --> 2025-12-01
+  bp_id: 240 obs, 2006-01-01 --> 2025-12-01
+  bp_ic: 240 obs, 2006-01-01 --> 2025-12-01
+  bp_oi: 240 obs, 2006-01-01 --> 2025-12-01
+  bp_res: 240 obs, 2006-01-01 --> 2025-12-01
+  bp_err: 240 obs, 2006-01-01 --> 2025-12-01
+  dext_gobierno: 240 obs, 2006-01-01 --> 2025-12-01
+  dext_bcra: 240 obs, 2006-01-01 --> 2025-12-01
+  dext_bancos: 240 obs, 2006-01-01 --> 2025-12-01
+  dext_otros_sec: 240 obs, 2006-01-01 --> 2025-12-01
+  dextp_corto: 240 obs, 2006-01-01 --> 2025-12-01
+  dextp_largo: 240 obs, 2006-01-01 --> 2025-12-01
+  dextp_invdir: 240 obs, 2006-01-01 --> 2025-12-01
+  od_cpriv: 264 obs, 2004-01-01 --> 2025-12-01
+  od_cpub: 264 obs, 2004-01-01 --> 2025-12-01
+  od_fbkf: 264 obs, 2004-01-01 --> 2025-12-01
+  od_expo: 264 obs, 2004-01-01 --> 2025-12-01
+  od_impo: 264 obs, 2004-01-01 --> 2025-12-01
+
+------------------------------------------------------------
+Estimando: SE - Nivel (Mill. ARS)
+  ARIMA(4, 0, 4) + exogena(s): ['superavit_primario', 'dummy_covid', 'dummy_cepo']
+  AIC: 2013.5  |  BIC: 2064.6  |  RMSE: 0.00
+  Ljung-Box p-value: 0.2180
+
+------------------------------------------------------------
+Estimando: PBI Constante
+  ARIMA(4, 1, 4) + exogena(s): ['emae', 'dummy_covid', 'dummy_cepo']
+  AIC: 1820.1  |  BIC: 1872.7  |  RMSE: 0.00
+  Ljung-Box p-value: 0.8441
+
+------------------------------------------------------------
+Estimando: Total Cuenta Corriente
+  ARIMA(4, 1, 1) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 1157.1  |  BIC: 1198.0  |  RMSE: 0.00
+  Ljung-Box p-value: 0.0207
+
+------------------------------------------------------------
+Estimando: Total Cuenta Financiera
+  ARIMA(1, 1, 4) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 1163.3  |  BIC: 1204.2  |  RMSE: 0.00
+  Ljung-Box p-value: 0.5716
+
+------------------------------------------------------------
+Estimando: Deuda Externa Bruta Total
+  ARIMA(4, 1, 0) + exogena(s): ['res_pbi', 'mep', 'dummy_covid', 'dummy_cepo']
+  AIC: 1530.9  |  BIC: 1571.8  |  RMSE: 0.00
+  Ljung-Box p-value: 0.7607
+
+------------------------------------------------------------
+Estimando: Deuda Bruta Total
+  ARIMA(4, 1, 0) + exogena(s): ['res_pbi', 'mep', 'dummy_covid', 'dummy_cepo']
+  AIC: 2600.1  |  BIC: 2640.1  |  RMSE: 0.00
+  Ljung-Box p-value: 0.6568
+
+------------------------------------------------------------
+Estimando: Vencimientos USD 1 anio
+  ARIMA(0, 1, 4) + exogena(s): ['dummy_covid', 'dummy_cepo']
+  AIC: 1373.2  |  BIC: 1406.5  |  RMSE: 0.00
+  Ljung-Box p-value: 0.4542
+
+------------------------------------------------------------
+Estimando: Vencimientos USD 2 anios
+  ARIMA(0, 1, 4) + exogena(s): ['dummy_covid', 'dummy_cepo']
+  AIC: 1379.0  |  BIC: 1412.3  |  RMSE: 0.00
+  Ljung-Box p-value: 0.9466
+
+------------------------------------------------------------
+Estimando: BP - Bienes y Servicios
+  ARIMA(2, 1, 2) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 1141.8  |  BIC: 1179.3  |  RMSE: 0.00
+  Ljung-Box p-value: 0.0370
+
+------------------------------------------------------------
+Estimando: BP - Bienes (neto)
+  ARIMA(2, 1, 2) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 857.7  |  BIC: 895.2  |  RMSE: 0.00
+  Ljung-Box p-value: 0.2787
+
+------------------------------------------------------------
+Estimando: BP - Servicios (neto)
+  ARIMA(2, 1, 2) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 973.3  |  BIC: 1010.8  |  RMSE: 0.00
+  Ljung-Box p-value: 0.9889
+
+------------------------------------------------------------
+Estimando: BP - Ingresos Primarios
+  ARIMA(2, 1, 2) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 944.1  |  BIC: 981.6  |  RMSE: 0.00
+  Ljung-Box p-value: 0.9371
+
+------------------------------------------------------------
+Estimando: BP - Ingresos Secundarios
+  ARIMA(2, 1, 2) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 815.9  |  BIC: 853.5  |  RMSE: 0.00
+  Ljung-Box p-value: 0.5626
+
+------------------------------------------------------------
+Estimando: BP - Cuenta Capital
+  ARIMA(2, 1, 2) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 593.9  |  BIC: 631.4  |  RMSE: 0.00
+  Ljung-Box p-value: 0.9834
+
+------------------------------------------------------------
+Estimando: BP - Inversion Directa
+  ARIMA(2, 1, 2) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 1184.8  |  BIC: 1222.4  |  RMSE: 0.00
+  Ljung-Box p-value: 0.0283
+
+------------------------------------------------------------
+Estimando: BP - Inversion Cartera
+  ARIMA(2, 1, 2) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 1275.0  |  BIC: 1312.5  |  RMSE: 0.00
+  Ljung-Box p-value: 0.4226
+
+------------------------------------------------------------
+Estimando: BP - Otra Inversion
+  ARIMA(2, 1, 2) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 1332.8  |  BIC: 1370.4  |  RMSE: 0.00
+  Ljung-Box p-value: 0.8840
+
+------------------------------------------------------------
+Estimando: BP - Activos de Reserva
+  ARIMA(2, 1, 2) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 1334.5  |  BIC: 1372.0  |  RMSE: 0.00
+  Ljung-Box p-value: 0.9083
+
+------------------------------------------------------------
+Estimando: BP - Errores y Omisiones
+  ARIMA(2, 1, 2) + exogena(s): ['saldo_comercial', 'dummy_covid', 'dummy_cepo']
+  AIC: 1076.4  |  BIC: 1113.9  |  RMSE: 0.00
+  Ljung-Box p-value: 0.7172
+
+------------------------------------------------------------
+Estimando: Deuda Externa - Gobierno General
+  ARIMA(4, 1, 0) + exogena(s): ['res_pbi', 'mep', 'dummy_covid', 'dummy_cepo']
+  AIC: 1490.7  |  BIC: 1531.6  |  RMSE: 0.00
+  Ljung-Box p-value: 0.8165
+
+------------------------------------------------------------
+Estimando: Deuda Externa - Banco Central
+  ARIMA(4, 1, 0) + exogena(s): ['res_pbi', 'mep', 'dummy_covid', 'dummy_cepo']
+  AIC: 1362.2  |  BIC: 1403.1  |  RMSE: 0.00
+  Ljung-Box p-value: 0.8022
+
+------------------------------------------------------------
+Estimando: Deuda Externa - Bancos
+  ARIMA(4, 1, 0) + exogena(s): ['res_pbi', 'mep', 'dummy_covid', 'dummy_cepo']
+  AIC: 1148.4  |  BIC: 1189.3  |  RMSE: 0.00
+  Ljung-Box p-value: 0.9765
+
+------------------------------------------------------------
+Estimando: Deuda Externa - Otros Sectores
+  ARIMA(4, 1, 0) + exogena(s): ['res_pbi', 'mep', 'dummy_covid', 'dummy_cepo']
+  AIC: 1334.5  |  BIC: 1375.4  |  RMSE: 0.00
+  Ljung-Box p-value: 0.6845
+
+------------------------------------------------------------
+Estimando: Deuda Externa - Corto Plazo
+  ARIMA(4, 1, 0) + exogena(s): ['res_pbi', 'mep', 'dummy_covid', 'dummy_cepo']
+  AIC: 1453.7  |  BIC: 1494.6  |  RMSE: 0.00
+  Ljung-Box p-value: 0.9021
+
+------------------------------------------------------------
+Estimando: Deuda Externa - Largo Plazo
+  ARIMA(4, 1, 0) + exogena(s): ['res_pbi', 'mep', 'dummy_covid', 'dummy_cepo']
+  AIC: 1520.9  |  BIC: 1561.8  |  RMSE: 0.00
+  Ljung-Box p-value: 0.7389
+
+------------------------------------------------------------
+Estimando: Deuda Externa - Inversion Directa
+  ARIMA(4, 1, 0) + exogena(s): ['res_pbi', 'mep', 'dummy_covid', 'dummy_cepo']
+  AIC: 1329.8  |  BIC: 1370.7  |  RMSE: 0.00
+  Ljung-Box p-value: 0.9794
+
+------------------------------------------------------------
+Estimando: Consumo Privado
+  ARIMA(2, 1, 2) + exogena(s): ['emae', 'dummy_covid', 'dummy_cepo']
+  AIC: 1878.8  |  BIC: 1917.4  |  RMSE: 0.00
+  Ljung-Box p-value: 0.9745
+
+------------------------------------------------------------
+Estimando: Consumo Publico
+  ARIMA(2, 1, 2) + exogena(s): ['emae', 'dummy_covid', 'dummy_cepo']
+  AIC: 1536.3  |  BIC: 1575.0  |  RMSE: 0.00
+  Ljung-Box p-value: 0.3023
+
+------------------------------------------------------------
+Estimando: FBKF
+  ARIMA(2, 1, 2) + exogena(s): ['emae', 'dummy_covid', 'dummy_cepo']
+  AIC: 1768.4  |  BIC: 1807.0  |  RMSE: 0.00
+  Ljung-Box p-value: 0.8665
+
+------------------------------------------------------------
+Estimando: Exportaciones (CN)
+  ARIMA(2, 1, 2) + exogena(s): ['emae', 'dummy_covid', 'dummy_cepo']
+  AIC: 1795.1  |  BIC: 1833.7  |  RMSE: 0.00
+  Ljung-Box p-value: 0.4480
+
+------------------------------------------------------------
+Estimando: Importaciones (CN)
+  ARIMA(2, 1, 2) + exogena(s): ['emae', 'dummy_covid', 'dummy_cepo']
+  AIC: 1826.2  |  BIC: 1864.9  |  RMSE: 0.00
+  Ljung-Box p-value: 0.4680
+
+------------------------------------------------------------
+Derivando PBI nominal y PBI USD desde PBI Constante...
+  [derivado] pbi_nominal_kalman.csv  (264 filas)
+  [derivado] pbi_usd_kalman.csv  (264 filas)
+Derivando nominales de Cuentas Nacionales...
+  [derivado] od_cpriv_nominal_kalman.csv  (264 filas)
+  [derivado] od_cpub_nominal_kalman.csv  (264 filas)
+  [derivado] od_fbkf_nominal_kalman.csv  (264 filas)
+  [derivado] od_expo_nominal_kalman.csv  (264 filas)
+  [derivado] od_impo_nominal_kalman.csv  (264 filas)
+
+Reporte: C:\Users\Usuario\Desktop\MARTIN\ECONOMICS\TRABAJO FINAL\Trabajo\outputs\kalman\reporte_kalman.md
+
+======================================================================
+RESUMEN DE PARAMETROS ESTIMADOS
+======================================================================
+
+SE - Nivel (Mill. ARS):
+  intercept                      = -7394.420645
+  superavit_primario             =     0.734549
+  dummy_covid                    = -27218.181976
+  dummy_cepo                     =  4975.856734
+  ar.L1                          =    -0.035317
+  ar.L2                          =     0.421951
+  ar.L3                          =     0.039752
+  ar.L4                          =    -0.141435
+  ma.L1                          =    -5.837512
+  ma.L2                          =    -0.002375
+  ma.L3                          =     1.060902
+  ma.L4                          =    -6.195115
+  ar.S.L12                       =     0.905676
+  ma.S.L12                       =     0.452246
+  sigma2                         = 401453397.202709
+
+PBI Constante:
+  intercept                      =    -3.633878
+  emae                           =  4679.302524
+  dummy_covid                    = -11076.780768
+  dummy_cepo                     =  3486.561301
+  ar.L1                          =    -0.403060
+  ar.L2                          =    -0.826865
+  ar.L3                          =    -0.118335
+  ar.L4                          =    -0.344968
+  ma.L1                          = 11033.234302
+  ma.L2                          = -1708.355870
+  ma.L3                          = -9223.762518
+  ma.L4                          =  -186.636401
+  ar.S.L12                       =     0.979604
+  ma.S.L12                       =    -0.585322
+  sigma2                         =     0.598749
+
+Total Cuenta Corriente:
+  intercept                      =    -1.647106
+  saldo_comercial                =     0.891539
+  dummy_covid                    =   307.502727
+  dummy_cepo                     =   100.864441
+  ar.L1                          =     0.672151
+  ar.L2                          =    -0.392720
+  ar.L3                          =    -0.118171
+  ar.L4                          =     0.033929
+  ma.L1                          =   175.024684
+  ar.S.L12                       =     0.381947
+  ma.S.L12                       =     0.026665
+  sigma2                         =     0.928352
+
+Total Cuenta Financiera:
+  intercept                      =    -2.374090
+  saldo_comercial                =     0.985322
+  dummy_covid                    =   762.868262
+  dummy_cepo                     =   246.674956
+  ar.L1                          =     0.452161
+  ma.L1                          =   366.829017
+  ma.L2                          =  -410.656144
+  ma.L3                          =    -7.399806
+  ma.L4                          =     4.410037
+  ar.S.L12                       =     0.213468
+  ma.S.L12                       =     0.189051
+  sigma2                         =     1.114468
+
+Deuda Externa Bruta Total:
+  intercept                      =   409.238271
+  res_pbi                        = -32404.979530
+  mep                            =     4.926519
+  dummy_covid                    = -2366.130686
+  dummy_cepo                     = -10511.624655
+  ar.L1                          =     0.606967
+  ar.L2                          =    -0.312929
+  ar.L3                          =    -0.036905
+  ar.L4                          =     0.314611
+  ar.S.L12                       =    -0.241056
+  ma.S.L12                       =     0.313269
+  sigma2                         = 4502537.104474
+
+Deuda Bruta Total:
+  intercept                      =  2307.961168
+  res_pbi                        = 3014891.864215
+  mep                            =   -14.438583
+  dummy_covid                    = -2185.668739
+  dummy_cepo                     =  5514.501765
+  ar.L1                          =    -0.204809
+  ar.L2                          =    -0.123783
+  ar.L3                          =    -0.092847
+  ar.L4                          =    -0.035188
+  ar.S.L12                       =     0.220600
+  ma.S.L12                       =    -0.326438
+  sigma2                         = 66766821.669852
+
+Vencimientos USD 1 anio:
+  intercept                      =   106.149403
+  dummy_covid                    = -3045.765146
+  dummy_cepo                     =   316.076686
+  ma.L1                          =  4624.486882
+  ma.L2                          =  -353.824369
+  ma.L3                          =  -782.055501
+  ma.L4                          =  -268.242300
+  ar.S.L12                       =    -0.006708
+  ma.S.L12                       =    -0.001604
+  sigma2                         =     1.196543
+
+Vencimientos USD 2 anios:
+  intercept                      =   169.622657
+  dummy_covid                    = -1570.279669
+  dummy_cepo                     =   644.405965
+  ma.L1                          =  4801.970746
+  ma.L2                          =   -94.140429
+  ma.L3                          =  -119.504929
+  ma.L4                          =   -78.451639
+  ar.S.L12                       =     0.123210
+  ma.S.L12                       =     0.113207
+  sigma2                         =     1.010703
+
+BP - Bienes y Servicios:
+  intercept                      =    -0.888940
+  saldo_comercial                =     0.861855
+  dummy_covid                    =    74.805572
+  dummy_cepo                     =    42.869952
+  ar.L1                          =     0.642590
+  ar.L2                          =    -0.548970
+  ma.L1                          =   178.860757
+  ma.L2                          =   -12.538430
+  ar.S.L12                       =     0.377124
+  ma.S.L12                       =    -0.069878
+  sigma2                         =     0.976440
+
+BP - Bienes (neto):
+  intercept                      =     0.341058
+  saldo_comercial                =     0.988143
+  dummy_covid                    = 124325.021228
+  dummy_cepo                     =   175.321828
+  ar.L1                          =    -0.666272
+  ar.L2                          =    -0.540534
+  ma.L1                          =   312.847827
+  ma.L2                          =  -748.847086
+  ar.S.L12                       =     6.969068
+  ma.S.L12                       =    -6.265636
+  sigma2                         =    14.857558
+
+BP - Servicios (neto):
+  intercept                      =    -0.184077
+  saldo_comercial                =     0.067648
+  dummy_covid                    =   230.689946
+  dummy_cepo                     =   -47.103429
+  ar.L1                          =     0.599301
+  ar.L2                          =    -0.393740
+  ma.L1                          =    68.079641
+  ma.L2                          =    -3.531755
+  ar.S.L12                       =     1.045121
+  ma.S.L12                       =    -0.770694
+  sigma2                         =     0.637932
+
+BP - Ingresos Primarios:
+  intercept                      =    -1.314500
+  saldo_comercial                =     0.024346
+  dummy_covid                    =   218.609996
+  dummy_cepo                     =    78.224972
+  ar.L1                          =     0.752162
+  ar.L2                          =    -0.504076
+  ma.L1                          =    37.302000
+  ma.L2                          =    -1.205339
+  ar.S.L12                       =     0.048450
+  ma.S.L12                       =    -0.051999
+  sigma2                         =     1.124798
+
+BP - Ingresos Secundarios:
+  intercept                      =     0.131830
+  saldo_comercial                =     0.014951
+  dummy_covid                    =    -9.621655
+  dummy_cepo                     =    -4.285807
+  ar.L1                          =     0.632366
+  ar.L2                          =    -0.103363
+  ma.L1                          =    19.703255
+  ma.L2                          =   -20.711483
+  ar.S.L12                       =     0.576546
+  ma.S.L12                       =    -0.142164
+  sigma2                         =     3.239535
+
+BP - Cuenta Capital:
+  intercept                      =     0.008018
+  saldo_comercial                =     0.001508
+  dummy_covid                    =    -0.935745
+  dummy_cepo                     =    -9.377488
+  ar.L1                          =     0.757252
+  ar.L2                          =    -0.204221
+  ma.L1                          =     3.517994
+  ma.L2                          =    -4.521283
+  ar.S.L12                       =     0.866428
+  ma.S.L12                       =    -1.064611
+  sigma2                         =     1.596746
+
+BP - Inversion Directa:
+  intercept                      =     4.413134
+  saldo_comercial                =     0.293662
+  dummy_covid                    =   253.058443
+  dummy_cepo                     =  -146.896366
+  ar.L1                          =     0.707099
+  ar.L2                          =    -0.527561
+  ma.L1                          =   208.668827
+  ma.L2                          =   -12.639583
+  ar.S.L12                       =    -0.107048
+  ma.S.L12                       =     0.011129
+  sigma2                         =     1.104957
+
+BP - Inversion Cartera:
+  intercept                      =     0.445294
+  saldo_comercial                =    -0.190800
+  dummy_covid                    =  -124.513572
+  dummy_cepo                     =   406.934445
+  ar.L1                          =     0.888436
+  ar.L2                          =    -0.552411
+  ma.L1                          =   347.583656
+  ma.L2                          =   -93.141889
+  ar.S.L12                       =    -0.162208
+  ma.S.L12                       =     0.561655
+  sigma2                         =     1.245055
+
+BP - Otra Inversion:
+  intercept                      =    -2.619589
+  saldo_comercial                =     0.000093
+  dummy_covid                    =  -916.618857
+  dummy_cepo                     =  1497.979594
+  ar.L1                          =     0.895757
+  ar.L2                          =    -0.690604
+  ma.L1                          =   523.506822
+  ma.L2                          =  -268.418628
+  ar.S.L12                       =     0.022149
+  ma.S.L12                       =    -0.231696
+  sigma2                         =     1.960233
+
+BP - Activos de Reserva:
+  intercept                      =     4.677794
+  saldo_comercial                =     0.154778
+  dummy_covid                    =   -79.147434
+  dummy_cepo                     = -1290.099345
+  ar.L1                          =     0.063087
+  ar.L2                          =    -0.445539
+  ma.L1                          =   762.597994
+  ma.L2                          =  -762.550044
+  ar.S.L12                       =    -0.164093
+  ma.S.L12                       =     0.200552
+  sigma2                         =     3.059664
+
+BP - Errores y Omisiones:
+  intercept                      =    -1.616473
+  saldo_comercial                =    -0.034710
+  dummy_covid                    =   197.423921
+  dummy_cepo                     =   -63.906424
+  ar.L1                          =     0.281227
+  ar.L2                          =    -0.633992
+  ma.L1                          =   170.462425
+  ma.L2                          =  -171.533178
+  ar.S.L12                       =     0.254582
+  ma.S.L12                       =    -0.114379
+  sigma2                         =     1.524734
+
+Deuda Externa - Gobierno General:
+  intercept                      =   180.662137
+  res_pbi                        = 311892.259915
+  mep                            =    -7.773420
+  dummy_covid                    =  -965.072558
+  dummy_cepo                     = -5928.575170
+  ar.L1                          =     0.741696
+  ar.L2                          =    -0.389975
+  ar.L3                          =    -0.050325
+  ar.L4                          =     0.315766
+  ar.S.L12                       =     0.063404
+  ma.S.L12                       =     0.088504
+  sigma2                         = 2135223.082741
+
+Deuda Externa - Banco Central:
+  intercept                      =   100.800722
+  res_pbi                        = 289129.548534
+  mep                            =    -4.936393
+  dummy_covid                    =  -435.723091
+  dummy_cepo                     = -2573.511423
+  ar.L1                          =     0.736126
+  ar.L2                          =    -0.054401
+  ar.L3                          =    -0.156859
+  ar.L4                          =    -0.144953
+  ar.S.L12                       =     0.297878
+  ma.S.L12                       =    -0.643793
+  sigma2                         = 274231.142997
+
+Deuda Externa - Bancos:
+  intercept                      =    -1.825862
+  res_pbi                        = -37635.028359
+  mep                            =     0.073354
+  dummy_covid                    =  -555.074953
+  dummy_cepo                     =   -45.991008
+  ar.L1                          =     0.819787
+  ar.L2                          =    -0.357934
+  ar.L3                          =     0.014669
+  ar.L4                          =     0.156762
+  ar.S.L12                       =    -0.172027
+  ma.S.L12                       =     0.306989
+  sigma2                         = 18595.929067
+
+Deuda Externa - Otros Sectores:
+  intercept                      =    15.992200
+  res_pbi                        = -207379.882376
+  mep                            =     4.304050
+  dummy_covid                    = -4854.263120
+  dummy_cepo                     = -1150.115757
+  ar.L1                          =     0.806600
+  ar.L2                          =    -0.236678
+  ar.L3                          =    -0.006308
+  ar.L4                          =     0.083369
+  ar.S.L12                       =    -0.285612
+  ma.S.L12                       =     0.538197
+  sigma2                         = 212463.252669
+
+Deuda Externa - Corto Plazo:
+  intercept                      =   -53.380020
+  res_pbi                        = -129072.818076
+  mep                            =     5.854017
+  dummy_covid                    = -11736.547945
+  dummy_cepo                     = -3189.870657
+  ar.L1                          =     0.841128
+  ar.L2                          =    -0.242789
+  ar.L3                          =    -0.061076
+  ar.L4                          =     0.062733
+  ar.S.L12                       =    -0.163171
+  ma.S.L12                       =     0.034010
+  sigma2                         = 966060.926703
+
+Deuda Externa - Largo Plazo:
+  intercept                      =   297.236276
+  res_pbi                        = 172046.436568
+  mep                            =    -1.836800
+  dummy_covid                    =  4756.651059
+  dummy_cepo                     = -7131.661877
+  ar.L1                          =     0.626138
+  ar.L2                          =    -0.390341
+  ar.L3                          =    -0.067726
+  ar.L4                          =     0.415637
+  ar.S.L12                       =     0.103201
+  ma.S.L12                       =     0.077961
+  sigma2                         = 3611165.640173
+
+Deuda Externa - Inversion Directa:
+  intercept                      =    53.378907
+  res_pbi                        = -46326.053362
+  mep                            =     8.416686
+  dummy_covid                    =  4369.344034
+  dummy_cepo                     =  -219.892065
+  ar.L1                          =     0.751111
+  ar.L2                          =    -0.213357
+  ar.L3                          =    -0.149077
+  ar.L4                          =    -0.008164
+  ar.S.L12                       =     0.183068
+  ma.S.L12                       =     0.003686
+  sigma2                         = 208455.723450
+
+Consumo Privado:
+  intercept                      =    33.188603
+  emae                           =  2802.294280
+  dummy_covid                    = -15352.462199
+  dummy_cepo                     =  1281.319463
+  ar.L1                          =     0.048523
+  ar.L2                          =    -0.690314
+  ma.L1                          =  8279.180561
+  ma.L2                          = -3658.370580
+  ar.S.L12                       =     0.935635
+  ma.S.L12                       =    -0.587039
+  sigma2                         =     2.218841
+
+Consumo Publico:
+  intercept                      =   -15.340929
+  emae                           =   147.354332
+  dummy_covid                    =  1559.291151
+  dummy_cepo                     = -1031.146560
+  ar.L1                          =     0.762034
+  ar.L2                          =    -0.368815
+  ma.L1                          =  1330.986035
+  ma.L2                          =  -169.782525
+  ar.S.L12                       =     0.972726
+  ma.S.L12                       =    -0.283868
+  sigma2                         =     0.355762
+
+FBKF:
+  intercept                      =     8.525783
+  emae                           =   889.455450
+  dummy_covid                    =  6864.334934
+  dummy_cepo                     =  6223.272303
+  ar.L1                          =     0.845887
+  ar.L2                          =    -0.308755
+  ma.L1                          =  3469.992744
+  ma.L2                          =    95.086089
+  ar.S.L12                       =     1.024014
+  ma.S.L12                       =    -0.922472
+  sigma2                         =     0.547604
+
+Exportaciones (CN):
+  intercept                      =    40.864515
+  emae                           =  1335.609362
+  dummy_covid                    = -8297.740791
+  dummy_cepo                     =  1679.841189
+  ar.L1                          =     0.844179
+  ar.L2                          =    -0.474371
+  ma.L1                          =  5430.024525
+  ma.L2                          =  -548.088779
+  ar.S.L12                       =     0.999720
+  ma.S.L12                       =    -0.831928
+  sigma2                         =     0.430611
+
+Importaciones (CN):
+  intercept                      =   172.779785
+  emae                           =   -10.584603
+  dummy_covid                    = -4433.966349
+  dummy_cepo                     = -1326.364501
+  ar.L1                          =     0.827650
+  ar.L2                          =    -0.222279
+  ma.L1                          =  3854.447255
+  ma.L2                          =   -36.465800
+  ar.S.L12                       =     0.239305
+  ma.S.L12                       =     0.026892
+  sigma2                         =     0.979679
+
+======================================================================
+Todos los graficos y reportes guardados en:
+  C:\Users\Usuario\Desktop\MARTIN\ECONOMICS\TRABAJO FINAL\Trabajo\outputs\kalman
+======================================================================
